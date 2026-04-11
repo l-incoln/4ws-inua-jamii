@@ -3,83 +3,41 @@ import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { ArrowRight, Heart, BookOpen, Sprout, DollarSign, Users, Globe } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Programs',
-  description: 'Explore 4W\'S Inua Jamii Foundation\'s comprehensive programs transforming communities.',
+  description: "Explore 4W'S Inua Jamii Foundation's comprehensive programs transforming communities.",
 }
 
-const programs = [
-  {
-    slug: 'community-health',
-    icon: Heart,
-    title: 'Community Health',
-    description: 'Providing accessible healthcare services, health education, maternal care, and wellness programs to underserved communities across Kenya.',
-    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80',
-    stats: [{ label: 'People Served', value: '2,000+' }, { label: 'Health Camps', value: '45' }, { label: 'Counties', value: '6' }],
-    color: 'text-rose-600',
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
-  },
-  {
-    slug: 'education',
-    icon: BookOpen,
-    title: 'Education & Youth',
-    description: 'Scholarships, mentorship programs, digital literacy, and learning resources empowering the next generation to achieve their full potential.',
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80',
-    stats: [{ label: 'Students Supported', value: '800+' }, { label: 'Scholarships', value: '150' }, { label: 'Schools', value: '22' }],
-    color: 'text-sky-600',
-    bg: 'bg-sky-50',
-    border: 'border-sky-200',
-  },
-  {
-    slug: 'economic-empowerment',
-    icon: DollarSign,
-    title: 'Economic Empowerment',
-    description: 'Business training, microfinancing, market linkages, and enterprise development programs lifting families out of poverty.',
-    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80',
-    stats: [{ label: 'Businesses Supported', value: '500+' }, { label: 'Jobs Created', value: '1,200+' }, { label: 'Loans Disbursed', value: 'KES 5M' }],
-    color: 'text-sky-600',
-    bg: 'bg-sky-50',
-    border: 'border-sky-200',
-  },
-  {
-    slug: 'environment',
-    icon: Sprout,
-    title: 'Environment',
-    description: 'Tree planting campaigns, clean-up drives, sustainable agriculture, and climate change awareness preserving Kenya\'s natural heritage.',
-    image: 'https://images.unsplash.com/photo-1542601906897-a38c29ee85c6?w=800&q=80',
-    stats: [{ label: 'Trees Planted', value: '50,000+' }, { label: 'Clean-up Sites', value: '80+' }, { label: 'Volunteers', value: '200+' }],
-    color: 'text-primary-600',
-    bg: 'bg-primary-50',
-    border: 'border-primary-200',
-  },
-  {
-    slug: 'women-empowerment',
-    icon: Users,
-    title: 'Women Empowerment',
-    description: 'Skills training, financial literacy, leadership development, and support networks empowering women to lead and thrive.',
-    image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80',
-    stats: [{ label: 'Women Reached', value: '1,000+' }, { label: 'Groups Formed', value: '35' }, { label: 'Trained', value: '650+' }],
-    color: 'text-purple-600',
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-  },
-  {
-    slug: 'community-infrastructure',
-    icon: Globe,
-    title: 'Community Infrastructure',
-    description: 'Water access, sanitation facilities, community centers, and sustainable infrastructure improving quality of life.',
-    image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
-    stats: [{ label: 'Projects Completed', value: '18' }, { label: 'Households Benefited', value: '3,000+' }, { label: 'Wells Drilled', value: '12' }],
-    color: 'text-teal-600',
-    bg: 'bg-teal-50',
-    border: 'border-teal-200',
-  },
-]
+const iconMap: Record<string, LucideIcon> = {
+  Heart, BookOpen, Sprout, DollarSign, Users, Globe,
+}
 
-export default function ProgramsPage() {
+const colorSchemes = [
+  { color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200' },
+  { color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200' },
+  { color: 'text-primary-600', bg: 'bg-primary-50', border: 'border-primary-200' },
+  { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
+  { color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
+  { color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
+] as const
+
+async function getPrograms() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('programs')
+    .select('id, slug, title, description, icon, image_url, beneficiaries')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+  return data ?? []
+}
+
+export default async function ProgramsPage() {
+  const programs = await getPrograms()
+
   return (
     <>
       <Navbar />
@@ -103,45 +61,55 @@ export default function ProgramsPage() {
         {/* Programs Grid */}
         <section className="py-16 md:py-24 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {programs.map(({ slug, icon: Icon, title, description, image, stats, color, bg, border }) => (
-                <div key={slug} className={`card border-t-4 ${border}`}>
-                  <div className="relative h-52">
-                    <Image src={image} alt={title} fill className="object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  </div>
-                  <div className="p-6">
-                    <div className={`w-11 h-11 ${bg} rounded-xl flex items-center justify-center mb-4`}>
-                      <Icon className={`w-5 h-5 ${color}`} />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-                    <p className="mt-2 text-sm text-slate-500 leading-relaxed line-clamp-3">{description}</p>
-
-                    {/* Stats */}
-                    <div className="mt-4 grid grid-cols-3 gap-2 py-4 border-t border-b border-gray-100">
-                      {stats.map(({ label, value }) => (
-                        <div key={label} className="text-center">
-                          <div className={`text-lg font-extrabold ${color}`}>{value}</div>
-                          <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+            {programs.length === 0 ? (
+              <p className="text-center text-slate-500 py-12">No programs found.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {programs.map((program, idx) => {
+                  const Icon = iconMap[program.icon ?? ''] ?? Globe
+                  const scheme = colorSchemes[idx % colorSchemes.length]
+                  return (
+                    <div key={program.id} className={`card border-t-4 ${scheme.border}`}>
+                      <div className="relative h-52 bg-gray-100">
+                        {program.image_url ? (
+                          <>
+                            <Image src={program.image_url} alt={program.title} fill className="object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          </>
+                        ) : (
+                          <div className={`absolute inset-0 ${scheme.bg} flex items-center justify-center`}>
+                            <Icon className={`w-16 h-16 ${scheme.color} opacity-30`} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-6">
+                        <div className={`w-11 h-11 ${scheme.bg} rounded-xl flex items-center justify-center mb-4`}>
+                          <Icon className={`w-5 h-5 ${scheme.color}`} />
                         </div>
-                      ))}
+                        <h2 className="text-xl font-bold text-slate-900">{program.title}</h2>
+                        <p className="mt-2 text-sm text-slate-500 leading-relaxed line-clamp-3">{program.description}</p>
+                        {program.beneficiaries && (
+                          <div className="mt-4 py-3 border-t border-b border-gray-100">
+                            <div className={`text-lg font-extrabold ${scheme.color}`}>{program.beneficiaries.toLocaleString()}+</div>
+                            <div className="text-xs text-slate-400 mt-0.5">Beneficiaries</div>
+                          </div>
+                        )}
+                        <Link
+                          href={`/programs/${program.slug}`}
+                          className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold ${scheme.color} hover:gap-2.5 transition-all`}
+                        >
+                          Learn More <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      </div>
                     </div>
-
-                    <Link
-                      href={`/programs/${slug}`}
-                      className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold ${color} hover:gap-2.5 transition-all`}
-                    >
-                      Learn More <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </section>
       </main>
       <Footer />
     </>
   )
-}
-
+}
