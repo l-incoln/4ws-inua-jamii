@@ -2,50 +2,75 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, Play, ChevronDown } from 'lucide-react'
+import { ArrowRight, Play, ChevronDown, Users, Globe, Heart } from 'lucide-react'
+
+const stats = [
+  { value: '5,000+', label: 'Beneficiaries', icon: Users },
+  { value: '12',     label: 'Active Programs', icon: Globe },
+  { value: '350+',   label: 'Volunteers', icon: Heart },
+]
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background */}
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden noise-overlay">
+      {/* Deep layered background */}
       <div className="absolute inset-0 bg-hero-gradient" />
 
-      {/* Animated background circles */}
+      {/* Animated glow orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Large centre glow */}
         <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.15, 0.1] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-400 rounded-full blur-3xl opacity-10"
+          animate={{ scale: [1, 1.25, 1], opacity: [0.12, 0.22, 0.12] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-1/3 left-1/3 w-[600px] h-[600px] rounded-full blur-[120px]"
+          style={{ background: 'radial-gradient(circle, #2D5CC8 0%, transparent 70%)' }}
         />
+        {/* Sky-blue top-right orb */}
         <motion.div
-          animate={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.15, 0.1] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-sky-400 rounded-full blur-3xl opacity-10"
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.10, 0.18, 0.10] }}
+          transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          className="absolute -top-20 right-0 w-[480px] h-[480px] rounded-full blur-[100px]"
+          style={{ background: 'radial-gradient(circle, #4FA3D1 0%, transparent 70%)' }}
         />
-        {/* Grid pattern */}
+        {/* Green bottom-left orb */}
+        <motion.div
+          animate={{ scale: [1, 1.3, 1], opacity: [0.06, 0.14, 0.06] }}
+          transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 5 }}
+          className="absolute bottom-0 -left-20 w-[400px] h-[400px] rounded-full blur-[90px]"
+          style={{ background: 'radial-gradient(circle, #6DBE45 0%, transparent 70%)' }}
+        />
+
+        {/* Dot grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.07]"
           style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)
-            `,
-            backgroundSize: '60px 60px',
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
           }}
+        />
+
+        {/* Diagonal light streak */}
+        <div
+          className="absolute top-0 left-1/4 w-px h-full opacity-[0.08]"
+          style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,1) 50%, transparent 100%)', transform: 'rotate(18deg) scaleY(2)', transformOrigin: 'top' }}
         />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 w-full">
         <div className="text-center max-w-4xl mx-auto">
+
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 glass border border-white/20 rounded-full px-5 py-2 text-sm text-white/90 mb-8"
+            className="inline-flex items-center gap-2.5 glass border border-white/20 rounded-full px-5 py-2.5 text-sm text-white/90 mb-9"
           >
-            <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-400" />
+            </span>
             Transforming Communities Across Kenya
           </motion.div>
 
@@ -54,16 +79,19 @@ export default function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight"
+            className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight"
           >
             Building{' '}
-            <span className="relative">
-              <span className="text-sky-400">Stronger</span>
+            <span className="relative inline-block">
+              <span className="text-gradient-sky bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent">
+                Stronger
+              </span>
               <motion.span
-                className="absolute -bottom-2 left-0 right-0 h-1 bg-sky-400 rounded-full"
-                initial={{ scaleX: 0 }}
+                className="absolute -bottom-1.5 left-0 right-0 h-[3px] rounded-full"
+                style={{ background: 'linear-gradient(90deg, #38BDF8, #7DD3FC)' }}
+                initial={{ scaleX: 0, originX: 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ duration: 0.8, delay: 0.8 }}
+                transition={{ duration: 0.9, delay: 0.9 }}
               />
             </span>
             <br />
@@ -75,7 +103,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-7 text-lg md:text-xl text-primary-100 max-w-2xl mx-auto leading-relaxed"
+            className="mt-7 text-lg md:text-xl text-primary-100/90 max-w-2xl mx-auto leading-relaxed"
           >
             4W&apos;S Inua Jamii Foundation unites passionate individuals to uplift communities
             through health, education, economic empowerment, and environmental stewardship.
@@ -94,31 +122,34 @@ export default function Hero() {
             </Link>
             <Link
               href="/about"
-              className="flex items-center gap-2.5 text-white/90 hover:text-white transition-colors text-sm font-semibold group"
+              className="flex items-center gap-3 text-white/90 hover:text-white transition-colors text-sm font-semibold group w-full sm:w-auto justify-center"
             >
-              <div className="w-12 h-12 rounded-full glass border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                <Play className="w-4 h-4 fill-current" />
+              <div className="w-12 h-12 rounded-full glass border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-all duration-200 group-hover:scale-110">
+                <Play className="w-4 h-4 fill-current ml-0.5" />
               </div>
               Watch Our Story
             </Link>
           </motion.div>
 
-          {/* Stats row */}
+          {/* Floating stat cards */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-14"
+            className="mt-14 grid grid-cols-3 gap-4 max-w-2xl mx-auto"
           >
-            {[
-              { value: '5,000+', label: 'Beneficiaries' },
-              { value: '12', label: 'Programs' },
-              { value: '350+', label: 'Volunteers' },
-            ].map(({ value, label }) => (
-              <div key={label} className="text-center">
-                <div className="text-3xl font-extrabold text-white">{value}</div>
-                <div className="text-xs text-primary-200 mt-0.5 uppercase tracking-wider">{label}</div>
-              </div>
+            {stats.map(({ value, label, icon: Icon }, i) => (
+              <motion.div
+                key={label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
+                className="glass border border-white/10 rounded-2xl px-4 py-5 text-center group hover:bg-white/15 transition-colors duration-200"
+              >
+                <Icon className="w-5 h-5 text-sky-300 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                <div className="text-2xl md:text-3xl font-extrabold text-white leading-none">{value}</div>
+                <div className="text-[11px] text-primary-200 mt-1.5 uppercase tracking-widest leading-tight">{label}</div>
+              </motion.div>
             ))}
           </motion.div>
         </div>
@@ -128,10 +159,10 @@ export default function Hero() {
       <motion.div
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/50"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors cursor-pointer"
       >
-        <span className="text-xs">Scroll to explore</span>
-        <ChevronDown className="w-5 h-5" />
+        <span className="text-[11px] uppercase tracking-widest">Scroll to explore</span>
+        <ChevronDown className="w-4 h-4" />
       </motion.div>
     </section>
   )

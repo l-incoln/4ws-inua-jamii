@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2, HandHeart, Leaf, BookOpen, Stethoscope, ClipboardList, Megaphone } from 'lucide-react'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -198,6 +198,89 @@ export default function AboutPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+        {/* Volunteer section */}
+        <section className="py-16 md:py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <span className="badge-green text-xs uppercase tracking-widest mb-3 inline-block">
+                  Get Involved
+                </span>
+                <h2 className="section-title">Volunteer With Us</h2>
+                <p className="section-subtitle mt-3">
+                  Your time and skills can transform lives. Join 350+ volunteers who give back to
+                  Kenyan communities every year.
+                </p>
+                <div className="mt-8 space-y-3">
+                  {[
+                    { icon: Stethoscope, label: 'Health Outreach', desc: 'Support medical camps and wellness drives in underserved areas.' },
+                    { icon: BookOpen,     label: 'Education Support', desc: 'Tutor students, donate supplies, or mentor youth.' },
+                    { icon: Leaf,         label: 'Environmental Projects', desc: 'Tree-planting, clean-ups, and sustainability campaigns.' },
+                    { icon: ClipboardList,label: 'Event & Admin Help', desc: 'Coordinate events, manage registrations, and assist operations.' },
+                    { icon: Megaphone,    label: 'Community Mobilisation', desc: 'Spread awareness and bring new members into the movement.' },
+                  ].map(({ icon: Icon, label, desc }) => (
+                    <div key={label} className="flex items-start gap-4 p-4 rounded-2xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 transition-colors">
+                      <div className="w-9 h-9 bg-primary-100 rounded-xl flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-primary-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800 text-sm">{label}</div>
+                        <div className="text-sm text-slate-500 mt-0.5">{desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                  <Link href="/auth/signup" className="btn-primary">
+                    <HandHeart className="w-4 h-4" />
+                    Become a Volunteer
+                  </Link>
+                  <Link href="/contact" className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-primary-300 text-primary-700 font-semibold text-sm hover:bg-primary-50 transition-colors">
+                    Ask Us a Question
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div className="rounded-3xl overflow-hidden h-44 relative">
+                      <Image
+                        src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600&q=80"
+                        alt="Volunteers working together"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="rounded-3xl overflow-hidden h-56 relative">
+                      <Image
+                        src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=600&q=80"
+                        alt="Community health outreach"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4 mt-8">
+                    <div className="rounded-3xl overflow-hidden h-56 relative">
+                      <Image
+                        src="https://images.unsplash.com/photo-1542810634-71277d95dcbb?w=600&q=80"
+                        alt="Education support"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="rounded-3xl overflow-hidden h-44 relative bg-primary-600 flex flex-col items-center justify-center text-white p-6">
+                      <div className="text-4xl font-extrabold">350+</div>
+                      <div className="text-sm text-primary-200 mt-1 text-center">Active volunteers across Kenya</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

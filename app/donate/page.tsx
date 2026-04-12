@@ -1,50 +1,15 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { Heart, Shield, Zap, Users2, CreditCard, Smartphone } from 'lucide-react'
+import DonateForm from '@/components/donate/DonateForm'
+import { createClient } from '@/lib/supabase/server'
+import { Heart, Shield, Zap, Users2 } from 'lucide-react'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Donate',
   description: 'Support 4W\'S Inua Jamii Foundation and help transform communities across Kenya.',
 }
-
-const campaigns = [
-  {
-    id: '1',
-    title: 'Education for 100 Students',
-    description: 'Help us fund school fees, uniforms, and learning materials for 100 underprivileged students this term.',
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80',
-    raised: 185000,
-    goal: 300000,
-    donors: 47,
-    daysLeft: 20,
-    category: 'Education',
-  },
-  {
-    id: '2',
-    title: 'Mobile Health Clinic Equipment',
-    description: 'Purchase essential medical equipment for our mobile health clinic serving remote communities.',
-    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80',
-    raised: 420000,
-    goal: 600000,
-    donors: 93,
-    daysLeft: 35,
-    category: 'Health',
-  },
-  {
-    id: '3',
-    title: '10,000 More Trees in 2026',
-    description: 'Join our reforestation drive. Every donation plants a tree and supports a family through the green economy.',
-    image: 'https://images.unsplash.com/photo-1503455637927-730bce8583c0?w=800&q=80',
-    raised: 72000,
-    goal: 150000,
-    donors: 28,
-    daysLeft: 60,
-    category: 'Environment',
-  },
-]
 
 const impactAmounts = [
   { amount: 500, impact: 'Feeds a family for a week during our food support program' },
@@ -54,7 +19,17 @@ const impactAmounts = [
   { amount: 10000, impact: 'Plants 100 trees in a reforestation site' },
 ]
 
-export default function DonatePage() {
+export default async function DonatePage() {
+  const supabase = await createClient()
+
+  const { data: campaigns } = await supabase
+    .from('donation_campaigns')
+    .select('id, title, description, goal, raised, image_url, deadline')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
+  const activeCampaigns = campaigns ?? []
+
   return (
     <>
       <Navbar />
@@ -97,7 +72,88 @@ export default function DonatePage() {
           </div>
         </div>
 
-        {/* Active Campaigns */}
+        <section className="py-16 md:py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            {/* Active Campaigns */}
+            {activeCampaigns.length > 0 && (
+              <div className="mb-16">
+                <div className="text-center mb-10">
+                  <h2 className="text-3xl font-bold text-slate-900">Active Campaigns</h2>
+                  <p className="text-slate-500 mt-2">Choose a campaign to support or make a general donation below.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeCampaigns.map((campaign) => {
+                    const raised = Number(campaign.raised)
+                    const goal   = Number(campaign.goal)
+                    const progress = goal > 0 ? Math.min(Math.round((raised / goal) * 100), 100) : 0
+                    const daysLeft = campaign.deadline
+                      ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - Date.now()) / 86400000))
+                      : null
+                    return (
+                      <div key={campaign.id} className="card overflow-hidden">
+                        <div className="relative h-48 bg-gray-100">
+                          {campaign.image_url && (
+                            <Image src={campaign.image_url} alt={campaign.title} fill className="object-cover" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          {daysLeft !== null && (
+                            <div className="absolute bottom-3 right-3 bg-white/90 rounded-lg px-2 py-1 text-xs font-bold text-primary-700">
+                              {daysLeft} days left
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-5">
+                          <h3 className="font-bold text-slate-900 text-lg">{campaign.title}</h3>
+                          {campaign.description && (
+                            <p className="text-sm text-slate-500 mt-1.5 leading-relaxed line-clamp-2">{campaign.description}</p>
+                          )}
+                          <div className="mt-4">
+                            <div className="flex justify-between text-sm mb-1.5">
+                              <span className="font-bold text-primary-700">KES {raised.toLocaleString()}</span>
+                              <span className="text-slate-400">of KES {goal.toLocaleString()}</span>
+                            </div>
+                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1.5">{progress}% funded</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Donation Form */}
+            <DonateForm campaigns={activeCampaigns.map((c) => ({ id: c.id, title: c.title }))} />
+
+            {/* Impact calculator */}
+            <div className="max-w-2xl mx-auto mt-14">
+              <h3 className="text-xl font-bold text-slate-900 text-center mb-6">What Your Donation Does</h3>
+              <div className="space-y-3">
+                {impactAmounts.map(({ amount, impact }) => (
+                  <div key={amount} className="flex items-start gap-4 p-4 rounded-xl bg-white border border-gray-100 shadow-sm">
+                    <div className="text-lg font-extrabold text-primary-600 min-w-[90px]">
+                      KES {amount.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-slate-600 leading-relaxed">{impact}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">

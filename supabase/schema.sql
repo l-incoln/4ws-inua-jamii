@@ -426,3 +426,38 @@ CREATE POLICY "uploads: admin delete"
     )
   );
 
+
+-- ============================================================
+-- CONTACT MESSAGES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name       TEXT NOT NULL,
+  email      TEXT NOT NULL,
+  subject    TEXT NOT NULL,
+  message    TEXT NOT NULL,
+  is_read    BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can submit a contact message
+CREATE POLICY "contact_messages: public insert"
+  ON public.contact_messages FOR INSERT
+  WITH CHECK (TRUE);
+
+-- Only admins can read messages
+CREATE POLICY "contact_messages: admin read"
+  ON public.contact_messages FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Only admins can update (mark as read) or delete messages
+CREATE POLICY "contact_messages: admin manage"
+  ON public.contact_messages FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+

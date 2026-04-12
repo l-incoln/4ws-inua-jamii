@@ -19,7 +19,7 @@ const config: Config = {
           600: '#1E3A8A',   // ← brand core
           700: '#162C6E',
           800: '#0F1F50',
-          900: '#081232',
+          900: '#050D1F',
         },
         // 2. Sky Blue — secondary: backgrounds, highlights, cards
         sky: {
@@ -41,6 +41,17 @@ const config: Config = {
           600: '#559135',
           700: '#3E6A27',
         },
+        // 5. Gold / Amber — warm CTA accent
+        gold: {
+          50:  '#FFFBEB',
+          100: '#FEF3C7',
+          200: '#FDE68A',
+          300: '#FCD34D',
+          400: '#FBBF24',
+          500: '#F59E0B',
+          600: '#D97706',
+          700: '#B45309',
+        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
@@ -61,8 +72,11 @@ const config: Config = {
         },
       },
       backgroundImage: {
-        'hero-gradient': 'linear-gradient(135deg, #0A1438 0%, #1E3A8A 60%, #2D5CC8 100%)',
+        'hero-gradient': 'linear-gradient(135deg, #050D1F 0%, #0A1440 35%, #1E3A8A 70%, #2D5CC8 100%)',
+        'cta-gradient':  'linear-gradient(135deg, #0F1F50 0%, #1E3A8A 50%, #162C6E 100%)',
+        'gold-gradient': 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
         'section-gradient': 'linear-gradient(180deg, #EEF8FD 0%, #ffffff 100%)',
+        'card-shine': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%)',
       },
     },
   },

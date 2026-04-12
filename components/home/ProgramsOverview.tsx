@@ -58,8 +58,12 @@ const programs = [
 
 export default function ProgramsOverview() {
   return (
-    <section className="py-16 md:py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 md:py-24 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #F8FAFF 0%, #EEF4FF 100%)' }}>
+      {/* Subtle diagonal stripe */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{ backgroundImage: 'repeating-linear-gradient(45deg, #1E3A8A 0, #1E3A8A 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -93,34 +97,36 @@ export default function ProgramsOverview() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
             >
-              <Link href={`/programs/${slug}`} className="group block">
-                <div className={`card border ${border} overflow-hidden`}>
+              <Link href={`/programs/${slug}`} className="group block h-full">
+                <div className={`card-elevated border ${border} overflow-hidden h-full flex flex-col`}>
                   {/* Image */}
-                  <div className="relative h-44 overflow-hidden">
+                  <div className="relative h-48 overflow-hidden shrink-0">
                     <Image
                       src={image}
                       alt={title}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="object-cover group-hover:scale-110 transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    <span className={`absolute bottom-3 left-3 badge ${bg} ${color} text-xs font-bold`}>
+                    {/* Multi-stop gradient overlay */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.65) 100%)' }} />
+                    {/* Category icon in top-right */}
+                    <div className={`absolute top-3 right-3 w-9 h-9 ${bg} rounded-xl flex items-center justify-center shadow-md backdrop-blur-sm`}>
+                      <Icon className={`w-4.5 h-4.5 ${color}`} />
+                    </div>
+                    <span className="absolute bottom-3 left-3 badge bg-white/90 text-slate-700 shadow text-xs font-bold">
                       {stats}
                     </span>
                   </div>
                   {/* Content */}
-                  <div className="p-5">
-                    <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center mb-3`}>
-                      <Icon className={`w-5 h-5 ${color}`} />
-                    </div>
-                    <h3 className="font-bold text-slate-900 group-hover:text-primary-700 transition-colors">
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="font-extrabold text-slate-900 group-hover:text-primary-700 transition-colors text-base">
                       {title}
                     </h3>
-                    <p className="text-sm text-slate-500 mt-1.5 leading-relaxed line-clamp-3">
+                    <p className="text-sm text-slate-500 mt-2 leading-relaxed line-clamp-3 flex-1">
                       {description}
                     </p>
-                    <span className={`mt-3 inline-flex items-center gap-1 text-sm font-semibold ${color}`}>
-                      Learn more <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    <span className={`mt-4 inline-flex items-center gap-1 text-sm font-bold ${color} group-hover:gap-2 transition-all`}>
+                      Explore <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>

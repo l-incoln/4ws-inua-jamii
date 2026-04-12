@@ -23,6 +23,7 @@ const navLinks = [
   },
   { label: 'Events', href: '/events' },
   { label: 'Blog', href: '/blog' },
+  { label: 'Contact', href: '/contact' },
   { label: 'Donate', href: '/donate' },
 ]
 
@@ -69,17 +70,18 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-primary-600 flex items-center justify-center shadow-md group-hover:bg-primary-700 transition-colors">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform"
+              style={{ background: 'linear-gradient(135deg, #2D5CC8 0%, #1E3A8A 100%)' }}>
               <Leaf className="w-5 h-5 text-white" />
             </div>
             <div className="hidden sm:block">
-              <span className={`font-bold text-lg leading-none ${
+              <span className={`font-extrabold text-lg leading-none tracking-tight ${
                 scrolled || !isHomePage ? 'text-slate-900' : 'text-white'
               }`}>
                 4W&apos;S Inua Jamii
               </span>
-              <p className={`text-xs leading-none mt-0.5 ${
-                scrolled || !isHomePage ? 'text-primary-600' : 'text-primary-200'
+              <p className={`text-[11px] font-semibold leading-none mt-0.5 uppercase tracking-widest ${
+                scrolled || !isHomePage ? 'text-primary-500' : 'text-primary-200'
               }`}>Foundation</p>
             </div>
           </Link>
@@ -125,19 +127,34 @@ export default function Navbar() {
                     )}
                   </AnimatePresence>
                 </div>
+              ) : link.label === 'Donate' ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="btn-gold !px-5 !py-2 !text-sm ml-1"
+                >
+                  {link.label}
+                </Link>
               ) : (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     pathname === link.href
-                      ? 'text-primary-600 bg-primary-50'
+                      ? scrolled || !isHomePage ? 'text-primary-600' : 'text-white'
                       : scrolled || !isHomePage
                       ? 'text-slate-700 hover:text-primary-600 hover:bg-primary-50'
                       : 'text-white/90 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {link.label}
+                  {pathname === link.href && (
+                    <motion.span
+                      layoutId="nav-underline"
+                      className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full"
+                      style={{ background: scrolled || !isHomePage ? '#1E3A8A' : '#38BDF8' }}
+                    />
+                  )}
                 </Link>
               )
             )}
@@ -206,20 +223,31 @@ export default function Navbar() {
             className="lg:hidden bg-white border-t border-gray-100 shadow-lg"
           >
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    pathname === link.href
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-slate-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) =>
+                link.label === 'Donate' ? (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className="block btn-gold text-center mt-1"
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <Link
+                    key={link.href ?? link.label}
+                    href={link.href ?? '#'}
+                    onClick={() => setIsOpen(false)}
+                    className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                      pathname === link.href
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'text-slate-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )
+              )}
               <div className="pt-2 border-t border-gray-100 flex flex-col gap-2">
                 {user ? (
                   <>

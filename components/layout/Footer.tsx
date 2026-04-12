@@ -38,13 +38,17 @@ const socialLinks = [
 export default function Footer() {
   return (
     <footer className="bg-slate-900 text-slate-300">
+      {/* Gradient accent bar */}
+      <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #1E3A8A 0%, #4FA3D1 35%, #6DBE45 65%, #F59E0B 100%)' }} />
+
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10">
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-primary-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+                style={{ background: 'linear-gradient(135deg, #2D5CC8 0%, #1E3A8A 100%)' }}>
                 <Leaf className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -120,24 +124,25 @@ export default function Footer() {
       </div>
 
       {/* Newsletter */}
-      <div className="border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="border-t border-slate-800 bg-slate-800/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <h3 className="text-white font-semibold">Stay Updated</h3>
-              <p className="text-sm text-slate-400 mt-0.5">
-                Get the latest news and updates from the foundation.
+              <h3 className="text-white font-bold text-lg">Stay in the Loop</h3>
+              <p className="text-sm text-slate-400 mt-1 leading-relaxed">
+                Get the latest impact stories, events, and updates from the foundation.
               </p>
             </div>
-            <form className="flex gap-3 w-full md:w-auto">
+            <form className="flex gap-2 w-full md:w-auto">
               <input
                 type="email"
-                placeholder="Enter your email"
-                className="flex-1 md:w-64 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                placeholder="Your email address"
+                className="flex-1 md:w-72 rounded-xl bg-slate-700/70 border border-slate-600 px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
+                className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all hover:scale-[1.03] active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', boxShadow: '0 4px 16px rgba(245,158,11,0.35)' }}
               >
                 Subscribe
               </button>

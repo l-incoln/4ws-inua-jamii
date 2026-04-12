@@ -2,16 +2,34 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Save, Camera, CheckCircle2 } from 'lucide-react'
-import type { Metadata } from 'next'
+import { Loader2, Save, CheckCircle2 } from 'lucide-react'
+
+const tierLabels: Record<string, string> = {
+  basic: 'Basic Member',
+  active: 'Active Member',
+  champion: 'Champion',
+}
+
+const statusColors: Record<string, string> = {
+  approved: 'badge-green',
+  pending: 'badge-sky',
+  rejected: 'badge-red',
+}
 
 export default function ProfilePage() {
   const supabase = createClient()
-  const [user, setUser] = useState<{ id: string; email: string; user_metadata: Record<string, string> } | null>(null)
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [profile, setProfile] = useState<{
+    tier: string
+    membership_status: string
+    role: string
+    created_at: string
+  } | null>(null)
 
   const [form, setForm] = useState({
     full_name: '',
@@ -21,19 +39,30 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUser(user as typeof user & { email: string; user_metadata: Record<string, string> })
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      setEmail(user.email ?? '')
+
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('full_name, phone, bio, location, tier, membership_status, role, created_at')
+        .eq('id', user.id)
+        .single()
+
+      if (p) {
+        setProfile({ tier: p.tier, membership_status: p.membership_status, role: p.role, created_at: p.created_at })
         setForm({
-          full_name: user.user_metadata?.full_name || '',
-          phone: user.user_metadata?.phone || '',
-          bio: user.user_metadata?.bio || '',
-          location: user.user_metadata?.location || '',
+          full_name: p.full_name || '',
+          phone: p.phone || '',
+          bio: p.bio || '',
+          location: p.location || '',
         })
       }
       setLoading(false)
-    })
-  }, [supabase.auth])
+    }
+    load()
+  }, [supabase])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -41,13 +70,21 @@ export default function ProfilePage() {
     setError(null)
     setSuccess(false)
 
-    const { error } = await supabase.auth.updateUser({
-      data: form,
-    })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSaving(false); setError('Not authenticated.'); return }
+
+    // Update profiles table
+    const { error: dbErr } = await supabase
+      .from('profiles')
+      .update({ full_name: form.full_name, phone: form.phone, bio: form.bio, location: form.location })
+      .eq('id', user.id)
+
+    // Keep auth metadata in sync too
+    await supabase.auth.updateUser({ data: { full_name: form.full_name, phone: form.phone } })
 
     setSaving(false)
-    if (error) {
-      setError(error.message)
+    if (dbErr) {
+      setError(dbErr.message)
     } else {
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -60,6 +97,10 @@ export default function ProfilePage() {
     .slice(0, 2)
     .join('')
     .toUpperCase() || '??'
+
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })
+    : '—'
 
   if (loading) {
     return (
@@ -78,18 +119,15 @@ export default function ProfilePage() {
 
       {/* Avatar */}
       <div className="card p-6 flex items-center gap-5">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-2xl">
-            {initials}
-          </div>
-          <button className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-primary-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-primary-700 transition-colors">
-            <Camera className="w-3.5 h-3.5" />
-          </button>
+        <div className="w-20 h-20 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-2xl flex-shrink-0">
+          {initials}
         </div>
         <div>
           <div className="font-bold text-slate-900">{form.full_name || 'Your Name'}</div>
-          <div className="text-sm text-slate-500">{user?.email}</div>
-          <span className="badge-green mt-1 inline-block text-xs">Basic Member</span>
+          <div className="text-sm text-slate-500">{email}</div>
+          <span className={`${statusColors[profile?.membership_status ?? 'pending'] ?? 'badge-gray'} mt-1 inline-block text-xs`}>
+            {tierLabels[profile?.tier ?? 'basic'] ?? 'Member'}
+          </span>
         </div>
       </div>
 
@@ -98,22 +136,29 @@ export default function ProfilePage() {
         <h2 className="font-bold text-slate-900 mb-4">Membership Status</h2>
         <div className="grid grid-cols-2 gap-4">
           {[
-            { label: 'Membership Tier', value: 'Basic' },
-            { label: 'Member Since', value: 'April 2026' },
-            { label: 'Status', value: 'Active' },
-            { label: 'Role', value: 'Member' },
+            { label: 'Membership Tier', value: tierLabels[profile?.tier ?? 'basic'] ?? 'Basic' },
+            { label: 'Member Since', value: memberSince },
+            { label: 'Status', value: profile?.membership_status ?? 'pending' },
+            { label: 'Role', value: profile?.role ?? 'member' },
           ].map(({ label, value }) => (
             <div key={label}>
               <div className="text-xs text-slate-400 uppercase tracking-wide">{label}</div>
-              <div className="text-sm font-semibold text-slate-800 mt-0.5">{value}</div>
+              <div className="text-sm font-semibold text-slate-800 mt-0.5 capitalize">{value}</div>
             </div>
           ))}
         </div>
-        <div className="mt-5 p-4 bg-primary-50 rounded-xl border border-primary-100">
-          <p className="text-sm text-slate-700 font-medium">Want more access?</p>
-          <p className="text-xs text-slate-500 mt-0.5">Upgrade to Active Member for exclusive event access and program benefits.</p>
-          <button className="btn-primary text-xs mt-3">Upgrade Membership</button>
-        </div>
+        {profile?.membership_status === 'pending' && (
+          <div className="mt-5 p-4 bg-sky-50 rounded-xl border border-sky-100">
+            <p className="text-sm text-sky-800 font-medium">Application Under Review</p>
+            <p className="text-xs text-sky-600 mt-0.5">Your membership application is being reviewed. You&apos;ll be notified once approved.</p>
+          </div>
+        )}
+        {profile?.tier === 'basic' && profile?.membership_status === 'approved' && (
+          <div className="mt-5 p-4 bg-primary-50 rounded-xl border border-primary-100">
+            <p className="text-sm text-slate-700 font-medium">Want more access?</p>
+            <p className="text-xs text-slate-500 mt-0.5">Upgrade to Active Member for exclusive event access and program benefits.</p>
+          </div>
+        )}
       </div>
 
       {/* Edit form */}
@@ -182,7 +227,7 @@ export default function ProfilePage() {
             <input
               type="email"
               className="input bg-gray-50 cursor-not-allowed"
-              value={user?.email || ''}
+              value={email}
               disabled
             />
             <p className="text-xs text-slate-400 mt-1">Email cannot be changed here. Contact support.</p>
