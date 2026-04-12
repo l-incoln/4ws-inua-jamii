@@ -18,6 +18,7 @@ const navItems = [
   { href: '/dashboard/profile', label: 'My Profile', icon: User },
   { href: '/dashboard/events', label: 'My Events', icon: CalendarCheck },
   { href: '/dashboard/feed', label: 'Activity Feed', icon: Rss },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
 export default async function DashboardLayout({

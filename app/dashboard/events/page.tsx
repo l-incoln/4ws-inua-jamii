@@ -26,8 +26,9 @@ export default async function MyEventsPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Fetch upcoming (confirmed / waitlisted) RSVPs
-  const { data: upcomingRsvps } = await supabase
+  // Fetch ALL user RSVPs with event data, then filter in JS
+  // (PostgREST doesn't support filtering on related-table columns via .gte/.lt on joined tables)
+  const { data: allRsvps } = await supabase
     .from('rsvps')
     .select(`
       id, status,
@@ -36,27 +37,19 @@ export default async function MyEventsPage() {
       )
     `)
     .eq('user_id', user.id)
-    .in('status', ['confirmed', 'waitlisted'])
-    .gte('events.event_date', today)
     .order('created_at', { ascending: false })
 
-  // Fetch past attended RSVPs
-  const { data: pastRsvps } = await supabase
-    .from('rsvps')
-    .select(`
-      id, status,
-      event:events (
-        id, title, location, event_date, image_url, category
-      )
-    `)
-    .eq('user_id', user.id)
-    .eq('status', 'confirmed')
-    .lt('events.event_date', today)
-    .order('created_at', { ascending: false })
-    .limit(10)
+  // Filter in JS: upcoming = confirmed/waitlisted for future events
+  const upcoming = (allRsvps ?? []).filter((r) => {
+    const ev = r.event as unknown as { event_date: string } | null
+    return ev && ['confirmed', 'waitlisted'].includes(r.status) && ev.event_date >= today
+  })
 
-  const upcoming = (upcomingRsvps ?? []).filter((r) => r.event)
-  const past = (pastRsvps ?? []).filter((r) => r.event)
+  // past = confirmed events that already passed
+  const past = (allRsvps ?? []).filter((r) => {
+    const ev = r.event as unknown as { event_date: string } | null
+    return ev && r.status === 'confirmed' && ev.event_date < today
+  }).slice(0, 10)
 
   return (
     <div className="space-y-8">

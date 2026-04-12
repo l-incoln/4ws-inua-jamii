@@ -36,9 +36,13 @@ export default async function AdminLayout({
 
   if (!user) redirect('/auth/login')
 
-  // In production, check role from profiles table
-  // const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  // if (profile?.role !== 'admin') redirect('/dashboard')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, full_name')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') redirect('/dashboard')
 
   const displayName = user.user_metadata?.full_name || 'Administrator'
   const initials = displayName.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()

@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import { Calendar, Clock, ArrowLeft, Tag } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 
 type Props = { params: { slug: string } }
 
@@ -32,7 +34,9 @@ export default async function BlogPostPage({ params }: Props) {
   const author = Array.isArray(authorArr) ? (authorArr[0] ?? null) : null
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-white">
       {/* Hero */}
       <div className="relative h-80 sm:h-96 lg:h-[28rem]">
         {post.image_url ? (
@@ -128,5 +132,7 @@ export default async function BlogPostPage({ params }: Props) {
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   )
 }

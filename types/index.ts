@@ -1,170 +1,152 @@
-// ─── USER / AUTH ──────────────────────────────────────────────────────────────
-export type UserRole = 'public' | 'member' | 'admin'
+﻿// â”€â”€â”€ USER / AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export type UserRole = 'member' | 'volunteer' | 'admin'
+export type MembershipTier = 'basic' | 'active' | 'champion'
+export type MembershipStatus = 'pending' | 'approved' | 'rejected'
 
-export type MembershipTier = 'basic' | 'active' | 'champion' | 'pioneer'
-
-export interface UserProfile {
-  id: string
-  email: string
+export interface Profile {
+  id: string               // auth.users FK
   full_name: string
-  phone?: string
-  avatar_url?: string
+  email: string | null
+  phone: string | null
+  avatar_url: string | null
+  bio: string | null
+  location: string | null
   role: UserRole
-  membership_tier: MembershipTier
-  bio?: string
-  location?: string
-  joined_at: string
-  is_verified: boolean
-}
-
-// ─── MEMBERSHIP APPLICATION ────────────────────────────────────────────────────
-export type ApplicationStatus = 'pending' | 'approved' | 'rejected'
-
-export interface MemberApplication {
-  id: string
-  user_id: string
-  full_name: string
-  email: string
-  phone: string
-  occupation: string
-  motivation: string
-  expected_contribution: string
-  status: ApplicationStatus
-  reviewed_by?: string
-  reviewed_at?: string
-  created_at: string
-  user?: UserProfile
-}
-
-// ─── PROGRAMS ─────────────────────────────────────────────────────────────────
-export interface Program {
-  id: string
-  slug: string
-  title: string
-  description: string
-  full_description?: string
-  icon?: string
-  image_url?: string
-  impact_stats?: Record<string, string | number>
-  gallery?: string[]
-  is_active: boolean
+  tier: MembershipTier
+  membership_status: MembershipStatus
   created_at: string
   updated_at: string
 }
 
-// ─── EVENTS ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ PROGRAMS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export interface Program {
+  id: string
+  slug: string
+  title: string
+  description: string | null
+  icon: string | null
+  image_url: string | null
+  beneficiaries: number
+  is_active: boolean
+  created_at: string
+}
+
+// â”€â”€â”€ EVENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export type EventStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
 
 export interface Event {
   id: string
   title: string
-  description: string
-  full_description?: string
+  description: string | null
   location: string
   event_date: string
-  end_date?: string
-  image_url?: string
-  gallery?: string[]
-  max_attendees?: number
+  end_date: string | null
+  image_url: string | null
+  max_attendees: number | null
   status: EventStatus
-  program_id?: string
+  program_id: string | null
   created_by: string
   created_at: string
-  updated_at: string
-  rsvp_count?: number
-  program?: Program
 }
 
-// ─── RSVPs ────────────────────────────────────────────────────────────────────
-export type RSVPStatus = 'confirmed' | 'waitlisted' | 'cancelled'
-
+// â”€â”€â”€ RSVPs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface RSVP {
   id: string
   event_id: string
   user_id: string
-  status: RSVPStatus
   created_at: string
-  event?: Event
-  user?: UserProfile
 }
 
-// ─── BLOG / CONTENT ───────────────────────────────────────────────────────────
-export type PostCategory = 'impact' | 'stories' | 'updates' | 'announcements'
-export type PostStatus = 'draft' | 'published' | 'archived'
+// â”€â”€â”€ BLOG / CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export type BlogStatus = 'draft' | 'published' | 'scheduled'
 
 export interface BlogPost {
   id: string
   slug: string
   title: string
-  excerpt: string
-  content: string
-  cover_image?: string
-  category: PostCategory
-  status: PostStatus
+  excerpt: string | null
+  body: string | null          // NOT "content" â€” the column is "body"
+  image_url: string | null
+  category: string | null
+  tags: string[] | null
+  status: BlogStatus
   author_id: string
-  published_at?: string
+  read_time: string | null
+  views: number
+  published_at: string | null
   created_at: string
-  updated_at: string
-  author?: UserProfile
-  tags?: string[]
 }
 
-// ─── ANNOUNCEMENTS ────────────────────────────────────────────────────────────
+// â”€â”€â”€ ANNOUNCEMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface Announcement {
   id: string
   title: string
-  content: string
+  body: string
   is_pinned: boolean
+  expires_at: string | null
   author_id: string
   created_at: string
-  author?: UserProfile
 }
 
-// ─── DONATIONS ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ DONATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export type DonationStatus = 'pending' | 'completed' | 'failed' | 'refunded'
-export type PaymentMethod = 'mpesa' | 'card' | 'bank_transfer' | 'cash'
 
 export interface DonationCampaign {
   id: string
   title: string
-  description: string
-  goal_amount: number
-  current_amount: number
-  image_url?: string
+  description: string | null
+  goal: number               // column is "goal", not "goal_amount"
+  raised: number
+  image_url: string | null
   is_active: boolean
-  end_date?: string
+  end_date: string | null
   created_at: string
 }
 
 export interface Donation {
   id: string
-  campaign_id?: string
-  donor_id?: string
-  donor_name?: string
-  donor_email?: string
+  campaign_id: string | null
+  donor_name: string | null
+  donor_email: string | null
   amount: number
   currency: string
-  payment_method: PaymentMethod
-  transaction_ref?: string
+  payment_method: string | null
+  transaction_ref: string | null
   status: DonationStatus
-  message?: string
+  message: string | null
   is_anonymous: boolean
   created_at: string
-  campaign?: DonationCampaign
 }
 
-// ─── IMPACT METRICS ───────────────────────────────────────────────────────────
+// â”€â”€â”€ IMPACT METRICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface ImpactMetric {
   id: string
-  metric_key: string
-  metric_label: string
-  metric_value: number
-  unit?: string
-  icon?: string
+  label: string
+  value: number
+  unit: string | null
+  icon: string | null
+  sort_order: number
+}
+
+// â”€â”€â”€ CONTACT MESSAGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  subject: string | null
+  message: string
+  is_read: boolean
+  created_at: string
+}
+
+// â”€â”€â”€ SITE SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export interface SiteSetting {
+  key: string
+  value: string
   updated_at: string
 }
 
-// ─── API RESPONSES ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ API HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface ApiResponse<T> {
   data: T | null
   error: string | null

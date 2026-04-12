@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import AdminContentClient from '@/components/admin/AdminContentClient'
-import { deleteBlogPost, togglePostStatus } from '@/app/actions/admin'
+import { deleteBlogPost, togglePostStatus, saveProgram, deleteProgram, toggleProgramStatus } from '@/app/actions/admin'
 
 export const metadata = { title: 'Content Management — Admin' }
 
@@ -27,8 +27,10 @@ export default async function AdminContentPage() {
       programs={programs as any[]}
       deleteBlogPost={deleteBlogPost}
       togglePostStatus={togglePostStatus}
+      saveProgram={saveProgram}
+      deleteProgram={deleteProgram}
+      toggleProgramStatus={toggleProgramStatus}
     />
   )
 }
-
 

@@ -4,39 +4,26 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Users, CalendarCheck, Globe, Heart } from 'lucide-react'
 
-const stats = [
-  {
-    icon: Users,
-    value: 5000,
-    label: 'Lives Touched',
-    suffix: '+',
-    accent: 'from-sky-400 to-sky-300',
-    ring: 'ring-sky-400/30',
-  },
-  {
-    icon: CalendarCheck,
-    value: 120,
-    label: 'Events Completed',
-    suffix: '+',
-    accent: 'from-green-400 to-green-300',
-    ring: 'ring-green-400/30',
-  },
-  {
-    icon: Globe,
-    value: 12,
-    label: 'Active Programs',
-    suffix: '',
-    accent: 'from-gold-400 to-gold-300',
-    ring: 'ring-gold-400/30',
-  },
-  {
-    icon: Heart,
-    value: 350,
-    label: 'Volunteers',
-    suffix: '+',
-    accent: 'from-rose-400 to-rose-300',
-    ring: 'ring-rose-400/30',
-  },
+type Metric = {
+  id: string
+  label: string
+  value: number
+  unit: string
+  icon: string
+}
+
+const fallbackStats = [
+  { icon: Users,         value: 5000, label: 'Lives Touched',    suffix: '+', accent: 'from-sky-400 to-sky-300',  ring: 'ring-sky-400/30' },
+  { icon: CalendarCheck, value: 120,  label: 'Events Completed', suffix: '+', accent: 'from-green-400 to-green-300', ring: 'ring-green-400/30' },
+  { icon: Globe,         value: 12,   label: 'Active Programs',  suffix: '',  accent: 'from-gold-400 to-gold-300', ring: 'ring-gold-400/30' },
+  { icon: Heart,         value: 350,  label: 'Volunteers',       suffix: '+', accent: 'from-rose-400 to-rose-300', ring: 'ring-rose-400/30' },
+]
+
+const accentCycle = [
+  { accent: 'from-sky-400 to-sky-300',   ring: 'ring-sky-400/30',   icon: Users },
+  { accent: 'from-green-400 to-green-300', ring: 'ring-green-400/30', icon: CalendarCheck },
+  { accent: 'from-gold-400 to-gold-300', ring: 'ring-gold-400/30',  icon: Globe },
+  { accent: 'from-rose-400 to-rose-300', ring: 'ring-rose-400/30',  icon: Heart },
 ]
 
 function CountUp({ target, duration = 2 }: { target: number; duration?: number }) {
@@ -63,7 +50,19 @@ function CountUp({ target, duration = 2 }: { target: number; duration?: number }
   return <span ref={ref}>{count.toLocaleString()}</span>
 }
 
-export default function ImpactStats() {
+export default function ImpactStats({ metrics = [] }: { metrics?: Metric[] }) {
+  // Build stats from DB data, falling back to hardcoded values
+  const stats = metrics.length > 0
+    ? metrics.map((m, i) => ({
+        icon: accentCycle[i % accentCycle.length].icon,
+        value: m.value,
+        label: m.label,
+        suffix: m.unit || '',
+        accent: accentCycle[i % accentCycle.length].accent,
+        ring: accentCycle[i % accentCycle.length].ring,
+      }))
+    : fallbackStats
+
   return (
     <section className="relative py-20 md:py-28 overflow-hidden noise-overlay">
       {/* Dark gradient background */}

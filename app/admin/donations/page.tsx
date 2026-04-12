@@ -1,15 +1,10 @@
 import { TrendingUp, Heart, Target, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { updateDonationStatus } from '@/app/actions/admin'
+import DonationsTable from '@/components/admin/DonationsTable'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Donations' }
-
-const statusColors: Record<string, string> = {
-  completed: 'badge-green',
-  failed: 'badge-red',
-  pending: 'badge-sky',
-  refunded: 'badge-gray',
-}
 
 const campaignColors = ['bg-sky-500', 'bg-primary-500', 'bg-emerald-600', 'bg-purple-500', 'bg-rose-500']
 
@@ -31,6 +26,13 @@ export default async function AdminDonationsPage() {
 
   const donations = donationsRes.data ?? []
   const campaigns = campaignsRes.data ?? []
+
+  // Flatten campaign title for client component
+  const donationRows = donations.map((d) => ({
+    ...d,
+    campaign_title: (d.donation_campaigns as unknown as { title: string } | null)?.title ?? null,
+    donation_campaigns: undefined,
+  }))
 
   const completed = donations.filter((d) => d.status === 'completed')
   const totalRaised = completed.reduce((sum, d) => sum + (d.amount ?? 0), 0)
@@ -118,51 +120,14 @@ export default async function AdminDonationsPage() {
         {donations.length === 0 ? (
           <div className="py-12 text-center text-slate-400 text-sm">No donations recorded yet.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="table-header">
-                  <th className="px-5 py-3.5 text-left">Donor</th>
-                  <th className="px-5 py-3.5 text-left">Campaign</th>
-                  <th className="px-5 py-3.5 text-left">Amount</th>
-                  <th className="px-5 py-3.5 text-left">Method</th>
-                  <th className="px-5 py-3.5 text-left">Date</th>
-                  <th className="px-5 py-3.5 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {donations.map((d) => {
-                  const campaign = d.donation_campaigns as unknown as { title: string } | null
-                  const displayName = d.is_anonymous ? 'Anonymous' : (d.donor_name || 'Unknown')
-                  const displayEmail = d.is_anonymous ? '—' : (d.donor_email || '—')
-                  return (
-                    <tr key={d.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="table-cell">
-                        <div className="font-semibold text-slate-800">{displayName}</div>
-                        <div className="text-xs text-slate-400">{displayEmail}</div>
-                      </td>
-                      <td className="table-cell">
-                        <span className="badge-gray text-xs">{campaign?.title ?? 'General'}</span>
-                      </td>
-                      <td className="table-cell font-bold text-primary-600">
-                        {d.currency ?? 'KES'} {Number(d.amount).toLocaleString()}
-                      </td>
-                      <td className="table-cell text-sm text-slate-500 capitalize">{d.payment_method ?? '—'}</td>
-                      <td className="table-cell text-sm text-slate-500">
-                        {new Date(d.created_at).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </td>
-                      <td className="table-cell">
-                        <span className={statusColors[d.status] ?? 'badge-gray'}>{d.status}</span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DonationsTable
+            donations={donationRows as any[]}
+            updateDonationStatus={updateDonationStatus}
+          />
         )}
       </div>
     </div>
   )
 }
+
 

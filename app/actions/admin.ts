@@ -355,3 +355,96 @@ export async function saveImpactMetric(formData: FormData, metricId?: string) {
   revalidatePath('/')
   return { success: true }
 }
+
+// ─── Programs ─────────────────────────────────────────────────────────────────
+const ProgramSchema = z.object({
+  title: z.string().min(2, 'Title is required'),
+  slug: z.string().min(2, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens'),
+  description: z.string().min(10, 'Description is required'),
+  icon: z.string().optional(),
+  image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  beneficiary_count: z.coerce.number().int().min(0).optional(),
+  is_active: z.coerce.boolean().optional(),
+})
+
+export async function saveProgram(formData: FormData, programId?: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const raw = {
+    title: formData.get('title'),
+    slug: formData.get('slug'),
+    description: formData.get('description'),
+    icon: formData.get('icon') || undefined,
+    image_url: formData.get('image_url') || undefined,
+    beneficiary_count: formData.get('beneficiary_count') || undefined,
+    is_active: formData.get('is_active') === 'true',
+  }
+
+  const parsed = ProgramSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.errors[0].message }
+
+  const payload = {
+    ...parsed.data,
+    image_url: parsed.data.image_url || null,
+    icon: parsed.data.icon || null,
+  }
+
+  if (programId) {
+    const { error: dbError } = await supabase.from('programs').update(payload).eq('id', programId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase.from('programs').insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/admin/content')
+  revalidatePath('/programs')
+  return { success: true }
+}
+
+export async function deleteProgram(programId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase.from('programs').delete().eq('id', programId)
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/admin/content')
+  revalidatePath('/programs')
+  return { success: true }
+}
+
+export async function toggleProgramStatus(programId: string, isActive: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('programs')
+    .update({ is_active: isActive })
+    .eq('id', programId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/content')
+  revalidatePath('/programs')
+  return { success: true }
+}
+
+// ─── Donation Status Management ───────────────────────────────────────────────
+export async function updateDonationStatus(
+  donationId: string,
+  status: 'completed' | 'failed' | 'refunded'
+) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('donations')
+    .update({ status })
+    .eq('id', donationId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/donations')
+  return { success: true }
+}
+
