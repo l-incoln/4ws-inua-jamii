@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { saveEvent, deleteEvent } from '@/app/actions/admin'
 import {
   PlusCircle, Edit2, Trash2, Calendar, MapPin, Users,
-  Search, X, AlertCircle, CheckCircle, Clock,
+  Search, X, AlertCircle, CheckCircle, Clock, Download,
 } from 'lucide-react'
 import ImageUpload from './ImageUpload'
 
@@ -382,6 +382,14 @@ export default function AdminEventsClient({ events: initial }: { events: Event[]
                       </td>
                       <td className="table-cell">
                         <div className="flex items-center gap-2">
+                          <a
+                            href={`/api/admin/export/events/${event.id}`}
+                            className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                            title="Export attendees"
+                            download
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
                           <button
                             onClick={() => openEdit(event)}
                             disabled={isPending}

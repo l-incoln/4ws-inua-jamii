@@ -10,6 +10,7 @@ import {
   Leaf,
   Settings,
   Bell,
+  FolderOpen,
 } from 'lucide-react'
 import { signOut } from '@/app/actions/auth'
 
@@ -18,7 +19,17 @@ const navItems = [
   { href: '/dashboard/profile', label: 'My Profile', icon: User },
   { href: '/dashboard/events', label: 'My Events', icon: CalendarCheck },
   { href: '/dashboard/feed', label: 'Activity Feed', icon: Rss },
+  { href: '/dashboard/resources', label: 'Resources', icon: FolderOpen },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+]
+
+// Subset shown in mobile bottom bar (max 5)
+const mobileNavItems = [
+  { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { href: '/dashboard/events', label: 'Events', icon: CalendarCheck },
+  { href: '/dashboard/feed', label: 'Feed', icon: Rss },
+  { href: '/dashboard/resources', label: 'Docs', icon: FolderOpen },
+  { href: '/dashboard/profile', label: 'Profile', icon: User },
 ]
 
 export default async function DashboardLayout({
@@ -114,7 +125,7 @@ export default async function DashboardLayout({
 
       {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex">
-        {navItems.map(({ href, label, icon: Icon }) => (
+        {mobileNavItems.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

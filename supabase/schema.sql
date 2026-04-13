@@ -382,6 +382,38 @@ CREATE POLICY "settings: admin write" ON public.site_settings FOR ALL
 
 
 -- ============================================================
+-- DOCUMENTS (constitution, reports, policies)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.documents (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title       TEXT NOT NULL,
+  description TEXT,
+  file_url    TEXT NOT NULL,
+  file_name   TEXT,
+  file_size   BIGINT,
+  category    TEXT DEFAULT 'general' CHECK (category IN ('constitution', 'report', 'policy', 'guide', 'general')),
+  version     TEXT,
+  is_public   BOOLEAN DEFAULT TRUE,
+  uploaded_by UUID REFERENCES public.profiles(id),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER documents_updated_at
+  BEFORE UPDATE ON public.documents
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at();
+
+ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "documents: public read"
+  ON public.documents FOR SELECT USING (is_public = TRUE);
+
+CREATE POLICY "documents: admin full"
+  ON public.documents FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+
+-- ============================================================
 -- STORAGE BUCKET: uploads
 -- Run these in Supabase SQL Editor to enable image uploads.
 -- ============================================================
@@ -392,10 +424,19 @@ VALUES (
   'uploads',
   'uploads',
   TRUE,
-  5242880,   -- 5 MB limit
-  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  20971520,   -- 20 MB limit (documents can be large)
+  ARRAY[
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ]
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 -- Allow anyone to read/download public images
 CREATE POLICY "uploads: public read"

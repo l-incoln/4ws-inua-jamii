@@ -448,3 +448,96 @@ export async function updateDonationStatus(
   return { success: true }
 }
 
+// ─── Bulk Member Actions ───────────────────────────────────────────────────────
+export async function bulkUpdateMemberStatus(
+  profileIds: string[],
+  status: 'approved' | 'rejected' | 'pending'
+) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+  if (!profileIds.length) return { error: 'No members selected' }
+
+  const { error: dbError } = await supabase
+    .from('profiles')
+    .update({ membership_status: status })
+    .in('id', profileIds)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/members')
+  return { success: true, count: profileIds.length }
+}
+
+// ─── Document Management ──────────────────────────────────────────────────────
+export async function saveDocument(formData: FormData, documentId?: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const title       = (formData.get('title') as string)?.trim()
+  const description = (formData.get('description') as string)?.trim() || null
+  const file_url    = (formData.get('file_url') as string)?.trim()
+  const file_name   = (formData.get('file_name') as string)?.trim() || null
+  const category    = (formData.get('category') as string) || 'general'
+  const version     = (formData.get('version') as string)?.trim() || null
+  const is_public   = formData.get('is_public') !== 'false'
+
+  if (!title) return { error: 'Title is required' }
+  if (!file_url) return { error: 'File URL is required' }
+
+  const payload = { title, description, file_url, file_name, category, version, is_public, uploaded_by: user.id }
+
+  if (documentId) {
+    const { uploaded_by: _ub, ...updatePayload } = payload
+    const { error: dbError } = await supabase.from('documents').update(updatePayload).eq('id', documentId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase.from('documents').insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/admin/documents')
+  revalidatePath('/dashboard/resources')
+  return { success: true }
+}
+
+export async function deleteDocument(documentId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase.from('documents').delete().eq('id', documentId)
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/admin/documents')
+  revalidatePath('/dashboard/resources')
+  return { success: true }
+}
+
+export async function uploadDocument(formData: FormData) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const file = formData.get('file') as File
+  if (!file || file.size === 0) return { error: 'No file provided' }
+
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ]
+  if (!allowedTypes.includes(file.type)) return { error: 'Only PDF, Word, and Excel files are allowed' }
+  if (file.size > 20 * 1024 * 1024) return { error: 'File must be under 20MB' }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'pdf'
+  const filename = `documents/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('uploads')
+    .upload(filename, file, { contentType: file.type, upsert: false })
+
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(filename)
+  return { url: publicUrl, name: file.name, size: file.size }
+}
+

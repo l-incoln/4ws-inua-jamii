@@ -94,9 +94,9 @@ export default async function AdminAnalyticsPage() {
           </div>
           <div className="space-y-3">
             {[
-              { key: 'basic', label: 'Basic', color: 'bg-sky-500' },
-              { key: 'active', label: 'Active', color: 'bg-primary-500' },
-              { key: 'champion', label: 'Champion', color: 'bg-amber-500' },
+              { key: 'basic', label: 'Classic', color: 'bg-sky-500' },
+              { key: 'active', label: 'Premium', color: 'bg-primary-500' },
+              { key: 'champion', label: 'Gold', color: 'bg-amber-500' },
             ].map(({ key, label, color }) => {
               const count = tierCounts[key] ?? 0
               const pct = totalMembers > 0 ? Math.round((count / totalMembers) * 100) : 0

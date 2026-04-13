@@ -3,6 +3,20 @@ export type UserRole = 'member' | 'volunteer' | 'admin'
 export type MembershipTier = 'basic' | 'active' | 'champion'
 export type MembershipStatus = 'pending' | 'approved' | 'rejected'
 
+/** Map DB tier values to display labels (Classic / Premium / Gold) */
+export const TIER_LABELS: Record<MembershipTier, string> = {
+  basic: 'Classic',
+  active: 'Premium',
+  champion: 'Gold',
+}
+
+/** Tailwind badge classes per tier */
+export const TIER_COLORS: Record<MembershipTier, string> = {
+  basic: 'badge-gray',
+  active: 'badge-green',
+  champion: 'bg-yellow-100 text-yellow-800 badge',
+}
+
 export interface Profile {
   id: string               // auth.users FK
   full_name: string
@@ -159,4 +173,22 @@ export interface PaginatedResponse<T> {
   page: number
   per_page: number
   total_pages: number
+}
+
+// ─── DOCUMENTS ─────────────────────────────────────────────────────────────────
+export type DocumentCategory = 'constitution' | 'report' | 'policy' | 'guide' | 'general'
+
+export interface Document {
+  id: string
+  title: string
+  description: string | null
+  file_url: string
+  file_name: string | null
+  file_size: number | null
+  category: DocumentCategory
+  version: string | null
+  is_public: boolean
+  uploaded_by: string | null
+  created_at: string
+  updated_at: string
 }

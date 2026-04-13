@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle2, XCircle, RotateCcw, Loader2, ChevronDown } from 'lucide-react'
+import { CheckCircle2, XCircle, RotateCcw, Loader2, ChevronDown, Download } from 'lucide-react'
 
 type Donation = {
   id: string
@@ -34,6 +34,23 @@ export default function DonationsTable({
   const [actionId, setActionId] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [donations, setDonations] = useState<Donation[]>(initialDonations)
+  const [exporting, setExporting] = useState(false)
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await fetch('/api/admin/export/donations')
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `donations-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   function handleUpdate(donationId: string, newStatus: 'completed' | 'failed' | 'refunded') {
     setActionId(donationId)
@@ -50,7 +67,14 @@ export default function DonationsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <button onClick={handleExport} disabled={exporting} className="btn-outline text-sm">
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          Export CSV
+        </button>
+      </div>
+      <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="table-header">
@@ -130,6 +154,7 @@ export default function DonationsTable({
           })}
         </tbody>
       </table>
+    </div>
     </div>
   )
 }

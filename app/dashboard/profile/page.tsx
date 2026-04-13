@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { Loader2, Save, CheckCircle2 } from 'lucide-react'
 
 const tierLabels: Record<string, string> = {
-  basic: 'Basic Member',
-  active: 'Active Member',
-  champion: 'Champion',
+  basic: 'Classic Member',
+  active: 'Premium Member',
+  champion: 'Gold Member',
 }
 
 const statusColors: Record<string, string> = {

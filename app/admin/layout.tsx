@@ -13,6 +13,7 @@ import {
   BarChart3,
   ShieldCheck,
   Megaphone,
+  FolderOpen,
 } from 'lucide-react'
 import { signOut } from '@/app/actions/auth'
 
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/admin/members', label: 'Members', icon: Users },
   { href: '/admin/events', label: 'Events', icon: CalendarDays },
   { href: '/admin/content', label: 'Blog & Content', icon: FileText },
+  { href: '/admin/documents', label: 'Documents', icon: FolderOpen },
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
   { href: '/admin/donations', label: 'Donations', icon: Heart },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
