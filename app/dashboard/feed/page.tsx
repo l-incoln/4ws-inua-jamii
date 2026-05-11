@@ -2,6 +2,8 @@ import { Bell, Megaphone, Star } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Activity Feed' }
 
 function timeAgo(dateStr: string): string {

@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef } from 'react'
 import { uploadImage } from '@/app/actions/admin'
+import { compressImage } from '@/lib/compress-image'
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -16,7 +17,7 @@ interface ImageUploadProps {
 export default function ImageUpload({
   name,
   defaultValue,
-  folder = 'uploads',
+  folder = 'general',
   label = 'Cover Image',
   onChange,
 }: ImageUploadProps) {
@@ -28,9 +29,14 @@ export default function ImageUpload({
 
   const handleFile = (file: File) => {
     setError(null)
-    const fd = new FormData()
-    fd.append('file', file)
     startTransition(async () => {
+      // Compress images client-side before uploading
+      let toUpload = file
+      if (file.type.startsWith('image/') && file.type !== 'image/gif') {
+        try { toUpload = await compressImage(file, { maxWidth: 1400, maxHeight: 1400, quality: 0.82 }) } catch { /* use original */ }
+      }
+      const fd = new FormData()
+      fd.append('file', toUpload)
       const result = await uploadImage(fd, folder)
       if (result.error) {
         setError(result.error)

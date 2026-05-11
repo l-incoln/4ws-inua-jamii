@@ -192,3 +192,125 @@ export interface Document {
   created_at: string
   updated_at: string
 }
+
+// ─── BLOG COMMENTS ─────────────────────────────────────────────────────────────
+export interface BlogComment {
+  id: string
+  post_id: string
+  author_id: string | null
+  author_name: string | null
+  body: string
+  is_approved: boolean
+  parent_id: string | null
+  created_at: string
+  profiles?: { full_name: string; avatar_url: string | null } | null
+}
+
+// ─── PROGRAM APPLICATIONS ──────────────────────────────────────────────────────
+export type ApplicationStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface ProgramApplication {
+  id: string
+  program_id: string
+  user_id: string
+  motivation: string
+  availability: string | null
+  status: ApplicationStatus
+  admin_note: string | null
+  created_at: string
+  updated_at: string
+  programs?: { title: string; slug: string } | null
+  profiles?: { full_name: string; email: string | null } | null
+}
+
+// ─── VOLUNTEER TASKS ───────────────────────────────────────────────────────────
+export type TaskStatus = 'open' | 'claimed' | 'completed' | 'cancelled'
+
+export interface VolunteerTask {
+  id: string
+  title: string
+  description: string | null
+  skills_required: string[] | null
+  deadline: string | null
+  status: TaskStatus
+  claimed_by: string | null
+  claimed_at: string | null
+  completed_at: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  claimer?: { full_name: string } | null
+}
+
+// ─── MEMBERSHIP IDENTITY ──────────────────────────────────────────────────────
+export interface MembershipTerm {
+  id: string
+  user_id: string
+  tier: MembershipTier
+  issued_at: string
+  valid_from: string
+  valid_until: string
+  is_active: boolean
+  issued_by: string | null
+  notes: string | null
+  created_at: string
+  profiles?: Pick<Profile, 'full_name' | 'avatar_url'>
+  membership_tokens?: MembershipToken[]
+}
+
+export interface MembershipToken {
+  id: string
+  term_id: string
+  user_id: string
+  token: string
+  created_at: string
+}
+
+// ─── ACHIEVEMENTS ─────────────────────────────────────────────────────────────
+export type BadgeType =
+  | 'founding_member'
+  | 'active_member'
+  | 'event_hero'
+  | 'volunteer'
+  | 'leader'
+  | 'champion_donor'
+  | 'top_contributor'
+
+export interface MemberBadge {
+  id: string
+  user_id: string
+  badge_type: BadgeType
+  awarded_at: string
+  awarded_by: string | null
+  notes: string | null
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+export type NotificationType =
+  | 'membership_expiry'
+  | 'event_invite'
+  | 'announcement'
+  | 'badge_awarded'
+  | 'general'
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  body: string | null
+  read: boolean
+  link: string | null
+  created_at: string
+}
+
+// ─── IMPACT SCORE ─────────────────────────────────────────────────────────────
+export interface ImpactScore {
+  user_id: string
+  full_name: string | null
+  events_attended: number
+  tasks_completed: number
+  comments_made: number
+  donations_made: number
+  total_score: number
+}

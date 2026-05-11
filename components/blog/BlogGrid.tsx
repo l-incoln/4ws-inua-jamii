@@ -17,8 +17,8 @@ const categoryColors: Record<string, string> = {
   Community:     'badge-gray',
 }
 
-const PLACEHOLDER_IMG    = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80'
-const PLACEHOLDER_AVATAR = 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80'
+const PLACEHOLDER_IMG    = 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'
+const PLACEHOLDER_AVATAR = 'https://images.pexels.com/photos/1667853/pexels-photo-1667853.jpeg'
 
 interface Post {
   id: string

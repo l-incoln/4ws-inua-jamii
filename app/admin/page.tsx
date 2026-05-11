@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Users, CalendarDays, Heart, FileText, TrendingUp, AlertCircle, ArrowRight, ArrowUpRight } from 'lucide-react'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Admin Overview' }
 
 export default async function AdminPage() {

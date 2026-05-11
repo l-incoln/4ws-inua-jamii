@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import BlogEditor from '@/components/admin/BlogEditor'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Edit Post — Admin' }
 
 export default async function EditBlogPostPage({ params }: { params: { id: string } }) {

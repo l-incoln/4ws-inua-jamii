@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { sendEmail, welcomeEmailHtml } from '@/lib/email'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -44,6 +45,25 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = await createClient()
 
+  // Check if signups are enabled in site settings
+  const { data: signupSetting } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'new_signups_enabled')
+    .single()
+
+  if (signupSetting?.value === 'false') {
+    return { error: 'New member registrations are currently closed. Please check back later or contact us.' }
+  }
+
+  // Check auto-approve setting
+  const { data: autoApproveSetting } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'auto_approve_members')
+    .single()
+  const autoApprove = autoApproveSetting?.value === 'true'
+
   const raw = {
     full_name: formData.get('full_name') as string,
     email: formData.get('email') as string,
@@ -62,7 +82,8 @@ export async function signup(formData: FormData) {
     options: {
       data: {
         full_name: parsed.data.full_name,
-        phone: parsed.data.phone,
+        phone:     parsed.data.phone,
+        membership_status: autoApprove ? 'approved' : 'pending',
       },
     },
   })
@@ -76,6 +97,25 @@ export async function signup(formData: FormData) {
 
   if (data?.user && !data?.session) {
     return { success: true, message: 'Check your email to confirm your account.' }
+  }
+
+  // Send welcome email if enabled in CMS
+  if (data?.user) {
+    const { data: emailSettings } = await supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['welcome_email_enabled', 'welcome_email_body', 'from_email', 'from_name'])
+
+    const es = Object.fromEntries((emailSettings ?? []).map((r) => [r.key, r.value ?? '']))
+    if (es.welcome_email_enabled !== 'false') {
+      await sendEmail({
+        to:      parsed.data.email,
+        subject: 'Welcome to ' + (es.from_name || '4W\'S Inua Jamii'),
+        html:    es.welcome_email_body
+          ? `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px">${es.welcome_email_body.replace(/\n/g, '<br/>')}</div>`
+          : welcomeEmailHtml({ name: parsed.data.full_name }),
+      })
+    }
   }
 
   const next = (formData.get('next') as string) || '/dashboard'

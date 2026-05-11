@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react'
 import {
   Search, Filter, CheckCircle, XCircle, Eye, Loader2,
-  UserPlus, Download, Users, ChevronDown,
+  UserPlus, Download, Users, ChevronDown, CreditCard, RefreshCw, X,
 } from 'lucide-react'
-import { updateMemberStatus, updateMemberTier, bulkUpdateMemberStatus } from '@/app/actions/admin'
+import { updateMemberStatus, updateMemberTier, bulkUpdateMemberStatus, issueMembership, createMember } from '@/app/actions/admin'
 import { TIER_LABELS, TIER_COLORS, type MembershipTier } from '@/types'
 
 type Member = {
@@ -34,6 +34,20 @@ export default function MembersTable({ members }: { members: Member[] }) {
   const [bulkAction, setBulkAction] = useState<'approved' | 'rejected' | 'pending' | ''>('')
   const [showTierDropdown, setShowTierDropdown] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+
+  // Issue membership modal
+  const [issuingMember, setIssuingMember] = useState<Member | null>(null)
+  const [issueTier, setIssueTier] = useState<'basic' | 'active' | 'champion'>('basic')
+  const [issueMonths, setIssueMonths] = useState(12)
+  const [issueNotes, setIssueNotes] = useState('')
+  const [issuing, setIssuing] = useState(false)
+  const [issueError, setIssueError] = useState('')
+
+  // Add member modal
+  const [showAddMember, setShowAddMember] = useState(false)
+  const [addForm, setAddForm] = useState({ full_name: '', email: '', phone: '', tier: 'basic', password: '' })
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
 
   const filtered = members.filter((m) => {
     const name = m.full_name || ''
@@ -86,6 +100,17 @@ export default function MembersTable({ members }: { members: Member[] }) {
     })
   }
 
+  async function handleIssue() {
+    if (!issuingMember) return
+    setIssuing(true)
+    setIssueError('')
+    const result = await issueMembership(issuingMember.id, issueTier, issueMonths, issueNotes || undefined)
+    setIssuing(false)
+    if (result?.error) { setIssueError(result.error as string); return }
+    setIssuingMember(null)
+    setIssueNotes('')
+  }
+
   async function handleExport(exportSelected = false) {
     setExporting(true)
     const url = `/api/admin/export/members`
@@ -103,6 +128,18 @@ export default function MembersTable({ members }: { members: Member[] }) {
     }
   }
 
+  async function handleAddMember() {
+    setAdding(true)
+    setAddError('')
+    const fd = new FormData()
+    Object.entries(addForm).forEach(([k, v]) => fd.append(k, v))
+    const result = await createMember(fd)
+    setAdding(false)
+    if (result?.error) { setAddError(result.error as string); return }
+    setShowAddMember(false)
+    setAddForm({ full_name: '', email: '', phone: '', tier: 'basic', password: '' })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -118,7 +155,7 @@ export default function MembersTable({ members }: { members: Member[] }) {
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             Export CSV
           </button>
-          <button className="btn-primary text-sm">
+          <button onClick={() => setShowAddMember(true)} className="btn-primary text-sm">
             <UserPlus className="w-4 h-4" />
             Add Member
           </button>
@@ -333,6 +370,19 @@ export default function MembersTable({ members }: { members: Member[] }) {
                         >
                           <Eye className="w-4 h-4" />
                         </a>
+                        <button
+                          onClick={() => {
+                            setIssuingMember(member)
+                            setIssueTier(member.tier as 'basic' | 'active' | 'champion')
+                            setIssueMonths(12)
+                            setIssueNotes('')
+                            setIssueError('')
+                          }}
+                          className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                          title="Issue / Renew Membership"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -347,6 +397,131 @@ export default function MembersTable({ members }: { members: Member[] }) {
           )}
         </div>
       </div>
+
+      {/* Issue Membership Modal */}
+      {issuingMember && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Issue Membership</h2>
+                <p className="text-sm text-slate-500 mt-0.5">{issuingMember.full_name}</p>
+              </div>
+              <button onClick={() => setIssuingMember(null)} className="p-2 rounded-lg hover:bg-gray-100 text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="label">Membership Tier</label>
+                <select value={issueTier} onChange={(e) => setIssueTier(e.target.value as typeof issueTier)} className="input">
+                  <option value="basic">Classic (Basic)</option>
+                  <option value="active">Premium (Active)</option>
+                  <option value="champion">Gold (Champion)</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Duration</label>
+                <select value={issueMonths} onChange={(e) => setIssueMonths(Number(e.target.value))} className="input">
+                  <option value={1}>1 month</option>
+                  <option value={3}>3 months</option>
+                  <option value={6}>6 months</option>
+                  <option value={12}>1 year</option>
+                  <option value={24}>2 years</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Notes (optional)</label>
+                <textarea
+                  value={issueNotes}
+                  onChange={(e) => setIssueNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Any notes about this membership issuance…"
+                  className="input resize-none"
+                />
+              </div>
+            </div>
+
+            {issueError && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{issueError}</p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={handleIssue}
+                disabled={issuing}
+                className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {issuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                {issuing ? 'Issuing…' : 'Issue Membership'}
+              </button>
+              <button onClick={() => setIssuingMember(null)} className="btn-secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMember && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900">Add New Member</h2>
+              <button onClick={() => { setShowAddMember(false); setAddError('') }} className="p-2 rounded-lg hover:bg-gray-100 text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="label">Full Name *</label>
+                <input className="input" value={addForm.full_name} onChange={(e) => setAddForm((p) => ({ ...p, full_name: e.target.value }))} placeholder="Jane Doe" />
+              </div>
+              <div>
+                <label className="label">Email *</label>
+                <input type="email" className="input" value={addForm.email} onChange={(e) => setAddForm((p) => ({ ...p, email: e.target.value }))} placeholder="jane@example.com" />
+              </div>
+              <div>
+                <label className="label">Phone</label>
+                <input className="input" value={addForm.phone} onChange={(e) => setAddForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+254 700 000 000" />
+              </div>
+              <div>
+                <label className="label">Tier</label>
+                <select className="input" value={addForm.tier} onChange={(e) => setAddForm((p) => ({ ...p, tier: e.target.value }))}>
+                  <option value="basic">Classic (Basic)</option>
+                  <option value="active">Premium (Active)</option>
+                  <option value="champion">Gold (Champion)</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Temporary Password *</label>
+                <input type="password" className="input" value={addForm.password} onChange={(e) => setAddForm((p) => ({ ...p, password: e.target.value }))} placeholder="Min. 8 characters" />
+              </div>
+            </div>
+
+            {addError && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{addError}</p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={handleAddMember}
+                disabled={adding || !addForm.full_name || !addForm.email || !addForm.password}
+                className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                {adding ? 'Creating…' : 'Create Member'}
+              </button>
+              <button onClick={() => { setShowAddMember(false); setAddError('') }} className="btn-secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

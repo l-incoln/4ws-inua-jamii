@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Heart, Shield, Zap, Users2 } from 'lucide-react'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Donate',
   description: 'Support 4W\'S Inua Jamii Foundation and help transform communities across Kenya.',
@@ -27,6 +29,13 @@ export default async function DonatePage() {
     .select('id, title, description, goal, raised, image_url, deadline')
     .eq('is_active', true)
     .order('created_at', { ascending: true })
+
+  const { data: settingsRows } = await supabase
+    .from('site_settings')
+    .select('key, value')
+    .in('key', ['mpesa_paybill', 'mpesa_account', 'min_donation_amount', 'donation_thank_you_message', 'donation_currency'])
+
+  const sv = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
 
   const activeCampaigns = campaigns ?? []
 
@@ -130,7 +139,16 @@ export default async function DonatePage() {
             )}
 
             {/* Donation Form */}
-            <DonateForm campaigns={activeCampaigns.map((c) => ({ id: c.id, title: c.title }))} />
+            <DonateForm
+              campaigns={activeCampaigns.map((c) => ({ id: c.id, title: c.title }))}
+              paymentSettings={{
+                mpesaPaybill:      sv.mpesa_paybill      || '400200',
+                mpesaAccount:      sv.mpesa_account      || 'DONATION',
+                minDonation:       parseInt(sv.min_donation_amount) || 100,
+                currency:          sv.donation_currency  || 'KES',
+                thankYouMessage:   sv.donation_thank_you_message || '',
+              }}
+            />
 
             {/* Impact calculator */}
             <div className="max-w-2xl mx-auto mt-14">

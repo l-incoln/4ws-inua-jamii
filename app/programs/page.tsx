@@ -4,7 +4,7 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { ArrowRight, Heart, BookOpen, Sprout, DollarSign, Users, Globe } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ const colorSchemes = [
 ] as const
 
 async function getPrograms() {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data } = await supabase
     .from('programs')
     .select('id, slug, title, description, icon, image_url, beneficiaries')

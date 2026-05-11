@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import AdminEventsClient from '@/components/admin/AdminEventsClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminEventsPage() {
   const supabase = await createClient()
 

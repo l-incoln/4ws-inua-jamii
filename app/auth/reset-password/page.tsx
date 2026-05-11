@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Leaf, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { resetPassword } from '@/app/actions/auth'
+import SiteLogoClient from '@/components/layout/SiteLogoClient'
 
 export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
@@ -24,15 +25,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-green-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Link href="/" className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center shadow-lg">
-            <Leaf className="w-5 h-5 text-white" />
-          </div>
-          <div className="text-center">
-            <div className="font-bold text-lg text-slate-900 leading-none">4W&apos;S Inua Jamii</div>
-            <div className="text-xs text-primary-600 mt-0.5 leading-none">Foundation</div>
-          </div>
-        </Link>
+        <SiteLogoClient centered className="mb-8" />
 
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
           {success ? (

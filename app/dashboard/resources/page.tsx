@@ -7,6 +7,8 @@ import {
   Shield, BookMarked, FolderOpen, ExternalLink,
 } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Resources & Documents' }
 
 const CATEGORY_META: Record<string, { label: string; Icon: React.FC<{ className?: string }>; color: string }> = {

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { BarChart2, Users, CalendarDays, Heart, FileText, TrendingUp, DollarSign } from 'lucide-react'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Analytics | Admin' }
 
 export default async function AdminAnalyticsPage() {

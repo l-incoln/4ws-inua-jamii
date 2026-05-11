@@ -15,8 +15,10 @@ const programs = [
     color: 'text-rose-600',
     bg: 'bg-rose-50',
     border: 'border-rose-100',
+    glow: 'card-glow-rose',
+    accentBar: 'from-rose-500 to-rose-400',
     stats: '2,000+ served',
-    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80',
+    image: 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg',
   },
   {
     slug: 'education',
@@ -27,8 +29,10 @@ const programs = [
     color: 'text-sky-600',
     bg: 'bg-sky-50',
     border: 'border-sky-100',
+    glow: 'card-glow-sky',
+    accentBar: 'from-sky-500 to-sky-400',
     stats: '800+ students',
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&q=80',
+    image: 'https://images.pexels.com/photos/1667853/pexels-photo-1667853.jpeg',
   },
   {
     slug: 'economic-empowerment',
@@ -36,11 +40,13 @@ const programs = [
     description:
       'Training, microfinancing, and enterprise development programs lifting families out of poverty.',
     icon: DollarSign,
-    color: 'text-sky-600',
-    bg: 'bg-sky-50',
-    border: 'border-sky-100',
+    color: 'text-gold-600',
+    bg: 'bg-gold-50',
+    border: 'border-gold-100',
+    glow: 'card-glow-gold',
+    accentBar: 'from-gold-500 to-gold-400',
     stats: '500+ businesses',
-    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&q=80',
+    image: 'https://images.pexels.com/photos/325718/pexels-photo-325718.jpeg',
   },
   {
     slug: 'environment',
@@ -48,20 +54,22 @@ const programs = [
     description:
       'Tree planting, clean-up drives, and sustainable agriculture preserving Kenya\'s natural heritage.',
     icon: Sprout,
-    color: 'text-primary-600',
-    bg: 'bg-primary-50',
-    border: 'border-primary-100',
+    color: 'text-green-600',
+    bg: 'bg-green-50',
+    border: 'border-green-100',
+    glow: 'card-glow-green',
+    accentBar: 'from-green-500 to-green-400',
     stats: '50K trees planted',
-    image: 'https://images.unsplash.com/photo-1542601906897-a38c29ee85c6?w=600&q=80',
+    image: 'https://images.pexels.com/photos/3185488/pexels-photo-3185488.jpeg',
   },
 ]
 
 export default function ProgramsOverview() {
   return (
-    <section className="py-16 md:py-24 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #F8FAFF 0%, #EEF4FF 100%)' }}>
-      {/* Subtle diagonal stripe */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
-        style={{ backgroundImage: 'repeating-linear-gradient(45deg, #1E3A8A 0, #1E3A8A 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }} />
+    <section className="py-16 md:py-24 relative overflow-hidden section-accent-bar" style={{ background: 'linear-gradient(180deg, #F8FAFF 0%, #EEF4FF 100%)' }}>
+      {/* Subtle dot grid */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{ backgroundImage: 'radial-gradient(circle, #1E3A8A 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
@@ -89,16 +97,20 @@ export default function ProgramsOverview() {
 
         {/* Programs Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {programs.map(({ slug, title, description, icon: Icon, color, bg, border, stats, image }, i) => (
+          {programs.map(({ slug, title, description, icon: Icon, color, bg, border, glow, accentBar, stats, image }, i) => (
             <motion.div
               key={slug}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
+              whileHover={{ y: -6 }}
             >
               <Link href={`/programs/${slug}`} className="group block h-full">
-                <div className={`card-elevated border ${border} overflow-hidden h-full flex flex-col`}>
+                <div className={`card-elevated border ${border} ${glow} overflow-hidden h-full flex flex-col relative`}>
+                  {/* Colored bottom accent bar that expands on hover */}
+                  <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${accentBar} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
                   {/* Image */}
                   <div className="relative h-48 overflow-hidden shrink-0">
                     <Image
@@ -107,11 +119,9 @@ export default function ProgramsOverview() {
                       fill
                       className="object-cover group-hover:scale-110 transition-transform duration-700"
                     />
-                    {/* Multi-stop gradient overlay */}
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.65) 100%)' }} />
-                    {/* Category icon in top-right */}
-                    <div className={`absolute top-3 right-3 w-9 h-9 ${bg} rounded-xl flex items-center justify-center shadow-md backdrop-blur-sm`}>
-                      <Icon className={`w-4.5 h-4.5 ${color}`} />
+                    <div className={`absolute top-3 right-3 w-9 h-9 ${bg} rounded-xl flex items-center justify-center shadow-md backdrop-blur-sm group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className={`w-4 h-4 ${color}`} />
                     </div>
                     <span className="absolute bottom-3 left-3 badge bg-white/90 text-slate-700 shadow text-xs font-bold">
                       {stats}
@@ -119,14 +129,14 @@ export default function ProgramsOverview() {
                   </div>
                   {/* Content */}
                   <div className="p-5 flex flex-col flex-1">
-                    <h3 className="font-extrabold text-slate-900 group-hover:text-primary-700 transition-colors text-base">
+                    <h3 className={`font-extrabold text-slate-900 group-hover:${color} transition-colors text-base duration-200`}>
                       {title}
                     </h3>
                     <p className="text-sm text-slate-500 mt-2 leading-relaxed line-clamp-3 flex-1">
                       {description}
                     </p>
-                    <span className={`mt-4 inline-flex items-center gap-1 text-sm font-bold ${color} group-hover:gap-2 transition-all`}>
-                      Explore <ArrowRight className="w-3.5 h-3.5" />
+                    <span className={`mt-4 inline-flex items-center gap-1.5 text-sm font-bold ${color} group-hover:gap-3 transition-all duration-200`}>
+                      Explore <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   </div>
                 </div>
@@ -138,4 +148,3 @@ export default function ProgramsOverview() {
     </section>
   )
 }
-

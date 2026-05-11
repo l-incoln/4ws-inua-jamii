@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import AnnouncementsClient from '@/components/admin/AnnouncementsClient'
 import { saveAnnouncement, deleteAnnouncement } from '@/app/actions/admin'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Announcements — Admin' }
 
 export default async function AnnouncementsPage() {

@@ -5,15 +5,32 @@ import ImpactStats from '@/components/home/ImpactStats'
 import ProgramsOverview from '@/components/home/ProgramsOverview'
 import EventsPreview from '@/components/home/EventsPreview'
 import CallToAction from '@/components/home/CallToAction'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '4W\'S Inua Jamii Foundation — Empowering Communities Across Kenya',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
+
+  // Fetch site settings for hero and identity
+  const { data: settingsRows } = await supabase
+    .from('site_settings')
+    .select('key, value')
+    .in('key', [
+      'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
+      'hero_badge_text', 'hero_image_url',
+      'show_impact_stats', 'show_events_preview',
+    ])
+
+  const allSettings    = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
+  const heroSettings   = allSettings
+  const showStats      = allSettings.show_impact_stats   !== 'false'
+  const showEventsPreview = allSettings.show_events_preview !== 'false'
 
   // Fetch real upcoming events for the homepage preview
   const { data: upcomingEvents } = await supabase
@@ -49,10 +66,10 @@ export default async function HomePage() {
     <>
       <Navbar />
       <main>
-        <Hero />
-        <ImpactStats metrics={impactMetrics ?? []} />
+        <Hero settings={heroSettings} />
+        {showStats && <ImpactStats metrics={impactMetrics ?? []} />}
         <ProgramsOverview />
-        <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} />
+        {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} />}
         <CallToAction />
       </main>
       <Footer />

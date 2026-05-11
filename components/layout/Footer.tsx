@@ -1,5 +1,7 @@
 import Link from 'next/link'
-import { Leaf, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react'
+import Image from 'next/image'
+import { Leaf, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Linkedin } from 'lucide-react'
+import { createPublicClient } from '@/lib/supabase/public-client'
 
 const footerLinks = {
   Foundation: [
@@ -28,14 +30,36 @@ const footerLinks = {
   ],
 }
 
-const socialLinks = [
-  { label: 'Facebook', icon: Facebook, href: 'https://facebook.com' },
-  { label: 'Twitter', icon: Twitter, href: 'https://twitter.com' },
-  { label: 'Instagram', icon: Instagram, href: 'https://instagram.com' },
-  { label: 'YouTube', icon: Youtube, href: 'https://youtube.com' },
+const SOCIAL_KEYS = [
+  { key: 'facebook_url',  label: 'Facebook',  Icon: Facebook  },
+  { key: 'twitter_url',   label: 'Twitter',   Icon: Twitter   },
+  { key: 'instagram_url', label: 'Instagram', Icon: Instagram },
+  { key: 'youtube_url',   label: 'YouTube',   Icon: Youtube   },
+  { key: 'linkedin_url',  label: 'LinkedIn',  Icon: Linkedin  },
 ]
 
-export default function Footer() {
+export default async function Footer() {
+  const supabase = createPublicClient()
+  const { data: rows } = await supabase
+    .from('site_settings')
+    .select('key, value')
+    .in('key', [
+      'logo_url', 'site_name', 'footer_tagline',
+      'contact_email', 'contact_phone', 'address',
+      'facebook_url', 'twitter_url', 'instagram_url', 'youtube_url', 'linkedin_url',
+      'logo_size',
+    ])
+
+  const s = Object.fromEntries((rows ?? []).map((r) => [r.key, r.value ?? '']))
+
+  const siteName     = s.site_name     || "4W\u2019S Inua Jamii"
+  const logoUrl      = s.logo_url      || ''
+  const logoSize     = parseInt(s.logo_size) || 36
+  const tagline      = s.footer_tagline || 'Empowering communities through unity, sustainable development, and collective action. Together we build a brighter future for Kenya.'
+  const email        = s.contact_email || 'info@4wsinuajamii.org'
+  const phone        = s.contact_phone || '+254 700 000 000'
+  const address      = s.address       || 'Nairobi, Kenya'
+
   return (
     <footer className="bg-slate-900 text-slate-300">
       {/* Gradient accent bar */}
@@ -47,50 +71,61 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #2D5CC8 0%, #1E3A8A 100%)' }}>
-                <Leaf className="w-5 h-5 text-white" />
-              </div>
+              {logoUrl ? (
+                <Image
+                  src={logoUrl}
+                  alt={siteName}
+                  width={logoSize}
+                  height={logoSize}
+                  className="rounded-xl object-contain"
+                  style={{ width: logoSize, height: logoSize }}
+                  unoptimized
+                />
+              ) : (
+                <div
+                  className="rounded-xl flex items-center justify-center shadow-lg"
+                  style={{ width: logoSize, height: logoSize, background: 'linear-gradient(135deg, #2D5CC8 0%, #1E3A8A 100%)' }}
+                >
+                  <Leaf className="w-5 h-5 text-white" />
+                </div>
+              )}
               <div>
-                <span className="font-bold text-white text-lg leading-none">
-                  4W&apos;S Inua Jamii
-                </span>
+                <span className="font-bold text-white text-lg leading-none">{siteName}</span>
                 <p className="text-xs text-primary-400 leading-none mt-0.5">Foundation</p>
               </div>
             </Link>
-            <p className="text-sm text-slate-400 leading-relaxed mb-6">
-              Empowering communities through unity, sustainable development, and collective action.
-              Together we build a brighter future for Kenya.
-            </p>
+            <p className="text-sm text-slate-400 leading-relaxed mb-6">{tagline}</p>
 
             {/* Contact */}
             <div className="space-y-2.5">
               <a
-                href="mailto:info@4wsinuajamii.org"
+                href={`mailto:${email}`}
                 className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-primary-400 transition-colors"
               >
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                info@4wsinuajamii.org
+                {email}
               </a>
               <a
-                href="tel:+254700000000"
+                href={`tel:${phone.replace(/\s+/g, '')}`}
                 className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-primary-400 transition-colors"
               >
                 <Phone className="w-4 h-4 flex-shrink-0" />
-                +254 700 000 000
+                {phone}
               </a>
-              <div className="flex items-start gap-2.5 text-sm text-slate-400">
-                <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                Nairobi, Kenya
-              </div>
+              {address && (
+                <div className="flex items-start gap-2.5 text-sm text-slate-400">
+                  <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  {address}
+                </div>
+              )}
             </div>
 
             {/* Social */}
             <div className="flex items-center gap-3 mt-6">
-              {socialLinks.map(({ label, icon: Icon, href }) => (
+              {SOCIAL_KEYS.filter(({ key }) => s[key]).map(({ key, label, Icon }) => (
                 <a
-                  key={label}
-                  href={href}
+                  key={key}
+                  href={s[key]}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
@@ -154,7 +189,7 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} 4W&apos;S Inua Jamii Foundation. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {siteName} Foundation. All rights reserved.</p>
           <p>Built with purpose. Powered by community.</p>
         </div>
       </div>

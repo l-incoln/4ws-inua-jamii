@@ -1,35 +1,62 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react'
-import type { Metadata } from 'next'
+import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff, QrCode, ChevronRight } from 'lucide-react'
+
+const DEFAULT_PREFS = {
+  event_reminders: true,
+  announcements: true,
+  donation_receipts: true,
+  newsletter: false,
+}
 
 export default function DashboardSettingsPage() {
   const supabase = createClient()
 
   // Password change
-  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' })
+  const [pwForm, setPwForm] = useState({ newPw: '', confirm: '' })
   const [showPw, setShowPw] = useState(false)
   const [pwLoading, setPwLoading] = useState(false)
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Notification prefs (local only — extend with DB column if needed)
-  const [notifPrefs, setNotifPrefs] = useState({
-    event_reminders: true,
-    announcements: true,
-    donation_receipts: true,
-    newsletter: false,
-  })
+  // Notification prefs — persisted to Supabase user metadata
+  const [notifPrefs, setNotifPrefs] = useState(DEFAULT_PREFS)
+  const [notifLoading, setNotifLoading] = useState(false)
   const [notifSaved, setNotifSaved] = useState(false)
 
   // Account info
   const [email, setEmail] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [membershipStatus, setMembershipStatus] = useState<string | null>(null)
+  const [hasActiveTerm, setHasActiveTerm] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setEmail(user.email ?? '')
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      setEmail(user.email ?? '')
+      // Load saved prefs from user metadata
+      const saved = user.user_metadata?.notification_prefs
+      if (saved && typeof saved === 'object') {
+        setNotifPrefs({ ...DEFAULT_PREFS, ...saved })
+      }
+      // Fetch membership status
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('membership_status')
+        .eq('id', user.id)
+        .single()
+      if (profile) setMembershipStatus(profile.membership_status)
+      // Check for active term
+      const { data: terms } = await supabase
+        .from('membership_terms')
+        .select('id, valid_until, is_active')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .gte('valid_until', new Date().toISOString())
+        .limit(1)
+      setHasActiveTerm(!!(terms && terms.length > 0))
     })
   }, [])
 
@@ -51,14 +78,20 @@ export default function DashboardSettingsPage() {
       setPwMsg({ type: 'error', text: error.message })
     } else {
       setPwMsg({ type: 'success', text: 'Password updated successfully.' })
-      setPwForm({ current: '', newPw: '', confirm: '' })
+      setPwForm({ newPw: '', confirm: '' })
     }
   }
 
-  function saveNotifPrefs() {
-    // In a real implementation, persist to a profiles column or separate table
-    setNotifSaved(true)
-    setTimeout(() => setNotifSaved(false), 2500)
+  async function saveNotifPrefs() {
+    setNotifLoading(true)
+    const { error } = await supabase.auth.updateUser({
+      data: { notification_prefs: notifPrefs },
+    })
+    setNotifLoading(false)
+    if (!error) {
+      setNotifSaved(true)
+      setTimeout(() => setNotifSaved(false), 2500)
+    }
   }
 
   return (
@@ -185,10 +218,74 @@ export default function DashboardSettingsPage() {
           ))}
         </div>
 
-        <button onClick={saveNotifPrefs} className="btn-primary text-sm">
-          {notifSaved ? <CheckCircle2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-          {notifSaved ? 'Saved!' : 'Save Preferences'}
+        <button onClick={saveNotifPrefs} disabled={notifLoading} className="btn-primary text-sm">
+          {notifLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : notifSaved ? <CheckCircle2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+          {notifLoading ? 'Saving…' : notifSaved ? 'Saved!' : 'Save Preferences'}
         </button>
+      </div>
+
+      {/* Verification & Privacy */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center">
+            <QrCode className="w-4 h-4 text-primary-600" />
+          </div>
+          <div>
+            <h2 className="font-bold text-slate-900">QR Verification & Privacy</h2>
+            <p className="text-xs text-slate-500">Manage your membership verification settings</p>
+          </div>
+        </div>
+
+        <div className="space-y-0">
+          {/* QR status */}
+          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">QR Code Status</p>
+              <p className="text-xs text-slate-500 mt-0.5">Your cryptographically signed membership QR</p>
+            </div>
+            {hasActiveTerm ? (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Active
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                {membershipStatus === 'approved' ? 'No active term' : 'Pending approval'}
+              </span>
+            )}
+          </div>
+
+          {/* Link to membership card */}
+          <Link
+            href="/dashboard/membership-card"
+            className="flex items-center justify-between py-3 border-b border-slate-100 group hover:bg-slate-50 -mx-6 px-6 transition-colors"
+          >
+            <div>
+              <p className="text-sm font-semibold text-slate-800 group-hover:text-primary-700 transition-colors">View Membership Card</p>
+              <p className="text-xs text-slate-500 mt-0.5">Download, print, or enlarge your QR code</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary-600 transition-colors" />
+          </Link>
+
+          {/* What QR exposes */}
+          <div className="py-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Data exposed when scanned</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {['Full name', 'Membership tier', 'Valid from / until', 'Member role'].map((item) => (
+                <div key={item} className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                  {item}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+              <strong className="text-slate-500">Signed with HMAC-SHA256.</strong>{' '}
+              The verification link is cryptographically signed — any tampering with the token is automatically detected and rejected during verification.
+              Your email and phone number are never included.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Danger zone */}

@@ -11,14 +11,28 @@ interface Campaign {
   title: string
 }
 
+interface PaymentSettings {
+  mpesaPaybill:    string
+  mpesaAccount:    string
+  minDonation:     number
+  currency:        string
+  thankYouMessage: string
+}
+
 interface Props {
   campaigns: Campaign[]
   selectedCampaignId?: string | null
+  paymentSettings?: PaymentSettings
 }
 
-export default function DonateForm({ campaigns, selectedCampaignId = null }: Props) {
+export default function DonateForm({ campaigns, selectedCampaignId = null, paymentSettings }: Props) {
+  const paybill       = paymentSettings?.mpesaPaybill    || '400200'
+  const mpesaAccount  = paymentSettings?.mpesaAccount    || 'DONATION'
+  const minDonation   = paymentSettings?.minDonation     || 100
+  const currency      = paymentSettings?.currency        || 'KES'
+  const thankYouMsg   = paymentSettings?.thankYouMessage || ''
   const [isPending, startTransition] = useTransition()
-  const [success, setSuccess] = useState<{ reference: string } | null>(null)
+  const [success, setSuccess] = useState<{ reference: string; stkPushed?: boolean } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const [amount, setAmount] = useState<number | ''>('')
@@ -33,8 +47,8 @@ export default function DonateForm({ campaigns, selectedCampaignId = null }: Pro
     e.preventDefault()
     setError(null)
 
-    if (!effectiveAmount || effectiveAmount < 100) {
-      setError('Minimum donation is KES 100.')
+    if (!effectiveAmount || effectiveAmount < minDonation) {
+      setError(`Minimum donation is ${currency} ${minDonation.toLocaleString()}.`)
       return
     }
 
@@ -61,7 +75,7 @@ export default function DonateForm({ campaigns, selectedCampaignId = null }: Pro
       if (result.error) {
         setError(result.error)
       } else if (result.reference) {
-        setSuccess({ reference: result.reference })
+        setSuccess({ reference: result.reference, stkPushed: result.stkPushed })
       }
     })
   }
@@ -74,18 +88,28 @@ export default function DonateForm({ campaigns, selectedCampaignId = null }: Pro
         </div>
         <h3 className="text-2xl font-bold text-slate-900">Thank You!</h3>
         <p className="text-slate-500 mt-3">
-          Your donation of <span className="font-bold text-primary-600">KES {effectiveAmount.toLocaleString()}</span> has been recorded.
-          An official receipt will be sent to your email.
+          {thankYouMsg || <>Your donation of <span className="font-bold text-primary-600">{currency} {effectiveAmount.toLocaleString()}</span> has been recorded. An official receipt will be sent to your email.</>}
         </p>
         <div className="mt-4 p-3 bg-gray-50 rounded-xl text-sm text-slate-500">
           Reference: <span className="font-mono font-semibold text-slate-700">{success.reference}</span>
         </div>
         {paymentMethod === 'mpesa' && (
           <div className="mt-4 p-4 bg-primary-50 border border-primary-100 rounded-xl text-sm text-primary-800">
-            <p className="font-semibold">M-Pesa Payment Instructions</p>
-            <p className="mt-1 text-primary-700">
-              Go to M-Pesa → Pay Bill → Enter Business Number: <strong>400200</strong> → Account: <strong>{success.reference}</strong> → Amount: <strong>KES {effectiveAmount.toLocaleString()}</strong>
-            </p>
+            {success.stkPushed ? (
+              <>
+                <p className="font-semibold">Check your phone!</p>
+                <p className="mt-1 text-primary-700">
+                  An M-Pesa payment prompt has been sent to your phone. Enter your M-Pesa PIN to complete the donation.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">M-Pesa Payment Instructions</p>
+                <p className="mt-1 text-primary-700">
+                  Go to M-Pesa → Pay Bill → Enter Business Number: <strong>{paybill}</strong> → Account: <strong>{mpesaAccount}</strong> → Amount: <strong>{currency} {effectiveAmount.toLocaleString()}</strong>
+                </p>
+              </>
+            )}
           </div>
         )}
         <button onClick={() => { setSuccess(null); setAmount(''); setCustomAmount('') }} className="btn-primary mt-6">

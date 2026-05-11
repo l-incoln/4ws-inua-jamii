@@ -1,8 +1,18 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, Play, ChevronDown, Users, Globe, Heart } from 'lucide-react'
+
+type HeroSettings = {
+  hero_title?:      string
+  hero_subtitle?:   string
+  hero_cta_label?:  string
+  hero_cta_url?:    string
+  hero_badge_text?: string
+  hero_image_url?:  string
+}
 
 const stats = [
   { value: '5,000+', label: 'Beneficiaries', icon: Users },
@@ -10,11 +20,29 @@ const stats = [
   { value: '350+',   label: 'Volunteers', icon: Heart },
 ]
 
-export default function Hero() {
+export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
+  const badgeText  = settings.hero_badge_text || 'Transforming Communities Across Kenya'
+  const heroTitle  = settings.hero_title || ''
+  const subtitle   = settings.hero_subtitle  || '4W\u2019S Inua Jamii Foundation unites passionate individuals to uplift communities through health, education, economic empowerment, and environmental stewardship.'
+  const ctaLabel   = settings.hero_cta_label || 'Join the Movement'
+  const ctaUrl     = settings.hero_cta_url   || '/auth/signup'
+  const imageUrl   = settings.hero_image_url || ''
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden noise-overlay">
       {/* Deep layered background */}
       <div className="absolute inset-0 bg-hero-gradient" />
+
+      {/* Optional hero background image */}
+      {imageUrl && (
+        <Image
+          src={imageUrl}
+          alt="Hero background"
+          fill
+          className="object-cover opacity-20"
+          priority
+          unoptimized
+        />
+      )}
 
       {/* Animated glow orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -71,7 +99,7 @@ export default function Hero() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-400" />
             </span>
-            Transforming Communities Across Kenya
+            {badgeText}
           </motion.div>
 
           {/* Headline */}
@@ -81,21 +109,27 @@ export default function Hero() {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight"
           >
-            Building{' '}
-            <span className="relative inline-block">
-              <span className="text-gradient-sky bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent">
-                Stronger
-              </span>
-              <motion.span
-                className="absolute -bottom-1.5 left-0 right-0 h-[3px] rounded-full"
-                style={{ background: 'linear-gradient(90deg, #38BDF8, #7DD3FC)' }}
-                initial={{ scaleX: 0, originX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.9, delay: 0.9 }}
-              />
-            </span>
-            <br />
-            Communities Together
+            {heroTitle ? (
+              heroTitle
+            ) : (
+              <>
+                Building{' '}
+                <span className="relative inline-block">
+                  <span className="text-gradient-sky bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent">
+                    Stronger
+                  </span>
+                  <motion.span
+                    className="absolute -bottom-1.5 left-0 right-0 h-[3px] rounded-full"
+                    style={{ background: 'linear-gradient(90deg, #38BDF8, #7DD3FC)' }}
+                    initial={{ scaleX: 0, originX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.9, delay: 0.9 }}
+                  />
+                </span>
+                <br />
+                Communities Together
+              </>
+            )}
           </motion.h1>
 
           {/* Subheading */}
@@ -105,8 +139,7 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="mt-7 text-lg md:text-xl text-primary-100/90 max-w-2xl mx-auto leading-relaxed"
           >
-            4W&apos;S Inua Jamii Foundation unites passionate individuals to uplift communities
-            through health, education, economic empowerment, and environmental stewardship.
+            {subtitle}
           </motion.p>
 
           {/* CTAs */}
@@ -116,8 +149,8 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link href="/auth/signup" className="btn-gold text-base px-8 py-4 w-full sm:w-auto">
-              Join the Movement
+            <Link href={ctaUrl} className="btn-gold text-base px-8 py-4 w-full sm:w-auto">
+              {ctaLabel}
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link

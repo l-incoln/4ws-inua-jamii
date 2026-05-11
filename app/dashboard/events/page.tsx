@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Calendar, MapPin, ArrowRight, PlusCircle, Clock } from 'lucide-react'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'My Events' }
 
 const statusBadge: Record<string, string> = {

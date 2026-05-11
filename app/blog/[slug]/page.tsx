@@ -3,17 +3,21 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { Calendar, Clock, ArrowLeft, Tag } from 'lucide-react'
 import type { Metadata } from 'next'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import BlogComments from '@/components/blog/BlogComments'
 
-type Props = { params: { slug: string } }
+export const dynamic = 'force-dynamic'
+
+type Props = { params: Promise<{ slug: string }> }
 
 async function getPost(slug: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data } = await supabase
     .from('blog_posts')
-    .select('id, slug, title, excerpt, body, category, tags, image_url, published_at, read_time, profiles!author_id(full_name, avatar_url)')
+    .select('id, slug, title, excerpt, body, category, tags, image_url, published_at, read_time, views, profiles!author_id(full_name, avatar_url)')
     .eq('slug', slug)
     .eq('status', 'published')
     .maybeSingle()
@@ -21,14 +25,37 @@ async function getPost(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = await getPost(params.slug)
+  const { slug } = await params
+  const post = await getPost(slug)
   if (!post) return { title: 'Post Not Found' }
   return { title: post.title, description: post.excerpt }
 }
 
 export default async function BlogPostPage({ params }: Props) {
-  const post = await getPost(params.slug)
+  const { slug } = await params
+  const post = await getPost(slug)
   if (!post) notFound()
+
+  const supabase = await createClient()
+
+  // Increment view count (best-effort, non-blocking)
+  supabase.from('blog_posts').update({ views: (post.views ?? 0) + 1 }).eq('id', post.id).then(() => {})
+
+  // Fetch approved comments
+  const { data: comments } = await supabase
+    .from('blog_comments')
+    .select('id, author_name, body, created_at, parent_id')
+    .eq('post_id', post.id)
+    .eq('is_approved', true)
+    .order('created_at', { ascending: true })
+
+  // Check if user is logged in and get their name
+  const { data: { user } } = await supabase.auth.getUser()
+  let userName: string | undefined
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+    userName = profile?.full_name ?? user.email ?? undefined
+  }
 
   const authorArr = post.profiles as unknown as { full_name: string; avatar_url: string | null }[] | null
   const author = Array.isArray(authorArr) ? (authorArr[0] ?? null) : null
@@ -94,20 +121,44 @@ export default async function BlogPostPage({ params }: Props) {
         )}
 
         {/* Body */}
-        <div className="prose prose-lg max-w-none text-slate-700">
+        <div className="article-body mt-2">
           {(post.body ?? '').split('\n\n').map((para: string, i: number) => {
-            if (para.startsWith('## ')) {
-              return <h2 key={i} className="text-xl font-bold text-slate-900 mt-8 mb-3">{para.slice(3)}</h2>
+            const trimmed = para.trim()
+            if (!trimmed) return null
+            if (trimmed.startsWith('### ')) {
+              return <h3 key={i}>{trimmed.slice(4)}</h3>
             }
-            if (para.startsWith('- ')) {
-              const items = para.split('\n').filter((line) => line.startsWith('- '))
+            if (trimmed.startsWith('## ')) {
+              return <h2 key={i}>{trimmed.slice(3)}</h2>
+            }
+            if (trimmed.startsWith('# ')) {
+              return <h1 key={i}>{trimmed.slice(2)}</h1>
+            }
+            if (trimmed.startsWith('> ')) {
+              return <blockquote key={i}>{trimmed.slice(2)}</blockquote>
+            }
+            if (trimmed.startsWith('---')) {
+              return <hr key={i} />
+            }
+            if (trimmed.split('\n').every((l) => l.startsWith('- '))) {
               return (
-                <ul key={i} className="list-disc list-inside space-y-1.5 my-4 text-slate-600">
-                  {items.map((item, j) => <li key={j}>{item.slice(2)}</li>)}
+                <ul key={i}>
+                  {trimmed.split('\n').filter((l) => l.startsWith('- ')).map((item, j) => (
+                    <li key={j}>{item.slice(2)}</li>
+                  ))}
                 </ul>
               )
             }
-            return <p key={i} className="mb-4 leading-relaxed">{para}</p>
+            if (trimmed.split('\n').every((l, idx) => l.match(new RegExp(`^${idx + 1}\\. `)))) {
+              return (
+                <ol key={i}>
+                  {trimmed.split('\n').map((item, j) => (
+                    <li key={j}>{item.replace(/^\d+\.\s/, '')}</li>
+                  ))}
+                </ol>
+              )
+            }
+            return <p key={i}>{trimmed}</p>
           })}
         </div>
 
@@ -130,6 +181,14 @@ export default async function BlogPostPage({ params }: Props) {
             <Link href="/auth/signup" className="btn-secondary text-sm">Join as Member</Link>
           </div>
         </div>
+
+        {/* Comments */}
+        <BlogComments
+          postId={post.id}
+          comments={comments ?? []}
+          isLoggedIn={!!user}
+          userName={userName}
+        />
       </div>
     </div>
     <Footer />

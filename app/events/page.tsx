@@ -2,7 +2,7 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import EventsGrid from '@/components/events/EventsGrid'
 import type { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public-client'
 
 export const metadata: Metadata = {
   title: 'Events',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 export default async function EventsPage() {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
 
   const { data } = await supabase
     .from('events')
@@ -35,7 +35,7 @@ export default async function EventsPage() {
     }
   }
 
-  const categories = [...new Set(events.map((e) => e.category).filter(Boolean))] as string[]
+  const categories = Array.from(new Set(events.map((e) => e.category).filter(Boolean))) as string[]
 
   return (
     <>

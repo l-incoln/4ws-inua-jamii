@@ -2,7 +2,7 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import BlogGrid from '@/components/blog/BlogGrid'
 import { BookOpen } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 }
 
 export default async function BlogPage() {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
 
   const { data: posts } = await supabase
     .from('blog_posts')
@@ -26,7 +26,7 @@ export default async function BlogPage() {
   }))
 
   // Unique categories from posts
-  const categories = [...new Set(allPosts.map((p) => p.category).filter(Boolean))] as string[]
+  const categories = Array.from(new Set(allPosts.map((p) => p.category).filter(Boolean))) as string[]
 
   return (
     <>

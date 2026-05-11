@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CalendarCheck, Bell, ArrowRight, Users, Heart, Star } from 'lucide-react'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Member Dashboard' }
 
 export default async function DashboardPage() {
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
       .eq('user_id', user.id),
     supabase
       .from('profiles')
-      .select('created_at')
+      .select('created_at, tier, membership_status')
       .eq('id', user.id)
       .single(),
     supabase
@@ -40,13 +41,19 @@ export default async function DashboardPage() {
   const memberSince = profileRes.data?.created_at || user.created_at
   const membershipDays = Math.floor((Date.now() - new Date(memberSince).getTime()) / 86400000)
 
+  const TIER_LABELS: Record<string, string> = {
+    basic: 'Classic Member', active: 'Premium Member', champion: 'Gold Member',
+  }
+  const tierLabel = TIER_LABELS[profileRes.data?.tier ?? 'basic'] ?? 'Member'
+  const isApproved = profileRes.data?.membership_status === 'approved'
+
   const announcements = announcementsRes.data ?? []
 
   const quickStats = [
     { label: 'Events Attended', value: String(eventsAttended), icon: CalendarCheck, color: 'text-primary-600', bg: 'bg-primary-50' },
     { label: 'Donations Made', value: String(donationsMade), icon: Heart, color: 'text-rose-600', bg: 'bg-rose-50' },
-    { label: 'Membership Days', value: String(membershipDays), icon: Star, color: 'text-sky-600', bg: 'bg-sky-50' },
-    { label: 'Connections', value: '—', icon: Users, color: 'text-sky-600', bg: 'bg-sky-50' },
+    { label: 'Member Since', value: membershipDays < 365 ? `${membershipDays}d` : `${Math.floor(membershipDays / 365)}yr`, icon: Star, color: 'text-sky-600', bg: 'bg-sky-50' },
+    { label: 'Tier', value: tierLabel.replace(' Member', ''), icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' },
   ]
 
   const displayName = user.user_metadata?.full_name?.split(' ')[0] || 'Member'
@@ -66,11 +73,17 @@ export default async function DashboardPage() {
           <p className="text-primary-100 text-sm mt-2 max-w-md">
             Welcome to your member dashboard. Track your impact, manage your events, and stay connected.
           </p>
-          <div className="mt-5 flex items-center gap-1">
-            <span className="badge bg-white/10 text-white border border-white/20 text-xs">Basic Member</span>
+          <div className="mt-5 flex items-center gap-1 flex-wrap">
+            <span className="badge bg-white/10 text-white border border-white/20 text-xs">{tierLabel}</span>
+            {!isApproved && (
+              <>
+                <span className="text-xs text-primary-300 mx-2">·</span>
+                <span className="text-xs text-amber-300">Pending approval</span>
+              </>
+            )}
             <span className="text-xs text-primary-300 mx-2">·</span>
             <Link href="/dashboard/profile" className="text-xs text-primary-200 hover:text-white underline-offset-2 hover:underline">
-              Upgrade Membership
+              View Profile
             </Link>
           </div>
         </div>
@@ -131,6 +144,7 @@ export default async function DashboardPage() {
               {[
                 { label: 'RSVP for an Event', href: '/events', color: 'btn-primary' },
                 { label: 'Make a Donation', href: '/donate', color: 'btn-sky' },
+                { label: 'Membership Card', href: '/dashboard/membership-card', color: 'btn-secondary' },
                 { label: 'Update My Profile', href: '/dashboard/profile', color: 'btn-secondary' },
               ].map(({ label, href, color }) => (
                 <Link key={label} href={href} className={`${color} w-full justify-center text-sm`}>

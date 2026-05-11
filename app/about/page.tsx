@@ -4,6 +4,9 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2, HandHeart, Leaf, BookOpen, Stethoscope, ClipboardList, Megaphone } from 'lucide-react'
 import type { Metadata } from 'next'
+import { createPublicClient } from '@/lib/supabase/public-client'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'About Us',
@@ -17,34 +20,59 @@ const values = [
   { icon: Target, title: 'Impact', description: 'Every initiative is measured by the tangible difference it makes in lives.' },
 ]
 
-const leadership = [
+const defaultLeadership = [
   {
     name: 'Dr. Mary Wanjiku',
     role: 'Executive Director',
     bio: 'With 15 years in community development, Dr. Wanjiku leads our strategic vision and operations.',
-    image: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&q=80',
+    image_url: 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg',
   },
   {
     name: 'James Kamau',
     role: 'Programs Director',
     bio: 'James oversees all foundation programs ensuring maximum community impact and sustainability.',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    image_url: 'https://images.pexels.com/photos/1667853/pexels-photo-1667853.jpeg',
   },
   {
     name: 'Fatuma Hassan',
     role: 'Finance & Operations',
     bio: 'Fatuma ensures the foundation\'s financial health and operational excellence.',
-    image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&q=80',
+    image_url: 'https://images.pexels.com/photos/325718/pexels-photo-325718.jpeg',
   },
   {
     name: 'Peter Ochieng',
     role: 'Community Liaison',
     bio: 'Peter bridges the gap between the foundation and the communities we serve across Kenya.',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80',
+    image_url: 'https://images.pexels.com/photos/3185488/pexels-photo-3185488.jpeg',
   },
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const supabase = createPublicClient()
+  const [{ data: leadershipData }, { data: settingsRows }] = await Promise.all([
+    supabase
+      .from('leadership_team')
+      .select('id, name, role, bio, image_url, sort_order')
+      .eq('is_active', true)
+      .order('sort_order'),
+    supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', [
+        'volunteer_title', 'volunteer_subtitle', 'volunteer_count',
+        'about_mission', 'about_vision', 'site_name',
+      ]),
+  ])
+
+  const leadership = (leadershipData && leadershipData.length > 0) ? leadershipData : defaultLeadership
+  const sv: Record<string, string> = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
+  const volunteerTitle    = sv.volunteer_title    || 'Volunteer With Us'
+  const volunteerSubtitle = sv.volunteer_subtitle || 'Your time and skills can transform lives. Join 350+ volunteers who give back to Kenyan communities every year.'
+  const volunteerCount    = sv.volunteer_count    || '350+'
+  const aboutMission      = sv.about_mission      || 'To empower underprivileged communities across Kenya through sustainable programs in health, education, economic development, and environmental stewardship — fostering dignity, resilience, and self-sufficiency.'
+  const aboutVision       = sv.about_vision       || 'A Kenya where every community has the resources, knowledge, and opportunities to thrive — where no child goes without education, no family without healthcare, and no environment without care.'
+  const orgName           = sv.site_name          || "4W\u2019S Inua Jamii"
+
   return (
     <>
       <Navbar />
@@ -56,7 +84,7 @@ export default function AboutPage() {
               Our Story
             </span>
             <h1 className="text-4xl md:text-6xl font-extrabold text-white">
-              About <span className="text-sky-400">4W&apos;S Inua Jamii</span>
+              About <span className="text-sky-400">{orgName}</span>
             </h1>
             <p className="mt-5 text-lg text-primary-100 max-w-2xl mx-auto leading-relaxed">
               Founded on the belief that every community deserves to thrive, we combine grassroots
@@ -75,9 +103,7 @@ export default function AboutPage() {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-3">Our Mission</h2>
                 <p className="text-slate-600 leading-relaxed text-lg">
-                  To empower underprivileged communities across Kenya through sustainable programs
-                  in health, education, economic development, and environmental stewardship —
-                  fostering dignity, resilience, and self-sufficiency.
+                  {aboutMission}
                 </p>
               </div>
               <div className="card p-8 border-l-4 border-sky-500">
@@ -86,9 +112,7 @@ export default function AboutPage() {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-3">Our Vision</h2>
                 <p className="text-slate-600 leading-relaxed text-lg">
-                  A Kenya where every community has the resources, knowledge, and opportunities to
-                  thrive — where no child goes without education, no family without healthcare,
-                  and no environment without care.
+                  {aboutVision}
                 </p>
               </div>
             </div>
@@ -101,7 +125,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="relative h-80 lg:h-auto rounded-3xl overflow-hidden shadow-2xl">
                 <Image
-                  src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80"
+                  src="https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg"
                   alt="Community impact"
                   fill
                   className="object-cover"
@@ -178,11 +202,11 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {leadership.map(({ name, role, bio, image }) => (
+              {leadership.map(({ name, role, bio, image_url }) => (
                 <div key={name} className="card overflow-hidden group">
                   <div className="relative h-64">
                     <Image
-                      src={image}
+                      src={image_url ?? 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'}
                       alt={name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -209,10 +233,9 @@ export default function AboutPage() {
                 <span className="badge-green text-xs uppercase tracking-widest mb-3 inline-block">
                   Get Involved
                 </span>
-                <h2 className="section-title">Volunteer With Us</h2>
+                <h2 className="section-title">{volunteerTitle}</h2>
                 <p className="section-subtitle mt-3">
-                  Your time and skills can transform lives. Join 350+ volunteers who give back to
-                  Kenyan communities every year.
+                  {volunteerSubtitle}
                 </p>
                 <div className="mt-8 space-y-3">
                   {[
@@ -250,7 +273,7 @@ export default function AboutPage() {
                   <div className="space-y-4">
                     <div className="rounded-3xl overflow-hidden h-44 relative">
                       <Image
-                        src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600&q=80"
+                        src="https://images.pexels.com/photos/1667853/pexels-photo-1667853.jpeg"
                         alt="Volunteers working together"
                         fill
                         className="object-cover"
@@ -258,7 +281,7 @@ export default function AboutPage() {
                     </div>
                     <div className="rounded-3xl overflow-hidden h-56 relative">
                       <Image
-                        src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=600&q=80"
+                        src="https://images.pexels.com/photos/325718/pexels-photo-325718.jpeg"
                         alt="Community health outreach"
                         fill
                         className="object-cover"
@@ -268,14 +291,14 @@ export default function AboutPage() {
                   <div className="space-y-4 mt-8">
                     <div className="rounded-3xl overflow-hidden h-56 relative">
                       <Image
-                        src="https://images.unsplash.com/photo-1542810634-71277d95dcbb?w=600&q=80"
+                        src="https://images.pexels.com/photos/3185488/pexels-photo-3185488.jpeg"
                         alt="Education support"
                         fill
                         className="object-cover"
                       />
                     </div>
                     <div className="rounded-3xl overflow-hidden h-44 relative bg-primary-600 flex flex-col items-center justify-center text-white p-6">
-                      <div className="text-4xl font-extrabold">350+</div>
+                      <div className="text-4xl font-extrabold">{volunteerCount}</div>
                       <div className="text-sm text-primary-200 mt-1 text-center">Active volunteers across Kenya</div>
                     </div>
                   </div>

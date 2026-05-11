@@ -24,7 +24,7 @@ const fallbackEvents: Event[] = [
     description: 'Free medical checkups, health education, and wellness screenings for all community members.',
     event_date: '2026-04-25',
     location: 'Nairobi Community Center',
-    image_url: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80',
+    image_url: 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg',
     category: 'Health',
     max_attendees: 350,
     status: 'upcoming',
@@ -35,7 +35,7 @@ const fallbackEvents: Event[] = [
     description: 'A one-day summit connecting young entrepreneurs with mentors, investors, and opportunities.',
     event_date: '2026-05-10',
     location: 'Westlands Conference Hall, Nairobi',
-    image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80',
+    image_url: 'https://images.pexels.com/photos/325718/pexels-photo-325718.jpeg',
     category: 'Economic',
     max_attendees: 200,
     status: 'upcoming',
@@ -46,7 +46,7 @@ const fallbackEvents: Event[] = [
     description: 'Join us as we plant 5,000 trees across Nairobi County in partnership with local schools.',
     event_date: '2026-06-05',
     location: 'Multiple Locations, Nairobi',
-    image_url: 'https://images.unsplash.com/photo-1503455637927-730bce8583c0?w=600&q=80',
+    image_url: 'https://images.pexels.com/photos/3185488/pexels-photo-3185488.jpeg',
     category: 'Environment',
     max_attendees: 500,
     status: 'upcoming',
@@ -71,8 +71,11 @@ export default function EventsPreview({
   const isFallback = events.length === 0
 
   return (
-    <section className="py-16 md:py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 md:py-24 bg-white section-accent-bar relative overflow-hidden">
+      {/* Subtle grid bg */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{ backgroundImage: 'linear-gradient(#1E3A8A 1px, transparent 1px), linear-gradient(90deg, #1E3A8A 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -109,7 +112,8 @@ export default function EventsPreview({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="card group"
+                whileHover={{ y: -6 }}
+                className="card card-glow-primary group cursor-pointer"
               >
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden bg-gray-100">
@@ -176,14 +180,14 @@ export default function EventsPreview({
                   <div className="mt-5 flex items-center justify-between">
                     <Link
                       href={isReal ? `/events/${event.id}` : '/events'}
-                      className="text-sm font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                      className="text-sm font-semibold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 group/link transition-colors"
                     >
                       View Details
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
                     </Link>
                     <Link
                       href={isReal ? `/events/${event.id}` : '/events'}
-                      className="px-4 py-2 rounded-full bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors"
+                      className="px-4 py-2 rounded-full bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-all hover:shadow-md hover:-translate-y-0.5"
                     >
                       RSVP
                     </Link>

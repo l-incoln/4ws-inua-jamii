@@ -5,8 +5,12 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { Heart, BookOpen, Sprout, DollarSign, Users, Globe, ArrowLeft, ArrowRight } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
+import ProgramApplySection from '@/components/programs/ProgramApplySection'
+
+export const dynamic = 'force-dynamic'
 
 type Props = { params: { slug: string } }
 
@@ -15,7 +19,7 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 async function getProgram(slug: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data } = await supabase
     .from('programs')
     .select('id, slug, title, description, icon, image_url, beneficiaries')
@@ -34,6 +38,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProgramDetailPage({ params }: Props) {
   const program = await getProgram(params.slug)
   if (!program) notFound()
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Check if user already applied
+  let existingStatus: string | null = null
+  if (user) {
+    const { data: app } = await supabase
+      .from('program_applications')
+      .select('status')
+      .eq('program_id', program.id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    existingStatus = app?.status ?? null
+  }
 
   const Icon = iconMap[program.icon ?? ''] ?? Globe
 
@@ -83,6 +102,14 @@ export default async function ProgramDetailPage({ params }: Props) {
               <div className="text-slate-600 mt-2">Beneficiaries Served</div>
             </div>
           )}
+
+          {/* Apply to Program */}
+          <ProgramApplySection
+            programId={program.id}
+            programTitle={program.title}
+            isLoggedIn={!!user}
+            existingStatus={existingStatus}
+          />
 
           {/* CTA */}
           <div className="bg-gradient-to-r from-primary-700 to-sky-600 rounded-2xl p-8 text-center text-white">

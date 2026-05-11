@@ -4,6 +4,8 @@ import { updateDonationStatus } from '@/app/actions/admin'
 import DonationsTable from '@/components/admin/DonationsTable'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Donations' }
 
 const campaignColors = ['bg-sky-500', 'bg-primary-500', 'bg-emerald-600', 'bg-purple-500', 'bg-rose-500']

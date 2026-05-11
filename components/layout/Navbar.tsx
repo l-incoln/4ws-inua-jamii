@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X, ChevronDown, Leaf } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,7 +15,6 @@ const navLinks = [
     label: 'Programs',
     href: '/programs',
     children: [
-      { label: 'All Programs', href: '/programs' },
       { label: 'Community Health', href: '/programs/community-health' },
       { label: 'Education', href: '/programs/education' },
       { label: 'Economic Empowerment', href: '/programs/economic-empowerment' },
@@ -22,6 +22,7 @@ const navLinks = [
     ],
   },
   { label: 'Events', href: '/events' },
+  { label: 'Gallery', href: '/gallery' },
   { label: 'Blog', href: '/blog' },
   { label: 'Contact', href: '/contact' },
   { label: 'Donate', href: '/donate' },
@@ -30,14 +31,23 @@ const navLinks = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [scrollPct, setScrollPct] = useState(0)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [logoUrl, setLogoUrl] = useState<string>('')
+  const [siteName, setSiteName] = useState<string>('')
+  const [logoSize, setLogoSize] = useState(36)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+      const el = document.documentElement
+      const pct = (window.scrollY / (el.scrollHeight - el.clientHeight)) * 100
+      setScrollPct(Math.min(100, Math.max(0, pct)))
+    }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -49,6 +59,21 @@ export default function Navbar() {
     })
     return () => subscription.unsubscribe()
   }, [supabase.auth])
+
+  // Fetch site identity from settings
+  useEffect(() => {
+    supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['logo_url', 'site_name', 'logo_size'])
+      .then(({ data }) => {
+        const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value ?? '']))
+        if (map.logo_url) setLogoUrl(map.logo_url)
+        if (map.site_name) setSiteName(map.site_name)
+        if (map.logo_size) setLogoSize(parseInt(map.logo_size) || 36)
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -66,23 +91,46 @@ export default function Navbar() {
           : 'bg-transparent'
       }`}
     >
+      {/* Scroll progress bar */}
+      {scrolled && (
+        <div
+          className="scroll-progress-bar"
+          style={{ width: `${scrollPct}%` }}
+        />
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform"
-              style={{ background: 'linear-gradient(135deg, #2D5CC8 0%, #1E3A8A 100%)' }}>
-              <Leaf className="w-5 h-5 text-white" />
-            </div>
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt={siteName || "Site Logo"}
+                width={logoSize}
+                height={logoSize}
+                className="rounded-xl object-contain group-hover:scale-110 transition-transform"
+                style={{ width: logoSize, height: logoSize }}
+                unoptimized
+              />
+            ) : (
+              <div
+                className="rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform"
+                style={{ width: logoSize, height: logoSize, background: 'linear-gradient(135deg, #2D5CC8 0%, #1E3A8A 100%)' }}
+              >
+                <Leaf className="w-5 h-5 text-white" />
+              </div>
+            )}
             <div className="hidden sm:block">
               <span className={`font-extrabold text-lg leading-none tracking-tight ${
                 scrolled || !isHomePage ? 'text-slate-900' : 'text-white'
               }`}>
-                4W&apos;S Inua Jamii
+                {siteName || "4W\u2019S Inua Jamii"}
               </span>
-              <p className={`text-[11px] font-semibold leading-none mt-0.5 uppercase tracking-widest ${
-                scrolled || !isHomePage ? 'text-primary-500' : 'text-primary-200'
-              }`}>Foundation</p>
+              {!(siteName || '').toLowerCase().includes('foundation') && (
+                <p className={`text-[11px] font-semibold leading-none mt-0.5 uppercase tracking-widest ${
+                  scrolled || !isHomePage ? 'text-primary-500' : 'text-primary-200'
+                }`}>Foundation</p>
+              )}
             </div>
           </Link>
 

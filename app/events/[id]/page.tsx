@@ -4,14 +4,17 @@ import { notFound } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import RsvpButton from '@/components/events/RsvpButton'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
 import { Calendar, MapPin, Users, Clock, ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 type Props = { params: { id: string } }
 
 async function getEvent(id: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data } = await supabase
     .from('events')
     .select('id, title, description, location, address, event_date, start_time, end_time, image_url, category, max_attendees, status')
@@ -57,6 +60,14 @@ export default async function EventDetailPage({ params }: Props) {
       .maybeSingle()
     if (rsvp) rsvpStatus = rsvp.status as typeof rsvpStatus
   }
+
+  // CMS RSVP setting
+  const { data: rsvpSetting } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'rsvp_enabled')
+    .maybeSingle()
+  const rsvpEnabled = rsvpSetting?.value !== 'false'
 
   const eventDate = event.event_date
     ? new Date(event.event_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
@@ -150,20 +161,26 @@ export default async function EventDetailPage({ params }: Props) {
               </div>
 
               {/* RSVP */}
-              <div className="card p-6">
-                <h3 className="font-bold text-slate-900 mb-1">Reserve Your Spot</h3>
-                <p className="text-sm text-slate-500 mb-4">
-                  {isFull
-                    ? 'This event is at capacity. Join the waitlist to be notified if a spot opens up.'
-                    : "Secure your spot — it's completely free."}
-                </p>
-                <RsvpButton
-                  eventId={params.id}
-                  isLoggedIn={!!user}
-                  initialStatus={rsvpStatus}
-                  isFull={isFull}
-                />
-              </div>
+              {rsvpEnabled ? (
+                <div className="card p-6">
+                  <h3 className="font-bold text-slate-900 mb-1">Reserve Your Spot</h3>
+                  <p className="text-sm text-slate-500 mb-4">
+                    {isFull
+                      ? 'This event is at capacity. Join the waitlist to be notified if a spot opens up.'
+                      : "Secure your spot — it's completely free."}
+                  </p>
+                  <RsvpButton
+                    eventId={params.id}
+                    isLoggedIn={!!user}
+                    initialStatus={rsvpStatus}
+                    isFull={isFull}
+                  />
+                </div>
+              ) : (
+                <div className="card p-6 text-center text-slate-500 text-sm">
+                  RSVPs are currently closed. Check back soon.
+                </div>
+              )}
             </div>
           </div>
         </div>

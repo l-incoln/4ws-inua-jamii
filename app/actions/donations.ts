@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { initiateStkPush } from '@/lib/mpesa'
 import { z } from 'zod'
 
 const donationSchema = z.object({
@@ -17,7 +18,7 @@ const donationSchema = z.object({
 
 export async function submitDonation(
   data: z.infer<typeof donationSchema>
-): Promise<{ error?: string; success?: boolean; reference?: string }> {
+): Promise<{ error?: string; success?: boolean; reference?: string; stkPushed?: boolean }> {
   const parsed = donationSchema.safeParse(data)
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
@@ -42,5 +43,29 @@ export async function submitDonation(
 
   if (error) return { error: 'Failed to record donation. Please try again.' }
 
-  return { success: true, reference }
+  // Attempt M-Pesa STK push if credentials are configured
+  let stkPushed = false
+  if (parsed.data.payment_method === 'mpesa' && parsed.data.phone) {
+    // Normalise phone: strip leading 0, prefix 254
+    const raw = parsed.data.phone.replace(/\s+/g, '')
+    const phone = raw.startsWith('0') ? `254${raw.slice(1)}` : raw.startsWith('+') ? raw.slice(1) : raw
+
+    const stkResult = await initiateStkPush({
+      phone,
+      amount:      parsed.data.amount,
+      reference,
+      description: 'Inua Jamii Donation',
+    })
+
+    if (stkResult.success && stkResult.checkoutRequestId) {
+      // Store the checkout request ID so the callback can match the donation
+      await supabase
+        .from('donations')
+        .update({ reference: stkResult.checkoutRequestId })
+        .eq('reference', reference)
+      stkPushed = true
+    }
+  }
+
+  return { success: true, reference, stkPushed }
 }
