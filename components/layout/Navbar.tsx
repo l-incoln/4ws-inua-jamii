@@ -108,7 +108,7 @@ export default function Navbar() {
                 alt={siteName || "Site Logo"}
                 width={logoSize}
                 height={logoSize}
-                className="rounded-xl object-contain group-hover:scale-110 transition-transform"
+                className={`rounded-xl object-contain group-hover:scale-110 transition-transform${!scrolled && isHomePage ? ' brightness-0 invert' : ''}`}
                 style={{ width: logoSize, height: logoSize }}
                 unoptimized
               />
