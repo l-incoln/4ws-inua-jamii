@@ -129,9 +129,8 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
             subLabel="Admin Panel"
             nameColor="text-white"
             subColor="text-slate-400"
+            invert
           />
-        </div>
-        <SidebarContent />
       </aside>
 
       {/* ── Mobile top bar ── */}
@@ -140,6 +139,7 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
           subLabel="Admin"
           nameColor="text-white"
           subColor="text-slate-400"
+          invert
         />
         <button
           onClick={() => setMobileOpen(true)}
@@ -165,6 +165,7 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
                 subLabel="Admin Panel"
                 nameColor="text-white"
                 subColor="text-slate-400"
+                invert
               />
               <button
                 onClick={() => setMobileOpen(false)}

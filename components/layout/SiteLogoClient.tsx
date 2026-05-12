@@ -19,6 +19,8 @@ interface Props {
   className?: string
   /** Href for the logo link */
   href?: string
+  /** Apply brightness(0) invert(1) filter to logo image — use on dark backgrounds */
+  invert?: boolean
 }
 
 export default function SiteLogoClient({
@@ -28,6 +30,7 @@ export default function SiteLogoClient({
   subColor = 'text-primary-600',
   className = '',
   href = '/',
+  invert = false,
 }: Props) {
   const [logoUrl,  setLogoUrl]  = useState('')
   const [siteName, setSiteName] = useState('')
@@ -65,7 +68,7 @@ export default function SiteLogoClient({
           alt={displayName}
           width={logoSize}
           height={logoSize}
-          className="rounded-xl object-contain"
+          className={`rounded-xl object-contain transition-[filter] duration-200${invert ? ' brightness-0 invert' : ''}`}
           style={{ width: logoSize, height: logoSize }}
           unoptimized
         />
