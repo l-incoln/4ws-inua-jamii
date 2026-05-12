@@ -65,7 +65,7 @@ function ItemCard({
       {/* Actions */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
-          onClick={() => onToggle(item.id, !item.is_active)}
+          onClick={() => onToggle?.(item.id, !item.is_active)}
           disabled={pending}
           title={item.is_active ? 'Hide from gallery' : 'Show in gallery'}
           className="p-1.5 rounded-lg bg-white/90 shadow text-slate-600 hover:text-primary-600"
@@ -73,14 +73,14 @@ function ItemCard({
           {item.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
         <button
-          onClick={() => onEdit(item)}
+          onClick={() => onEdit?.(item)}
           className="p-1.5 rounded-lg bg-white/90 shadow text-slate-600 hover:text-blue-600"
           title="Edit"
         >
           <Edit2 className="w-4 h-4" />
         </button>
         <button
-          onClick={() => onDelete(item.id)}
+          onClick={() => onDelete?.(item.id)}
           disabled={pending}
           className="p-1.5 rounded-lg bg-white/90 shadow text-slate-600 hover:text-red-600"
           title="Delete"
