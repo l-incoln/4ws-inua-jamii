@@ -92,6 +92,64 @@ function ItemCard({
   )
 }
 
+type MetaVals = { description: string; category: string; event_name: string; taken_at: string; sort_order: string; is_active: boolean }
+
+const SOURCE_TABS = [
+  { id: 'upload' as const,  label: 'Upload File',   Icon: Upload },
+  { id: 'bulk' as const,    label: 'Bulk Upload',   Icon: Layers },
+  { id: 'library' as const, label: 'Media Library', Icon: FolderOpen },
+]
+
+function MetaFields({ vals, onChange }: {
+  vals: MetaVals
+  onChange: (k: string, v: string | boolean) => void
+}) {
+  return (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+        <textarea rows={2} value={vals.description} onChange={(e) => onChange('description', e.target.value)}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+          placeholder="Brief description…" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+          <input list="gallery-categories" value={vals.category} onChange={(e) => onChange('category', e.target.value)}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="Select or type…" />
+          <datalist id="gallery-categories">
+            {PRESET_CATEGORIES.map((c) => <option key={c} value={c} />)}
+          </datalist>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Event Name</label>
+          <input value={vals.event_name} onChange={(e) => onChange('event_name', e.target.value)}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="e.g. Annual Health Drive" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Date Taken</label>
+          <input type="date" value={vals.taken_at} onChange={(e) => onChange('taken_at', e.target.value)}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Sort Order</label>
+          <input type="number" min={0} value={vals.sort_order} onChange={(e) => onChange('sort_order', e.target.value)}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+      </div>
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" checked={vals.is_active} onChange={(e) => onChange('is_active', e.target.checked)}
+          className="w-4 h-4 rounded text-primary-600" />
+        <span className="text-sm text-slate-700">Visible on public gallery</span>
+      </label>
+    </>
+  )
+}
+
 export default function GalleryManager({ initialItems }: Props) {
   const router = useRouter()
   const [items, setItems] = useState<GalleryItem[]>(initialItems)
@@ -319,55 +377,6 @@ export default function GalleryManager({ initialItems }: Props) {
     (a.title ?? a.file_name).toLowerCase().includes(librarySearch.toLowerCase())
   )
 
-  // Shared metadata fields (used by both single form and bulk form)
-  const MetaFields = ({ vals, onChange }: {
-    vals: { description: string; category: string; event_name: string; taken_at: string; sort_order: string; is_active: boolean }
-    onChange: (k: string, v: string | boolean) => void
-  }) => (
-    <>
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-        <textarea rows={2} value={vals.description} onChange={(e) => onChange('description', e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-          placeholder="Brief description…" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-          <input list="gallery-categories" value={vals.category} onChange={(e) => onChange('category', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="Select or type…" />
-          <datalist id="gallery-categories">
-            {PRESET_CATEGORIES.map((c) => <option key={c} value={c} />)}
-          </datalist>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Event Name</label>
-          <input value={vals.event_name} onChange={(e) => onChange('event_name', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="e.g. Annual Health Drive" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Date Taken</label>
-          <input type="date" value={vals.taken_at} onChange={(e) => onChange('taken_at', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Sort Order</label>
-          <input type="number" min={0} value={vals.sort_order} onChange={(e) => onChange('sort_order', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
-        </div>
-      </div>
-      <label className="flex items-center gap-3 cursor-pointer">
-        <input type="checkbox" checked={vals.is_active} onChange={(e) => onChange('is_active', e.target.checked)}
-          className="w-4 h-4 rounded text-primary-600" />
-        <span className="text-sm text-slate-700">Visible on public gallery</span>
-      </label>
-    </>
-  )
-
   return (
     <div>
       {/* Header */}
@@ -439,11 +448,7 @@ export default function GalleryManager({ initialItems }: Props) {
             {/* Source tabs (hidden when editing) */}
             {!editing && (
               <div className="flex border-b">
-                {([
-                  { id: 'upload',  label: 'Upload File',    Icon: Upload },
-                  { id: 'bulk',    label: 'Bulk Upload',    Icon: Layers },
-                  { id: 'library', label: 'Media Library',  Icon: FolderOpen },
-                ] as const).map(({ id, label, Icon }) => (
+                {SOURCE_TABS.map(({ id, label, Icon }) => (
                   <button
                     key={id}
                     onClick={() => setSourceTab(id)}
