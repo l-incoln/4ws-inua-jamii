@@ -691,37 +691,6 @@ export default function GalleryManager({ initialItems }: Props) {
           ))}
         </div>
       )}
-          <p className="text-slate-400 text-sm mt-1 mb-5">Upload photos from events and activities.</p>
-          <button onClick={openAdd} className="btn-primary">
-            <Plus className="w-4 h-4 inline mr-1" /> Add First Photo
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {items.map((item) => (
-            <div key={item.id} className="relative">
-              {bulkMode && (
-                <button
-                  onClick={() => toggleSelect(item.id)}
-                  className="absolute top-2 left-2 z-10"
-                  aria-label={selectedIds.has(item.id) ? 'Deselect' : 'Select'}
-                >
-                  {selectedIds.has(item.id)
-                    ? <CheckSquare className="w-5 h-5 text-primary-600 drop-shadow" />
-                    : <Square className="w-5 h-5 text-white drop-shadow" />}
-                </button>
-              )}
-              <ItemCard
-                item={item}
-                onEdit={bulkMode ? () => {} : openEdit}
-                onDelete={bulkMode ? () => {} : handleDelete}
-                onToggle={bulkMode ? () => {} : handleToggle}
-                pending={isPending}
-              />
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
