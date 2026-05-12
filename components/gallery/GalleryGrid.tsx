@@ -133,7 +133,7 @@ export default function GalleryGrid({ items, categories, adminMode, onReorder }:
                 onDragOver={(e) => handleDragOver(e, item.id)}
                 onDrop={handleDrop}
                 onDragEnd={() => setDraggingId(null)}
-                className={`break-inside-avoid cursor-pointer group relative overflow-hidden rounded-xl shadow-sm hover:shadow-lg transition-all ${
+                className={`break-inside-avoid cursor-pointer group relative overflow-hidden rounded-xl shadow-sm hover:shadow-xl hover:shadow-primary-900/20 transition-all duration-300 ${
                   draggingId === item.id ? 'opacity-40 scale-95' : ''
                 }`}
                 onClick={() => !adminMode && openLightbox(idx)}
@@ -157,17 +157,20 @@ export default function GalleryGrid({ items, categories, adminMode, onReorder }:
                     style={{ objectPosition: `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%` }}
                     unoptimized
                   />
-                  {/* Permanent gradient overlay — always visible at bottom */}
-                  <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none rounded-b-xl" />
-                  {/* Caption — title always visible, event name on hover */}
-                  <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none">
-                    <p className="text-white font-semibold text-sm leading-tight drop-shadow line-clamp-2">{item.title}</p>
+                  {/* Brand-tinted gradient overlay — deep navy fading up */}
+                  <div className="absolute inset-x-0 bottom-0 h-4/5 bg-gradient-to-t from-primary-900/95 via-primary-800/40 to-transparent pointer-events-none rounded-b-xl transition-all duration-300 group-hover:from-primary-900/[0.98] group-hover:via-primary-800/50" />
+                  {/* Caption */}
+                  <div className="absolute bottom-0 inset-x-0 px-3 pb-3 pt-6 pointer-events-none">
+                    <p className="text-white font-semibold text-sm leading-snug drop-shadow-md line-clamp-2 tracking-wide">{item.title}</p>
                     {item.event_name && (
-                      <p className="text-white/80 text-xs mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">{item.event_name}</p>
+                      <p className="text-sky-300 text-xs mt-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <span className="w-1 h-1 rounded-full bg-sky-400 shrink-0 inline-block" />
+                        {item.event_name}
+                      </p>
                     )}
                   </div>
                   {item.category && (
-                    <span className="absolute top-2 right-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
+                    <span className="absolute top-2 right-2 bg-primary-900/70 text-sky-200 text-xs px-2.5 py-0.5 rounded-full backdrop-blur-sm border border-white/10 font-medium tracking-wide">
                       {item.category}
                     </span>
                   )}
