@@ -281,6 +281,30 @@ export default function Navbar() {
                   >
                     {link.label}
                   </Link>
+                ) : link.children ? (
+                  <div key={link.label}>
+                    <Link
+                      href={link.href ?? '#'}
+                      onClick={() => setIsOpen(false)}
+                      className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                        pathname === link.href ? 'bg-primary-50 text-primary-700' : 'text-slate-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l-2 border-primary-100 pl-3">
+                      {link.children.map((child) => (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setIsOpen(false)}
+                          className="block px-3 py-2 rounded-lg text-sm text-slate-600 hover:text-primary-700 hover:bg-primary-50 transition-colors"
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <Link
                     key={link.href ?? link.label}

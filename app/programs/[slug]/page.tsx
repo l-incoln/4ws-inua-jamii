@@ -22,7 +22,7 @@ async function getProgram(slug: string) {
   const supabase = createPublicClient()
   const { data } = await supabase
     .from('programs')
-    .select('id, slug, title, description, icon, image_url, beneficiaries')
+    .select('id, slug, title, description, icon, image_url, beneficiaries, content, goals, activities, tags')
     .eq('slug', slug)
     .eq('is_active', true)
     .maybeSingle()
@@ -87,21 +87,72 @@ export default async function ProgramDetailPage({ params }: Props) {
 
         {/* Content */}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
-          {/* Description */}
+
+          {/* Tags */}
+          {program.tags && program.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {(program.tags as string[]).map((tag) => (
+                <span key={tag} className="px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium border border-primary-100 capitalize">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Description / rich content */}
           <div>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">About This Program</h2>
-            {(program.description ?? '').split('\n\n').map((para: string, i: number) => (
-              <p key={i} className="text-slate-600 leading-relaxed mb-4">{para}</p>
+            {((program.content ?? program.description) || '').split('\n\n').map((para: string, i: number) => (
+              para.trim() ? <p key={i} className="text-slate-600 leading-relaxed mb-4">{para.trim()}</p> : null
             ))}
           </div>
 
           {/* Beneficiaries stat */}
-          {program.beneficiaries && (
+          {program.beneficiaries ? (
             <div className="bg-primary-50 border border-primary-100 rounded-2xl p-8 text-center">
-              <div className="text-5xl font-extrabold text-primary-700">{program.beneficiaries.toLocaleString()}+</div>
+              <div className="text-5xl font-extrabold text-primary-700">{(program.beneficiaries as number).toLocaleString()}+</div>
               <div className="text-slate-600 mt-2">Beneficiaries Served</div>
             </div>
-          )}
+          ) : null}
+
+          {/* Goals + Activities */}
+          {((program.goals as string[] | null)?.length || (program.activities as string[] | null)?.length) ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              {(program.goals as string[] | null)?.length ? (
+                <div className="bg-sky-50 border border-sky-100 rounded-2xl p-6">
+                  <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center text-xs font-bold">✓</span>
+                    Our Goals
+                  </h3>
+                  <ul className="space-y-2.5">
+                    {(program.goals as string[]).map((goal, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                        <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+                        {goal}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {(program.activities as string[] | null)?.length ? (
+                <div className="bg-green-50 border border-green-100 rounded-2xl p-6">
+                  <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">★</span>
+                    Key Activities
+                  </h3>
+                  <ul className="space-y-2.5">
+                    {(program.activities as string[]).map((act, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                        <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                        {act}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Apply to Program */}
           <ProgramApplySection

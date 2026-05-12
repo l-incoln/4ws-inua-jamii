@@ -7,9 +7,10 @@ import {
   LayoutDashboard, Users, CalendarDays, FileText, Heart,
   Settings, LogOut, BarChart3, ShieldCheck, Megaphone,
   FolderOpen, Mail, Target, MessageSquare, ClipboardList,
-  CheckSquare, ImageIcon, GalleryHorizontal,
+  CheckSquare, ImageIcon, GalleryHorizontal, Activity,
 } from 'lucide-react'
 import SiteLogoClient from '@/components/layout/SiteLogoClient'
+import GlobalSearch from '@/components/ui/GlobalSearch'
 
 const mainNavItems = [
   { href: '/admin',               label: 'Overview',      icon: LayoutDashboard, exact: true },
@@ -22,6 +23,7 @@ const mainNavItems = [
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
   { href: '/admin/donations',     label: 'Donations',     icon: Heart },
   { href: '/admin/analytics',     label: 'Analytics',     icon: BarChart3 },
+  { href: '/admin/activity',      label: 'Activity Log',  icon: Activity },
 ]
 
 const communityNavItems = [
@@ -88,6 +90,11 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 pt-3 pb-1">
+        <GlobalSearch />
       </div>
 
       {/* Navigation */}

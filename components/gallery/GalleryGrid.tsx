@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import Image from 'next/image'
-import { X, ChevronLeft, ChevronRight, Calendar, Tag, Camera } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Calendar, Tag, Camera, GripVertical, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export type GalleryItem = {
@@ -13,20 +13,28 @@ export type GalleryItem = {
   category: string | null
   event_name: string | null
   taken_at: string | null
+  sort_order?: number
 }
 
 interface Props {
   items: GalleryItem[]
   categories: string[]
+  /** When true, drag-and-drop reordering is enabled */
+  adminMode?: boolean
+  onReorder?: (orderedIds: string[]) => Promise<void>
 }
 
-export default function GalleryGrid({ items, categories }: Props) {
+export default function GalleryGrid({ items, categories, adminMode, onReorder }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('All')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [orderedItems, setOrderedItems] = useState<GalleryItem[]>(items)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [savingOrder, setSavingOrder] = useState(false)
+  const dragOverId = useRef<string | null>(null)
 
   const filtered = activeCategory === 'All'
-    ? items
-    : items.filter((i) => i.category === activeCategory)
+    ? orderedItems
+    : orderedItems.filter((i) => i.category === activeCategory)
 
   const openLightbox = useCallback((index: number) => setLightboxIndex(index), [])
   const closeLightbox = useCallback(() => setLightboxIndex(null), [])
@@ -40,6 +48,32 @@ export default function GalleryGrid({ items, categories }: Props) {
   }, [filtered.length])
 
   const current = lightboxIndex !== null ? filtered[lightboxIndex] : null
+
+  // Drag-and-drop reorder (admin only)
+  const handleDragStart = (id: string) => setDraggingId(id)
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault()
+    dragOverId.current = id
+  }
+  const handleDrop = async () => {
+    if (!draggingId || !dragOverId.current || draggingId === dragOverId.current) {
+      setDraggingId(null)
+      return
+    }
+    const newOrder = [...orderedItems]
+    const fromIdx = newOrder.findIndex((i) => i.id === draggingId)
+    const toIdx   = newOrder.findIndex((i) => i.id === dragOverId.current)
+    const [moved] = newOrder.splice(fromIdx, 1)
+    newOrder.splice(toIdx, 0, moved)
+    setOrderedItems(newOrder)
+    setDraggingId(null)
+    dragOverId.current = null
+    if (onReorder) {
+      setSavingOrder(true)
+      await onReorder(newOrder.map((i) => i.id))
+      setSavingOrder(false)
+    }
+  }
 
   return (
     <>
@@ -60,7 +94,18 @@ export default function GalleryGrid({ items, categories }: Props) {
         ))}
       </div>
 
-      {/* Grid */}
+      {adminMode && savingOrder && (
+        <div className="flex items-center gap-2 mb-4 text-sm text-primary-700 bg-primary-50 px-4 py-2 rounded-lg">
+          <Loader2 className="w-4 h-4 animate-spin" /> Saving new order…
+        </div>
+      )}
+      {adminMode && !savingOrder && orderedItems.length > 0 && (
+        <p className="text-xs text-slate-400 mb-4 text-center">
+          Drag photos to reorder them
+        </p>
+      )}
+
+      {/* Masonry Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-24">
           <Camera className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -70,7 +115,7 @@ export default function GalleryGrid({ items, categories }: Props) {
       ) : (
         <motion.div
           layout
-          className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4"
+          className="columns-1 xs:columns-2 sm:columns-2 md:columns-3 lg:columns-4 gap-3 sm:gap-4 space-y-3 sm:space-y-4"
         >
           <AnimatePresence>
             {filtered.map((item, idx) => (
@@ -81,28 +126,42 @@ export default function GalleryGrid({ items, categories }: Props) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="break-inside-avoid cursor-pointer group relative overflow-hidden rounded-xl shadow-sm hover:shadow-lg transition-shadow"
-                onClick={() => openLightbox(idx)}
+                draggable={adminMode}
+                onDragStart={() => handleDragStart(item.id)}
+                onDragOver={(e) => handleDragOver(e, item.id)}
+                onDrop={handleDrop}
+                onDragEnd={() => setDraggingId(null)}
+                className={`break-inside-avoid cursor-pointer group relative overflow-hidden rounded-xl shadow-sm hover:shadow-lg transition-all ${
+                  draggingId === item.id ? 'opacity-40 scale-95' : ''
+                }`}
+                onClick={() => !adminMode && openLightbox(idx)}
               >
+                {adminMode && (
+                  <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-black/50 text-white rounded p-1 cursor-grab" title="Drag to reorder">
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                )}
                 <div className="relative w-full">
                   <Image
                     src={item.image_url}
                     alt={item.title}
                     width={600}
                     height={400}
+                    loading="lazy"
+                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
                     unoptimized
                   />
-                  {/* Hover overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
                     <p className="text-white font-semibold text-sm leading-tight">{item.title}</p>
                     {item.event_name && (
                       <p className="text-white/80 text-xs mt-0.5">{item.event_name}</p>
                     )}
                   </div>
-                  {/* Category badge */}
                   {item.category && (
-                    <span className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
+                    <span className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
                       {item.category}
                     </span>
                   )}
@@ -120,22 +179,20 @@ export default function GalleryGrid({ items, categories }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
             onClick={closeLightbox}
           >
-            {/* Close */}
             <button
-              className="absolute top-4 right-4 text-white/80 hover:text-white z-10 p-2"
+              className="absolute top-4 right-4 text-white/80 hover:text-white z-10 p-2 bg-white/10 rounded-full backdrop-blur-sm"
               onClick={closeLightbox}
               aria-label="Close"
             >
-              <X className="w-7 h-7" />
+              <X className="w-6 h-6" />
             </button>
 
-            {/* Prev */}
             {filtered.length > 1 && (
               <button
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10 p-2 bg-white/10 rounded-full backdrop-blur-sm hover:bg-white/20"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10 p-2 bg-white/10 rounded-full backdrop-blur-sm hover:bg-white/20"
                 onClick={(e) => { e.stopPropagation(); goPrev() }}
                 aria-label="Previous"
               >
@@ -143,28 +200,26 @@ export default function GalleryGrid({ items, categories }: Props) {
               </button>
             )}
 
-            {/* Image + info */}
             <motion.div
               key={current.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="relative max-w-5xl w-full max-h-[90vh] flex flex-col"
+              className="relative max-w-5xl w-full flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex-1 min-h-0">
-                <Image
-                  src={current.image_url}
-                  alt={current.title}
-                  width={1200}
-                  height={800}
-                  className="w-full max-h-[75vh] object-contain rounded-lg"
-                  unoptimized
-                />
-              </div>
+              <Image
+                src={current.image_url}
+                alt={current.title}
+                width={1200}
+                height={800}
+                priority
+                className="w-full max-h-[72vh] object-contain rounded-lg"
+                unoptimized
+              />
               <div className="mt-3 px-1">
-                <h3 className="text-white font-bold text-lg">{current.title}</h3>
+                <h3 className="text-white font-bold text-base sm:text-lg">{current.title}</h3>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                   {current.event_name && (
                     <span className="text-white/70 text-sm flex items-center gap-1">
@@ -189,10 +244,9 @@ export default function GalleryGrid({ items, categories }: Props) {
               </div>
             </motion.div>
 
-            {/* Next */}
             {filtered.length > 1 && (
               <button
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10 p-2 bg-white/10 rounded-full backdrop-blur-sm hover:bg-white/20"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10 p-2 bg-white/10 rounded-full backdrop-blur-sm hover:bg-white/20"
                 onClick={(e) => { e.stopPropagation(); goNext() }}
                 aria-label="Next"
               >
@@ -200,7 +254,6 @@ export default function GalleryGrid({ items, categories }: Props) {
               </button>
             )}
 
-            {/* Counter */}
             {filtered.length > 1 && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm bg-black/40 px-3 py-1 rounded-full">
                 {lightboxIndex + 1} / {filtered.length}

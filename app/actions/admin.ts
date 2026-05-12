@@ -1111,3 +1111,37 @@ export async function toggleGalleryItem(itemId: string, isActive: boolean) {
   revalidatePath('/admin/gallery')
   return { success: true }
 }
+
+/** Bulk-update sort_order for gallery items (drag-drop reorder) */
+export async function reorderGalleryItems(orderedIds: string[]) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  // Run updates in parallel
+  await Promise.all(
+    orderedIds.map((id, idx) =>
+      supabase.from('gallery_items').update({ sort_order: idx }).eq('id', id)
+    )
+  )
+
+  revalidatePath('/gallery')
+  revalidatePath('/admin/gallery')
+  return { success: true }
+}
+
+/** Bulk delete gallery items */
+export async function bulkDeleteGalleryItems(ids: string[]) {
+  if (!ids.length) return { success: true }
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbErr } = await supabase
+    .from('gallery_items')
+    .delete()
+    .in('id', ids)
+
+  if (dbErr) return { error: dbErr.message }
+  revalidatePath('/gallery')
+  revalidatePath('/admin/gallery')
+  return { success: true, deleted: ids.length }
+}

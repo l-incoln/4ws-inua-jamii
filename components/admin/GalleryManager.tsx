@@ -5,10 +5,11 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Trash2, Edit2, X, Check, Loader2,
-  Eye, EyeOff, ImageIcon, Upload, Layers, FolderOpen, Search,
+  Eye, EyeOff, ImageIcon, Upload, Layers, FolderOpen, Search, CheckSquare, Square,
 } from 'lucide-react'
-import { saveGalleryItem, deleteGalleryItem, toggleGalleryItem, uploadImage } from '@/app/actions/admin'
+import { saveGalleryItem, deleteGalleryItem, toggleGalleryItem, uploadImage, reorderGalleryItems, bulkDeleteGalleryItems } from '@/app/actions/admin'
 import { createClient } from '@/lib/supabase/client'
+import { compressImage } from '@/lib/compress-image'
 
 export type GalleryItem = {
   id: string
@@ -104,6 +105,10 @@ export default function GalleryManager({ initialItems }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const bulkFileRef = useRef<HTMLInputElement>(null)
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkMode, setBulkMode] = useState(false)
+
   // Photo source tab: 'upload' | 'bulk' | 'library'
   const [sourceTab, setSourceTab] = useState<'upload' | 'bulk' | 'library'>('upload')
 
@@ -181,8 +186,10 @@ export default function GalleryManager({ initialItems }: Props) {
   const handleImageUpload = async (file: File) => {
     setUploading(true)
     setError(null)
+    // Compress before uploading
+    const compressed = await compressImage(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 })
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', compressed)
     const res = await uploadImage(fd, 'gallery')
     setUploading(false)
     if (res.error) { setError(res.error); return }
@@ -211,7 +218,8 @@ export default function GalleryManager({ initialItems }: Props) {
     for (const entry of bulkEntries) {
       setBulkProgress(`Uploading ${done + 1} of ${bulkEntries.length}: ${entry.title}`)
       const fd = new FormData()
-      fd.append('file', entry.file)
+      const compressed = await compressImage(entry.file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 })
+      fd.append('file', compressed)
       const upRes = await uploadImage(fd, 'gallery')
       if (upRes.error) {
         setError(`Failed on "${entry.title}": ${upRes.error}`)
@@ -273,6 +281,36 @@ export default function GalleryManager({ initialItems }: Props) {
       const res = await toggleGalleryItem(id, active)
       if (res?.error) { setError(res.error); return }
       setItems((prev) => prev.map((i) => i.id === id ? { ...i, is_active: active } : i))
+    })
+  }
+
+  const handleReorder = async (orderedIds: string[]) => {
+    const res = await reorderGalleryItems(orderedIds)
+    if (res?.error) setError(res.error)
+    // Update local order
+    const map = new Map(items.map((i) => [i.id, i]))
+    setItems(orderedIds.map((id) => map.get(id)!).filter(Boolean))
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} selected photo${selectedIds.size !== 1 ? 's' : ''}?`)) return
+    startTransition(async () => {
+      const res = await bulkDeleteGalleryItems(Array.from(selectedIds))
+      if (res?.error) { setError(res.error); return }
+      setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)))
+      setSelectedIds(new Set())
+      setBulkMode(false)
+      setSuccess(`${res.deleted} photo${res.deleted !== 1 ? 's' : ''} deleted.`)
+      setTimeout(() => setSuccess(null), 3000)
     })
   }
 
@@ -338,9 +376,40 @@ export default function GalleryManager({ initialItems }: Props) {
           <h1 className="text-2xl font-bold text-slate-900">Gallery</h1>
           <p className="text-slate-500 text-sm mt-1">{items.length} photo{items.length !== 1 ? 's' : ''} total</p>
         </div>
-        <button onClick={openAdd} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Add Photo
-        </button>
+        <div className="flex items-center gap-2">
+          {bulkMode ? (
+            <>
+              <span className="text-sm text-slate-600">{selectedIds.size} selected</span>
+              <button
+                onClick={handleBulkDelete}
+                disabled={selectedIds.size === 0 || isPending}
+                className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-sm font-medium hover:bg-red-100 disabled:opacity-50"
+              >
+                Delete Selected
+              </button>
+              <button
+                onClick={() => { setBulkMode(false); setSelectedIds(new Set()) }}
+                className="px-3 py-1.5 rounded-lg border text-slate-600 text-sm hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              {items.length > 0 && (
+                <button
+                  onClick={() => setBulkMode(true)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-sm hover:bg-slate-50"
+                >
+                  Bulk Select
+                </button>
+              )}
+              <button onClick={openAdd} className="btn-primary flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Add Photo
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Alerts */}
@@ -599,14 +668,57 @@ export default function GalleryManager({ initialItems }: Props) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {items.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onEdit={openEdit}
-              onDelete={handleDelete}
-              onToggle={handleToggle}
-              pending={isPending}
-            />
+            <div key={item.id} className="relative">
+              {bulkMode && (
+                <button
+                  onClick={() => toggleSelect(item.id)}
+                  className="absolute top-2 left-2 z-10"
+                  aria-label={selectedIds.has(item.id) ? 'Deselect' : 'Select'}
+                >
+                  {selectedIds.has(item.id)
+                    ? <CheckSquare className="w-5 h-5 text-primary-600 drop-shadow" />
+                    : <Square className="w-5 h-5 text-white drop-shadow" />}
+                </button>
+              )}
+              <ItemCard
+                item={item}
+                onEdit={bulkMode ? () => {} : openEdit}
+                onDelete={bulkMode ? () => {} : handleDelete}
+                onToggle={bulkMode ? () => {} : handleToggle}
+                pending={isPending}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+          <p className="text-slate-400 text-sm mt-1 mb-5">Upload photos from events and activities.</p>
+          <button onClick={openAdd} className="btn-primary">
+            <Plus className="w-4 h-4 inline mr-1" /> Add First Photo
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {items.map((item) => (
+            <div key={item.id} className="relative">
+              {bulkMode && (
+                <button
+                  onClick={() => toggleSelect(item.id)}
+                  className="absolute top-2 left-2 z-10"
+                  aria-label={selectedIds.has(item.id) ? 'Deselect' : 'Select'}
+                >
+                  {selectedIds.has(item.id)
+                    ? <CheckSquare className="w-5 h-5 text-primary-600 drop-shadow" />
+                    : <Square className="w-5 h-5 text-white drop-shadow" />}
+                </button>
+              )}
+              <ItemCard
+                item={item}
+                onEdit={bulkMode ? () => {} : openEdit}
+                onDelete={bulkMode ? () => {} : handleDelete}
+                onToggle={bulkMode ? () => {} : handleToggle}
+                pending={isPending}
+              />
+            </div>
           ))}
         </div>
       )}
