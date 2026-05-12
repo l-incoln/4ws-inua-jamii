@@ -38,9 +38,9 @@ function ItemCard({
   pending,
 }: {
   item: GalleryItem
-  onEdit: (i: GalleryItem) => void
-  onDelete: (id: string) => void
-  onToggle: (id: string, active: boolean) => void
+  onEdit?: (i: GalleryItem) => void
+  onDelete?: (id: string) => void
+  onToggle?: (id: string, active: boolean) => void
   pending: boolean
 }) {
   return (
@@ -682,9 +682,9 @@ export default function GalleryManager({ initialItems }: Props) {
               )}
               <ItemCard
                 item={item}
-                onEdit={bulkMode ? () => {} : openEdit}
-                onDelete={bulkMode ? () => {} : handleDelete}
-                onToggle={bulkMode ? () => {} : handleToggle}
+                onEdit={bulkMode ? undefined : openEdit}
+                onDelete={bulkMode ? undefined : handleDelete}
+                onToggle={bulkMode ? undefined : handleToggle}
                 pending={isPending}
               />
             </div>
