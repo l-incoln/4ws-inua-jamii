@@ -16,7 +16,7 @@ export default async function GalleryPage() {
 
   const { data } = await supabase
     .from('gallery_items')
-    .select('id, title, description, image_url, category, event_name, taken_at')
+    .select('id, title, description, image_url, category, event_name, taken_at, focal_x, focal_y')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })

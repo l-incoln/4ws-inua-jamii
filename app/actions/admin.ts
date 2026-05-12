@@ -1058,11 +1058,18 @@ export async function saveGalleryItem(formData: FormData, itemId?: string) {
   const taken_at    = (formData.get('taken_at') as string) || null
   const sort_order  = parseInt(formData.get('sort_order') as string) || 0
   const is_active   = formData.get('is_active') !== 'false'
+  const focal_x     = parseFloat(formData.get('focal_x') as string)
+  const focal_y     = parseFloat(formData.get('focal_y') as string)
 
   if (!title) return { error: 'Title is required' }
   if (!image_url) return { error: 'Image is required' }
 
-  const payload = { title, description, image_url, category, event_name, taken_at: taken_at || null, sort_order, is_active }
+  const payload = {
+    title, description, image_url, category, event_name,
+    taken_at: taken_at || null, sort_order, is_active,
+    focal_x: isNaN(focal_x) ? 50 : focal_x,
+    focal_y: isNaN(focal_y) ? 50 : focal_y,
+  }
 
   if (itemId) {
     const { error: dbError } = await supabase

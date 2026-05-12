@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '@/app/actions/auth'
@@ -7,7 +8,7 @@ import {
   LayoutDashboard, Users, CalendarDays, FileText, Heart,
   Settings, LogOut, BarChart3, ShieldCheck, Megaphone,
   FolderOpen, Mail, Target, MessageSquare, ClipboardList,
-  CheckSquare, ImageIcon, GalleryHorizontal, Activity,
+  CheckSquare, ImageIcon, GalleryHorizontal, Activity, Menu, X,
 } from 'lucide-react'
 import SiteLogoClient from '@/components/layout/SiteLogoClient'
 import GlobalSearch from '@/components/ui/GlobalSearch'
@@ -66,17 +67,10 @@ function AdminNavItem({ href, label, icon: Icon, exact = false, badge }: {
 }
 
 export default function AdminSidebar({ displayName, initials, unreadMessages }: Props) {
-  return (
-    <aside className="hidden lg:flex flex-col w-64 bg-slate-900 border-r border-slate-800 fixed inset-y-0 left-0 z-40">
-      {/* Logo */}
-      <div className="p-5 border-b border-slate-800">
-        <SiteLogoClient
-          subLabel="Admin Panel"
-          nameColor="text-white"
-          subColor="text-slate-400"
-        />
-      </div>
+  const [mobileOpen, setMobileOpen] = useState(false)
 
+  const SidebarContent = () => (
+    <>
       {/* Admin badge */}
       <div className="mx-4 mt-4 mb-2 p-3 rounded-xl bg-primary-900/30 border border-primary-800/30">
         <div className="flex items-center gap-2.5">
@@ -98,7 +92,7 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto" onClick={() => setMobileOpen(false)}>
         <p className="text-xs text-slate-500 uppercase tracking-widest px-3 py-2 mt-1">Management</p>
         {mainNavItems.map(({ href, label, icon, exact }) => (
           <AdminNavItem key={href} href={href} label={label} icon={icon} exact={exact} />
@@ -112,7 +106,7 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
       </nav>
 
       {/* Bottom */}
-      <div className="p-3 border-t border-slate-800 space-y-0.5">
+      <div className="p-3 border-t border-slate-800 space-y-0.5" onClick={() => setMobileOpen(false)}>
         <AdminNavItem href="/admin/settings" label="Settings"      icon={Settings} exact />
         <AdminNavItem href="/dashboard"      label="Member Portal" icon={LayoutDashboard} exact />
         <form action={signOut}>
@@ -122,6 +116,70 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
           </button>
         </form>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* ── Desktop sidebar ── */}
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 border-r border-slate-800 fixed inset-y-0 left-0 z-40">
+        {/* Logo */}
+        <div className="p-5 border-b border-slate-800">
+          <SiteLogoClient
+            subLabel="Admin Panel"
+            nameColor="text-white"
+            subColor="text-slate-400"
+          />
+        </div>
+        <SidebarContent />
+      </aside>
+
+      {/* ── Mobile top bar ── */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 border-b border-slate-800 h-14 flex items-center justify-between px-4">
+        <SiteLogoClient
+          subLabel="Admin"
+          nameColor="text-white"
+          subColor="text-slate-400"
+        />
+        <button
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open menu"
+          className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </header>
+
+      {/* ── Mobile drawer ── */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          {/* Drawer */}
+          <aside className="relative flex flex-col w-72 max-w-[85vw] bg-slate-900 h-full shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+              <SiteLogoClient
+                subLabel="Admin Panel"
+                nameColor="text-white"
+                subColor="text-slate-400"
+              />
+              <button
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex flex-col flex-1 overflow-y-auto">
+              <SidebarContent />
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
   )
 }

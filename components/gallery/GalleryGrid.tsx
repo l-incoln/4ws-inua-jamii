@@ -14,6 +14,8 @@ export type GalleryItem = {
   event_name: string | null
   taken_at: string | null
   sort_order?: number
+  focal_x?: number | null
+  focal_y?: number | null
 }
 
 interface Props {
@@ -152,16 +154,20 @@ export default function GalleryGrid({ items, categories, adminMode, onReorder }:
                     loading="lazy"
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                    style={{ objectPosition: `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%` }}
                     unoptimized
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                    <p className="text-white font-semibold text-sm leading-tight">{item.title}</p>
+                  {/* Permanent gradient overlay — always visible at bottom */}
+                  <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none rounded-b-xl" />
+                  {/* Caption — title always visible, event name on hover */}
+                  <div className="absolute bottom-0 inset-x-0 p-3 pointer-events-none">
+                    <p className="text-white font-semibold text-sm leading-tight drop-shadow line-clamp-2">{item.title}</p>
                     {item.event_name && (
-                      <p className="text-white/80 text-xs mt-0.5">{item.event_name}</p>
+                      <p className="text-white/80 text-xs mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">{item.event_name}</p>
                     )}
                   </div>
                   {item.category && (
-                    <span className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
+                    <span className="absolute top-2 right-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
                       {item.category}
                     </span>
                   )}

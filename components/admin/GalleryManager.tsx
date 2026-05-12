@@ -10,6 +10,7 @@ import {
 import { saveGalleryItem, deleteGalleryItem, toggleGalleryItem, uploadImage, reorderGalleryItems, bulkDeleteGalleryItems } from '@/app/actions/admin'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage } from '@/lib/compress-image'
+import FocalPointPicker from '@/components/ui/FocalPointPicker'
 
 export type GalleryItem = {
   id: string
@@ -22,6 +23,8 @@ export type GalleryItem = {
   sort_order: number
   is_active: boolean
   created_at: string
+  focal_x?: number | null
+  focal_y?: number | null
 }
 
 interface Props {
@@ -186,6 +189,7 @@ export default function GalleryManager({ initialItems }: Props) {
     title: '', description: '', image_url: '',
     category: '', event_name: '', taken_at: '',
     sort_order: '0', is_active: true,
+    focal_x: 50, focal_y: 50,
   })
   // Shared metadata for bulk upload
   const [bulkMeta, setBulkMeta] = useState({
@@ -193,7 +197,7 @@ export default function GalleryManager({ initialItems }: Props) {
   })
 
   const resetForm = () => {
-    setForm({ title: '', description: '', image_url: '', category: '', event_name: '', taken_at: '', sort_order: '0', is_active: true })
+    setForm({ title: '', description: '', image_url: '', category: '', event_name: '', taken_at: '', sort_order: '0', is_active: true, focal_x: 50, focal_y: 50 })
     setPreviewUrl('')
     setEditing(null)
     setError(null)
@@ -216,6 +220,8 @@ export default function GalleryManager({ initialItems }: Props) {
       taken_at:    item.taken_at ?? '',
       sort_order:  String(item.sort_order),
       is_active:   item.is_active,
+      focal_x:     item.focal_x ?? 50,
+      focal_y:     item.focal_y ?? 50,
     })
     setPreviewUrl(item.image_url)
     setSourceTab('upload')
@@ -496,6 +502,15 @@ export default function GalleryManager({ initialItems }: Props) {
                     onChange={(e) => { setForm((f) => ({ ...f, image_url: e.target.value })); setPreviewUrl(e.target.value) }}
                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
                 </div>
+                {/* Focal point picker — shown when an image is selected */}
+                {previewUrl && (
+                  <FocalPointPicker
+                    imageUrl={previewUrl}
+                    focalX={form.focal_x}
+                    focalY={form.focal_y}
+                    onChange={(x, y) => setForm((f) => ({ ...f, focal_x: x, focal_y: y }))}
+                  />
+                )}
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>

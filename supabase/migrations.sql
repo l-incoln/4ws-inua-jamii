@@ -47,6 +47,10 @@ CREATE INDEX IF NOT EXISTS gallery_items_sort_idx
 CREATE INDEX IF NOT EXISTS gallery_items_category_idx
   ON public.gallery_items (category);
 
+-- Focal point columns (added later — safe to run on existing table)
+ALTER TABLE public.gallery_items ADD COLUMN IF NOT EXISTS focal_x FLOAT NOT NULL DEFAULT 50;
+ALTER TABLE public.gallery_items ADD COLUMN IF NOT EXISTS focal_y FLOAT NOT NULL DEFAULT 50;
+
 
 -- ============================================================
 -- MEMBERSHIP TERMS  ← membership card lifecycle
