@@ -660,8 +660,8 @@ export default function GalleryManager({ initialItems }: Props) {
         </div>
       )}
 
-      {/* Grid */}
-      {items.length === 0 ? (
+      {/* Empty state */}
+      {items.length === 0 && (
         <div className="text-center py-24 border-2 border-dashed border-slate-200 rounded-2xl">
           <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-slate-600">No gallery photos yet</h3>
@@ -670,7 +670,10 @@ export default function GalleryManager({ initialItems }: Props) {
             <Plus className="w-4 h-4 inline mr-1" /> Add First Photo
           </button>
         </div>
-      ) : (
+      )}
+
+      {/* Grid */}
+      {items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {items.map((item) => (
             <div key={item.id} className="relative">
