@@ -505,10 +505,28 @@ export async function saveProgram(formData: FormData, programId?: string) {
   const parsed = ProgramSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
+  // Parse array fields: goals and activities (one per line), tags (comma-separated)
+  const goalsRaw      = (formData.get('goals')      as string) || ''
+  const activitiesRaw = (formData.get('activities') as string) || ''
+  const tagsRaw       = (formData.get('tags')       as string) || ''
+  const contentRaw    = (formData.get('content')    as string) || ''
+
+  const goals      = goalsRaw.split('\n').map((s) => s.trim()).filter(Boolean)
+  const activities = activitiesRaw.split('\n').map((s) => s.trim()).filter(Boolean)
+  const tags       = tagsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+
   const payload = {
-    ...parsed.data,
-    image_url: parsed.data.image_url || null,
-    icon: parsed.data.icon || null,
+    title:             parsed.data.title,
+    slug:              parsed.data.slug,
+    description:       parsed.data.description,
+    icon:              parsed.data.icon || null,
+    image_url:         parsed.data.image_url || null,
+    beneficiaries:     parsed.data.beneficiary_count ?? 0,
+    is_active:         parsed.data.is_active ?? true,
+    content:           contentRaw || null,
+    goals:             goals.length > 0 ? goals : null,
+    activities:        activities.length > 0 ? activities : null,
+    tags,
   }
 
   if (programId) {
@@ -519,9 +537,23 @@ export async function saveProgram(formData: FormData, programId?: string) {
     if (dbError) return { error: dbError.message }
   }
 
+  // Track image usage
+  if (payload.image_url) {
+    await supabase.from('image_usages').upsert({
+      image_url: payload.image_url,
+      usage_type: 'program',
+      entity_label: payload.title,
+    }, { onConflict: 'image_url,usage_type,entity_id' }).then(() => {})
+  }
+
   revalidatePath('/admin/content')
   revalidatePath('/programs')
+  revalidatePath(`/programs/${payload.slug}`)
   return { success: true }
+}
+
+export async function uploadProgramImage(formData: FormData) {
+  return uploadImage(formData, 'programs')
 }
 
 export async function deleteProgram(programId: string) {

@@ -1,8 +1,9 @@
 ﻿'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Edit2, Trash2, Eye, Search, FileText, Leaf, ToggleLeft, ToggleRight, X, Loader2, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
+import { PlusCircle, Edit2, Trash2, Eye, Search, FileText, Leaf, ToggleLeft, ToggleRight, X, Loader2, CheckCircle2, Upload } from 'lucide-react'
 
 type Post = {
   id: string
@@ -25,6 +26,12 @@ type Program = {
   beneficiaries: number
   is_active: boolean
   created_at: string
+  image_url?: string | null
+  icon?: string | null
+  content?: string | null
+  goals?: string[] | null
+  activities?: string[] | null
+  tags?: string[] | null
 }
 
 type ProgramFormState = {
@@ -36,10 +43,16 @@ type ProgramFormState = {
   image_url: string
   beneficiary_count: string
   is_active: boolean
+  content: string
+  goals: string
+  activities: string
+  tags: string
 }
 
 const EMPTY_FORM: ProgramFormState = {
-  title: '', slug: '', description: '', icon: '', image_url: '', beneficiary_count: '0', is_active: true,
+  title: '', slug: '', description: '', icon: '', image_url: '',
+  beneficiary_count: '0', is_active: true,
+  content: '', goals: '', activities: '', tags: '',
 }
 
 const statusStyles: Record<string, string> = {
@@ -64,6 +77,7 @@ export default function AdminContentClient({
   saveProgram: (formData: FormData, programId?: string) => Promise<{ error?: unknown; success?: boolean }>
   deleteProgram: (id: string) => Promise<{ error?: unknown; success?: boolean }>
   toggleProgramStatus: (id: string, isActive: boolean) => Promise<{ error?: unknown; success?: boolean }>
+  uploadProgramImage: (formData: FormData) => Promise<{ error?: unknown; url?: string }>
 }) {
   const [tab, setTab]     = useState<'blog' | 'programs'>('blog')
   const [search, setSearch] = useState('')
@@ -75,6 +89,8 @@ export default function AdminContentClient({
   const [programForm, setProgramForm] = useState<ProgramFormState>(EMPTY_FORM)
   const [programError, setProgramError] = useState<string | null>(null)
   const [programSuccess, setProgramSuccess] = useState(false)
+  const [imgUploading, setImgUploading] = useState(false)
+  const imgInputRef = useRef<HTMLInputElement>(null)
 
   const filteredPosts = posts.filter((p) =>
     p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -111,27 +127,48 @@ export default function AdminContentClient({
       title: p.title,
       slug: p.slug,
       description: p.description ?? '',
-      icon: '',
-      image_url: '',
+      icon: p.icon ?? '',
+      image_url: p.image_url ?? '',
       beneficiary_count: String(p.beneficiaries),
       is_active: p.is_active,
+      content: p.content ?? '',
+      goals: (p.goals ?? []).join('\n'),
+      activities: (p.activities ?? []).join('\n'),
+      tags: (p.tags ?? []).join(', '),
     })
     setProgramError(null)
     setProgramSuccess(false)
     setShowProgramForm(true)
   }
 
+  async function handleImageUpload(file: File) {
+    setImgUploading(true)
+    const fd = new FormData()
+    fd.set('file', file)
+    const result = await uploadProgramImage(fd)
+    setImgUploading(false)
+    if (result.error) {
+      setProgramError(String(result.error))
+    } else if (result.url) {
+      setProgramForm((f) => ({ ...f, image_url: result.url! }))
+    }
+  }
+
   async function handleSaveProgram(e: React.FormEvent) {
     e.preventDefault()
     setProgramError(null)
     const fd = new FormData()
-    fd.set('title', programForm.title)
-    fd.set('slug', programForm.slug)
-    fd.set('description', programForm.description)
-    fd.set('icon', programForm.icon)
-    fd.set('image_url', programForm.image_url)
+    fd.set('title',             programForm.title)
+    fd.set('slug',              programForm.slug)
+    fd.set('description',       programForm.description)
+    fd.set('icon',              programForm.icon)
+    fd.set('image_url',         programForm.image_url)
     fd.set('beneficiary_count', programForm.beneficiary_count)
-    fd.set('is_active', String(programForm.is_active))
+    fd.set('is_active',         String(programForm.is_active))
+    fd.set('content',           programForm.content)
+    fd.set('goals',             programForm.goals)
+    fd.set('activities',        programForm.activities)
+    fd.set('tags',              programForm.tags)
 
     start(async () => {
       const result = await saveProgram(fd, programForm.id)
@@ -332,20 +369,43 @@ export default function AdminContentClient({
               </div>
             )}
             {initialPrograms.map((program) => (
-              <div key={program.id} className="card p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center">
-                    <Leaf className="w-4 h-4 text-primary-600" />
+              <div key={program.id} className="card overflow-hidden">
+                {program.image_url ? (
+                  <div className="relative h-36 bg-slate-100">
+                    <Image src={program.image_url} alt={program.title} fill className="object-cover" unoptimized />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <span className={`absolute top-2 right-2 text-xs ${program.is_active ? 'badge-green' : 'badge-gray'}`}>
+                      {program.is_active ? 'active' : 'inactive'}
+                    </span>
                   </div>
-                  <span className={program.is_active ? 'badge-green text-xs' : 'badge-gray text-xs'}>
-                    {program.is_active ? 'active' : 'inactive'}
-                  </span>
-                </div>
+                ) : (
+                  <div className="h-16 bg-primary-50 flex items-center justify-between px-5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center">
+                      <Leaf className="w-4 h-4 text-primary-600" />
+                    </div>
+                    <span className={`text-xs ${program.is_active ? 'badge-green' : 'badge-gray'}`}>
+                      {program.is_active ? 'active' : 'inactive'}
+                    </span>
+                  </div>
+                )}
+                <div className="p-5">
+                <h3 className="font-bold text-slate-900">{program.title}</h3>
+                {program.description && (
+                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">{program.description}</p>
                 <h3 className="font-bold text-slate-900">{program.title}</h3>
                 {program.description && (
                   <p className="text-sm text-slate-500 mt-1 line-clamp-2">{program.description}</p>
                 )}
                 <p className="text-sm text-slate-400 mt-1">{program.beneficiaries.toLocaleString()} beneficiaries</p>
+                {program.tags && program.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {program.tags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-100">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2 mt-4">
                   <Link
                     href={`/programs/${program.slug}`}
@@ -378,6 +438,7 @@ export default function AdminContentClient({
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -388,8 +449,8 @@ export default function AdminContentClient({
       {/* Program Form Modal */}
       {showProgramForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h2 className="text-lg font-bold text-slate-900">
                 {programForm.id ? 'Edit Program' : 'New Program'}
               </h2>
@@ -413,47 +474,144 @@ export default function AdminContentClient({
               </div>
             )}
 
-            <form onSubmit={handleSaveProgram} className="p-6 space-y-4">
-              <div>
-                <label className="label">Title *</label>
-                <input
-                  className="input"
-                  value={programForm.title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  required
-                  placeholder="e.g. Youth Empowerment"
-                />
-              </div>
-              <div>
-                <label className="label">Slug *</label>
-                <input
-                  className="input font-mono text-sm"
-                  value={programForm.slug}
-                  onChange={(e) => setProgramForm((f) => ({ ...f, slug: e.target.value }))}
-                  required
-                  placeholder="youth-empowerment"
-                  pattern="[a-z0-9-]+"
-                  title="Lowercase letters, numbers, hyphens only"
-                />
-              </div>
-              <div>
-                <label className="label">Description *</label>
-                <textarea
-                  className="input min-h-[100px] resize-y"
-                  value={programForm.description}
-                  onChange={(e) => setProgramForm((f) => ({ ...f, description: e.target.value }))}
-                  required
-                  placeholder="Brief description of the programâ€¦"
-                />
-              </div>
+            <form onSubmit={handleSaveProgram} className="p-6 space-y-5">
+              {/* Basic info */}
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="label">Title *</label>
+                  <input
+                    className="input"
+                    value={programForm.title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    required
+                    placeholder="e.g. Youth Empowerment"
+                  />
+                </div>
                 <div>
-                  <label className="label">Icon (emoji or name)</label>
+                  <label className="label">Slug *</label>
+                  <input
+                    className="input font-mono text-sm"
+                    value={programForm.slug}
+                    onChange={(e) => setProgramForm((f) => ({ ...f, slug: e.target.value }))}
+                    required
+                    placeholder="youth-empowerment"
+                    pattern="[a-z0-9-]+"
+                    title="Lowercase letters, numbers, hyphens only"
+                  />
+                </div>
+                <div>
+                  <label className="label">Icon (Lucide name)</label>
                   <input
                     className="input"
                     value={programForm.icon}
                     onChange={(e) => setProgramForm((f) => ({ ...f, icon: e.target.value }))}
-                    placeholder="ðŸŒ±"
+                    placeholder="Heart, BookOpen, Sprout…"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Short Description *</label>
+                <textarea
+                  className="input min-h-[80px] resize-y"
+                  value={programForm.description}
+                  onChange={(e) => setProgramForm((f) => ({ ...f, description: e.target.value }))}
+                  required
+                  placeholder="Brief overview shown on program cards…"
+                />
+              </div>
+
+              {/* Image upload */}
+              <div>
+                <label className="label">Program Image</label>
+                {programForm.image_url && (
+                  <div className="relative h-40 rounded-xl overflow-hidden mb-3 bg-slate-100">
+                    <Image src={programForm.image_url} alt="Preview" fill className="object-cover" unoptimized />
+                    <button
+                      type="button"
+                      onClick={() => setProgramForm((f) => ({ ...f, image_url: '' }))}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <input
+                    className="input flex-1"
+                    type="url"
+                    value={programForm.image_url}
+                    onChange={(e) => setProgramForm((f) => ({ ...f, image_url: e.target.value }))}
+                    placeholder="https://… or upload below"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imgInputRef.current?.click()}
+                    disabled={imgUploading}
+                    className="px-4 py-2 rounded-xl border border-primary-300 text-primary-700 text-sm font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {imgUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {imgUploading ? 'Uploading…' : 'Upload'}
+                  </button>
+                  <input
+                    ref={imgInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) handleImageUpload(f)
+                      e.target.value = ''
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Full content */}
+              <div>
+                <label className="label">Full Page Content</label>
+                <p className="text-xs text-slate-400 mb-2">Main body text on the program detail page. Use blank lines to separate paragraphs.</p>
+                <textarea
+                  className="input min-h-[160px] resize-y font-mono text-sm leading-relaxed"
+                  value={programForm.content}
+                  onChange={(e) => setProgramForm((f) => ({ ...f, content: e.target.value }))}
+                  placeholder="Write the full description, context, and story of this program…"
+                />
+              </div>
+
+              {/* Goals */}
+              <div>
+                <label className="label">Goals / Objectives</label>
+                <p className="text-xs text-slate-400 mb-2">One goal per line — displayed as a bullet list.</p>
+                <textarea
+                  className="input min-h-[100px] resize-y"
+                  value={programForm.goals}
+                  onChange={(e) => setProgramForm((f) => ({ ...f, goals: e.target.value }))}
+                  placeholder={"Improve maternal health outcomes\nTrain 200 community health workers"}
+                />
+              </div>
+
+              {/* Activities */}
+              <div>
+                <label className="label">Key Activities</label>
+                <p className="text-xs text-slate-400 mb-2">One activity per line — displayed as a list.</p>
+                <textarea
+                  className="input min-h-[100px] resize-y"
+                  value={programForm.activities}
+                  onChange={(e) => setProgramForm((f) => ({ ...f, activities: e.target.value }))}
+                  placeholder={"Mobile health clinics\nCommunity workshops\nSchool outreach visits"}
+                />
+              </div>
+
+              {/* Tags & beneficiaries */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Tags (comma-separated)</label>
+                  <input
+                    className="input"
+                    value={programForm.tags}
+                    onChange={(e) => setProgramForm((f) => ({ ...f, tags: e.target.value }))}
+                    placeholder="health, community, prevention"
                   />
                 </div>
                 <div>
@@ -467,16 +625,7 @@ export default function AdminContentClient({
                   />
                 </div>
               </div>
-              <div>
-                <label className="label">Image URL</label>
-                <input
-                  className="input"
-                  type="url"
-                  value={programForm.image_url}
-                  onChange={(e) => setProgramForm((f) => ({ ...f, image_url: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
+
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -491,8 +640,8 @@ export default function AdminContentClient({
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" disabled={isPending} className="btn-primary flex-1">
-                  {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {isPending ? 'Savingâ€¦' : (programForm.id ? 'Save Changes' : 'Create Program')}
+                  {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isPending ? 'Saving…' : (programForm.id ? 'Save Changes' : 'Create Program')}
                 </button>
                 <button
                   type="button"

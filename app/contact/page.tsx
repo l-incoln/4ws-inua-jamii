@@ -241,8 +241,11 @@ export default function ContactPage() {
                         )}
                       </button>
 
-                      <p className="text-xs text-slate-400 text-center">
-                        By sending this message you agree to our privacy policy.
+                      <p className="text-xs text-slate-400 text-center leading-relaxed">
+                        By sending this message you consent to your data being processed to handle your enquiry,
+                        in accordance with our{' '}
+                        <a href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</a>
+                        {' '}and the Kenya Data Protection Act 2019.
                       </p>
                     </form>
                   </div>

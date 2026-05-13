@@ -6,7 +6,7 @@ import { signOut } from '@/app/actions/auth'
 import {
   LayoutDashboard, User, CalendarCheck, Rss, Heart,
   CheckSquare, CreditCard, Trophy, FolderOpen, Settings,
-  Bell, LogOut,
+  Bell, LogOut, ExternalLink,
 } from 'lucide-react'
 import SiteLogoClient from '@/components/layout/SiteLogoClient'
 
@@ -115,6 +115,13 @@ export default function DashboardSidebar({ displayName, email, initials, unread 
 
         {/* Bottom */}
         <div className="p-4 border-t border-gray-100 space-y-0.5">
+          <Link
+            href="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-500 hover:bg-gray-50 hover:text-slate-700 transition-all"
+          >
+            <ExternalLink className="w-4 h-4 shrink-0" />
+            Back to Website
+          </Link>
           <NavItem href="/dashboard/settings" label="Settings" icon={Settings} />
           <form action={signOut}>
             <button type="submit" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 hover:text-red-600 transition-all w-full text-left">

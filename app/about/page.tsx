@@ -204,14 +204,15 @@ export default async function AboutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {leadership.map(({ name, role, bio, image_url }) => (
                 <div key={name} className="card overflow-hidden group">
-                  <div className="relative h-64">
+                  <div className="relative h-72 bg-slate-100">
                     <Image
                       src={image_url ?? 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'}
                       alt={name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
                       <div className="font-bold">{name}</div>
                       <div className="text-xs text-primary-200">{role}</div>

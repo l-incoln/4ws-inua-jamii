@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Trash2, Edit2, X, Check, Loader2,
-  Eye, EyeOff, ImageIcon, Upload, Layers, FolderOpen, Search, CheckSquare, Square,
+  Eye, EyeOff, ImageIcon, Upload, Layers, FolderOpen, Search, CheckSquare, Square, Camera,
 } from 'lucide-react'
 import { saveGalleryItem, deleteGalleryItem, toggleGalleryItem, uploadImage, reorderGalleryItems, bulkDeleteGalleryItems } from '@/app/actions/admin'
 import { createClient } from '@/lib/supabase/client'
@@ -49,7 +49,14 @@ function ItemCard({
   return (
     <div className={`relative bg-white rounded-xl border shadow-sm overflow-hidden group transition-opacity ${!item.is_active ? 'opacity-60' : ''}`}>
       <div className="relative h-44 bg-slate-100">
-        <Image src={item.image_url} alt={item.title} fill className="object-cover" unoptimized />
+        {item.image_url ? (
+          <Image src={item.image_url} alt={item.title} fill className="object-cover" unoptimized />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-slate-400">
+            <Camera className="w-8 h-8" />
+            <span className="text-xs">No image</span>
+          </div>
+        )}
         {!item.is_active && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
             <span className="text-white text-xs font-semibold bg-black/60 px-2 py-1 rounded">Hidden</span>
@@ -332,7 +339,11 @@ export default function GalleryManager({ initialItems }: Props) {
   }
 
   const handleDelete = (id: string) => {
-    if (!confirm('Delete this photo from the gallery?')) return
+    const item = items.find((i) => i.id === id)
+    const msg = item
+      ? `Are you sure you want to delete "${item.title}"?\n\nThis will permanently remove it from the gallery. Any pages or programs using this image URL will show a broken image.\n\nConsider hiding it instead (using the eye icon) to preserve references.`
+      : 'Delete this photo from the gallery?'
+    if (!confirm(msg)) return
     startTransition(async () => {
       const res = await deleteGalleryItem(id)
       if (res?.error) { setError(res.error); return }

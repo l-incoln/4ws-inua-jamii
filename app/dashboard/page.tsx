@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarCheck, Bell, ArrowRight, Users, Heart, Star } from 'lucide-react'
+import { getTierStyle } from '@/lib/tier-colors'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -41,10 +42,9 @@ export default async function DashboardPage() {
   const memberSince = profileRes.data?.created_at || user.created_at
   const membershipDays = Math.floor((Date.now() - new Date(memberSince).getTime()) / 86400000)
 
-  const TIER_LABELS: Record<string, string> = {
-    basic: 'Classic Member', active: 'Premium Member', champion: 'Gold Member',
-  }
-  const tierLabel = TIER_LABELS[profileRes.data?.tier ?? 'basic'] ?? 'Member'
+  const tier = profileRes.data?.tier ?? 'basic'
+  const tierStyle = getTierStyle(tier)
+  const tierLabel = tierStyle.label
   const isApproved = profileRes.data?.membership_status === 'approved'
 
   const announcements = announcementsRes.data ?? []
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
     { label: 'Events Attended', value: String(eventsAttended), icon: CalendarCheck, color: 'text-primary-600', bg: 'bg-primary-50' },
     { label: 'Donations Made', value: String(donationsMade), icon: Heart, color: 'text-rose-600', bg: 'bg-rose-50' },
     { label: 'Member Since', value: membershipDays < 365 ? `${membershipDays}d` : `${Math.floor(membershipDays / 365)}yr`, icon: Star, color: 'text-sky-600', bg: 'bg-sky-50' },
-    { label: 'Tier', value: tierLabel.replace(' Member', ''), icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Tier', value: tierLabel.replace(' Member', ''), icon: Users, color: tierStyle.text, bg: tierStyle.lightBg },
   ]
 
   const displayName = user.user_metadata?.full_name?.split(' ')[0] || 'Member'

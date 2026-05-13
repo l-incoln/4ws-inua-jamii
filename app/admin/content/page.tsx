@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import AdminContentClient from '@/components/admin/AdminContentClient'
-import { deleteBlogPost, togglePostStatus, saveProgram, deleteProgram, toggleProgramStatus } from '@/app/actions/admin'
+import { deleteBlogPost, togglePostStatus, saveProgram, deleteProgram, toggleProgramStatus, uploadProgramImage } from '@/app/actions/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,7 @@ export default async function AdminContentPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('programs')
-      .select('id, slug, title, description, beneficiaries, is_active, created_at')
+      .select('id, slug, title, description, beneficiaries, is_active, created_at, image_url, content, goals, activities, tags, icon')
       .order('created_at', { ascending: false }),
   ])
 
@@ -32,6 +32,7 @@ export default async function AdminContentPage() {
       saveProgram={saveProgram}
       deleteProgram={deleteProgram}
       toggleProgramStatus={toggleProgramStatus}
+      uploadProgramImage={uploadProgramImage}
     />
   )
 }

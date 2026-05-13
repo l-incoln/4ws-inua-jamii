@@ -256,7 +256,13 @@ export default function DonateForm({ campaigns, selectedCampaignId = null, payme
           )}
         </button>
         <p className="text-xs text-center text-slate-400">
-          Secure & transparent. Official receipt sent to your email.
+          Secure &amp; transparent. Official receipt sent to your email.
+        </p>
+        <p className="text-xs text-center text-slate-400 leading-relaxed">
+          By donating you consent to the processing of your personal data by Inua Jamii Foundation
+          for the purpose of processing your donation, in accordance with the{' '}
+          <a href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</a>
+          {' '}and the Kenya Data Protection Act 2019.
         </p>
       </form>
     </div>

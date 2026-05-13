@@ -2,14 +2,99 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff, QrCode, ChevronRight } from 'lucide-react'
+import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff, QrCode, ChevronRight, AlertTriangle } from 'lucide-react'
 
 const DEFAULT_PREFS = {
   event_reminders: true,
   announcements: true,
   donation_receipts: true,
   newsletter: false,
+}
+
+// ─── Delete Account confirmation widget ────────────────────────────────────────
+function DeleteAccountConfirm({ onCancel }: { onCancel: () => void }) {
+  const supabase = createClient()
+  const router = useRouter()
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleDelete() {
+    if (confirmText !== 'DELETE') return
+    setDeleting(true)
+    setError(null)
+    try {
+      // 1. Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setError('Not signed in.'); setDeleting(false); return }
+
+      // 2. Call the delete-account API route (server-side uses admin client)
+      const res = await fetch('/api/account/delete', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        setError(json.error || 'Failed to delete account. Please contact support.')
+        setDeleting(false)
+        return
+      }
+
+      // 3. Sign out and redirect home
+      await supabase.auth.signOut()
+      router.push('/?deleted=1')
+    } catch {
+      setError('An unexpected error occurred. Please try again or contact support.')
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="p-4 rounded-xl bg-red-50 border border-red-200 space-y-4">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-sm font-bold text-red-900">This is permanent and cannot be undone.</p>
+          <ul className="mt-2 text-xs text-red-700 space-y-1 list-disc list-inside">
+            <li>Your profile and all personal data will be deleted</li>
+            <li>Your donation history and event RSVPs will be removed</li>
+            <li>You will lose access to the member portal immediately</li>
+            <li>This action complies with the Data Protection Act 2019</li>
+          </ul>
+        </div>
+      </div>
+      {error && (
+        <p className="text-xs text-red-700 bg-red-100 rounded-lg p-2">{error}</p>
+      )}
+      <div>
+        <label className="text-xs font-semibold text-red-800 block mb-1.5">
+          Type <span className="font-mono bg-red-100 px-1 rounded">DELETE</span> to confirm
+        </label>
+        <input
+          className="input border-red-300 focus:ring-red-400 text-sm"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+          placeholder="DELETE"
+          autoComplete="off"
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 rounded-xl bg-white text-slate-700 text-sm font-semibold hover:bg-gray-100 border border-slate-200 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={confirmText !== 'DELETE' || deleting}
+          className="flex-1 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+          {deleting ? 'Deleting…' : 'Delete My Account'}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function DashboardSettingsPage() {
@@ -304,37 +389,19 @@ export default function DashboardSettingsPage() {
           <div className="flex items-center justify-between p-4 rounded-xl bg-red-50 border border-red-100">
             <div>
               <div className="text-sm font-semibold text-red-800">Delete Account</div>
-              <div className="text-xs text-red-600 mt-0.5">This will permanently remove your data. Cannot be undone.</div>
+              <div className="text-xs text-red-600 mt-0.5">
+                Permanently removes all your data. This action cannot be undone.
+              </div>
             </div>
             <button
               onClick={() => setDeleteConfirm(true)}
               className="px-4 py-2 rounded-xl bg-red-100 text-red-700 text-sm font-semibold hover:bg-red-200 transition-colors"
             >
-              Delete
+              Delete Account
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between p-4 rounded-xl bg-red-100 border border-red-200">
-            <div className="text-sm font-semibold text-red-900">Are you sure? This cannot be undone.</div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDeleteConfirm(false)}
-                className="px-4 py-2 rounded-xl bg-white text-slate-700 text-sm font-semibold hover:bg-gray-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  // Contact support to delete — Supabase admin API needed server-side
-                  alert('Please contact support at info@4wsinuajamii.org to delete your account.')
-                  setDeleteConfirm(false)
-                }}
-                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
-              >
-                Confirm Delete
-              </button>
-            </div>
-          </div>
+          <DeleteAccountConfirm onCancel={() => setDeleteConfirm(false)} />
         )}
       </div>
     </div>

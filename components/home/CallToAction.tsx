@@ -1,8 +1,32 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Heart, ArrowRight, Users, Star } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+
+function AuthAwareMemberLink() {
+  const [href, setHref] = useState<string>('/auth/signup')
+  const [label, setLabel] = useState<string>('Join the Foundation')
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setHref('/dashboard')
+        setLabel('Go to Dashboard')
+      }
+    })
+  }, [])
+
+  return (
+    <Link href={href} className="mt-7 btn-gold inline-flex">
+      {label}
+      <ArrowRight className="w-4 h-4" />
+    </Link>
+  )
+}
 
 export default function CallToAction() {
   return (
@@ -60,10 +84,7 @@ export default function CallToAction() {
                 </motion.li>
               ))}
             </ul>
-            <Link href="/auth/signup" className="mt-7 btn-gold inline-flex">
-              Join the Foundation
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <AuthAwareMemberLink />
           </motion.div>
 
           {/* Right: Donate */}
