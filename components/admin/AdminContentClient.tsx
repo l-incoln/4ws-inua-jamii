@@ -389,13 +389,10 @@ export default function AdminContentClient({
                   </div>
                 )}
                 <div className="p-5">
-                <h3 className="font-bold text-slate-900">{program.title}</h3>
-                {program.description && (
-                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">{program.description}</p>
-                <h3 className="font-bold text-slate-900">{program.title}</h3>
-                {program.description && (
-                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">{program.description}</p>
-                )}
+                  <h3 className="font-bold text-slate-900">{program.title}</h3>
+                  {program.description && (
+                    <p className="text-sm text-slate-500 mt-1 line-clamp-2">{program.description}</p>
+                  )}
                 <p className="text-sm text-slate-400 mt-1">{program.beneficiaries.toLocaleString()} beneficiaries</p>
                 {program.tags && program.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
