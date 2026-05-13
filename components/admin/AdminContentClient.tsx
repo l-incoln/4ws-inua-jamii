@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { PlusCircle, Edit2, Trash2, Eye, Search, FileText, Leaf, ToggleLeft, ToggleRight, X, Loader2, CheckCircle2, Upload } from 'lucide-react'
+import { uploadProgramImage } from '@/app/actions/admin'
 
 type Post = {
   id: string
