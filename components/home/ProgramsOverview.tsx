@@ -5,6 +5,10 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Heart, BookOpen, Sprout, DollarSign, ArrowRight } from 'lucide-react'
 
+interface Props {
+  dbImages?: Record<string, string>
+}
+
 const programs = [
   {
     slug: 'community-health',
@@ -64,7 +68,7 @@ const programs = [
   },
 ]
 
-export default function ProgramsOverview() {
+export default function ProgramsOverview({ dbImages = {} }: Props) {
   return (
     <section className="py-16 md:py-24 relative overflow-hidden section-accent-bar" style={{ background: 'linear-gradient(180deg, #F8FAFF 0%, #EEF4FF 100%)' }}>
       {/* Subtle dot grid */}
@@ -97,7 +101,9 @@ export default function ProgramsOverview() {
 
         {/* Programs Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {programs.map(({ slug, title, description, icon: Icon, color, bg, border, glow, accentBar, stats, image }, i) => (
+          {programs.map(({ slug, title, description, icon: Icon, color, bg, border, glow, accentBar, stats, image: fallbackImage }, i) => {
+            const image = dbImages[slug] || fallbackImage
+            return (
             <motion.div
               key={slug}
               initial={{ opacity: 0, y: 30 }}
@@ -142,7 +148,7 @@ export default function ProgramsOverview() {
                 </div>
               </Link>
             </motion.div>
-          ))}
+          )})}
         </div>
       </div>
     </section>

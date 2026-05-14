@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: 'Support 4W\'S Inua Jamii Foundation and help transform communities across Kenya.',
 }
 
-const impactAmounts = [
+const defaultImpactAmounts = [
   { amount: 500, impact: 'Feeds a family for a week during our food support program' },
   { amount: 1000, impact: 'Buys a full term\'s school supplies for one child' },
   { amount: 2500, impact: 'Funds a community health screening for 5 people' },
@@ -33,9 +33,20 @@ export default async function DonatePage() {
   const { data: settingsRows } = await supabase
     .from('site_settings')
     .select('key, value')
-    .in('key', ['mpesa_paybill', 'mpesa_account', 'min_donation_amount', 'donation_thank_you_message', 'donation_currency'])
+    .in('key', [
+      'mpesa_paybill', 'mpesa_account', 'min_donation_amount', 'donation_thank_you_message', 'donation_currency',
+      'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
+    ])
 
   const sv = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
+
+  const donateHeroTitle    = sv.donate_hero_title    || 'Your Donation <span>Changes Lives</span>'
+  const donateHeroSubtitle = sv.donate_hero_subtitle || 'Every shilling you give is invested directly into programs that change lives. 100% transparent. 100% impactful.'
+
+  let impactAmounts = defaultImpactAmounts
+  if (sv.donate_impact_amounts) {
+    try { impactAmounts = JSON.parse(sv.donate_impact_amounts) } catch { /* use default */ }
+  }
 
   const activeCampaigns = campaigns ?? []
 
@@ -53,12 +64,11 @@ export default async function DonatePage() {
             <span className="badge bg-white/10 text-white border border-white/20 mb-4 inline-block text-xs uppercase tracking-widest">
               Give Back
             </span>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white">
-              Your Donation <span className="text-sky-400">Changes Lives</span>
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white"
+              dangerouslySetInnerHTML={{ __html: donateHeroTitle.replace('<span>', '<span class="text-sky-400">') }}
+            />
             <p className="mt-4 text-lg text-primary-100 max-w-2xl mx-auto">
-              Every shilling you give is invested directly into programs that change lives.
-              100% transparent. 100% impactful.
+              {donateHeroSubtitle}
             </p>
           </div>
         </section>

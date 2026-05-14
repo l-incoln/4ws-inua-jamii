@@ -62,13 +62,24 @@ export default async function HomePage() {
     .select('id, label, value, unit, icon')
     .order('sort_order', { ascending: true })
 
+  // Fetch program images from DB (override hardcoded fallbacks)
+  const { data: dbProgramImages } = await supabase
+    .from('programs')
+    .select('slug, image_url')
+    .not('image_url', 'is', null)
+
+  const programDbImages: Record<string, string> = {}
+  for (const p of dbProgramImages ?? []) {
+    if (p.slug && p.image_url) programDbImages[p.slug] = p.image_url
+  }
+
   return (
     <>
       <Navbar />
       <main>
         <Hero settings={heroSettings} />
         {showStats && <ImpactStats metrics={impactMetrics ?? []} />}
-        <ProgramsOverview />
+        <ProgramsOverview dbImages={programDbImages} />
         {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} />}
         <CallToAction />
       </main>

@@ -61,6 +61,9 @@ export default async function AboutPage() {
       .in('key', [
         'volunteer_title', 'volunteer_subtitle', 'volunteer_count',
         'about_mission', 'about_vision', 'site_name',
+        'about_hero_subtitle',
+        'about_story_p1', 'about_story_p2', 'about_story_p3',
+        'about_established', 'about_city',
       ]),
   ])
 
@@ -72,6 +75,12 @@ export default async function AboutPage() {
   const aboutMission      = sv.about_mission      || 'To empower underprivileged communities across Kenya through sustainable programs in health, education, economic development, and environmental stewardship — fostering dignity, resilience, and self-sufficiency.'
   const aboutVision       = sv.about_vision       || 'A Kenya where every community has the resources, knowledge, and opportunities to thrive — where no child goes without education, no family without healthcare, and no environment without care.'
   const orgName           = sv.site_name          || "4W\u2019S Inua Jamii"
+  const aboutHeroSubtitle = sv.about_hero_subtitle || 'Founded on the belief that every community deserves to thrive, we combine grassroots passion with strategic programming to create lasting transformation.'
+  const storyP1           = sv.about_story_p1     || "4W\u2019S Inua Jamii Foundation was born in 2018 from a simple conviction held by a group of four friends: that wealth, wisdom, will, and work \u2014 our four W\u2019s \u2014 when combined with community spirit, can transform any situation."
+  const storyP2           = sv.about_story_p2     || 'What started as neighborhood clean-up drives and school supply donations has grown into a full-scale foundation running 12 active programs, serving over 5,000 beneficiaries annually, with a growing family of 350+ dedicated volunteers.'
+  const storyP3           = sv.about_story_p3     || 'Today, we operate with a professional team, transparent governance, and a passionate community of members and donors who believe in our mission.'
+  const aboutEstablished  = sv.about_established  || 'Est. 2018'
+  const aboutCity         = sv.about_city         || 'Nairobi, Kenya'
 
   return (
     <>
@@ -87,8 +96,7 @@ export default async function AboutPage() {
               About <span className="text-sky-400">{orgName}</span>
             </h1>
             <p className="mt-5 text-lg text-primary-100 max-w-2xl mx-auto leading-relaxed">
-              Founded on the belief that every community deserves to thrive, we combine grassroots
-              passion with strategic programming to create lasting transformation.
+              {aboutHeroSubtitle}
             </p>
           </div>
         </section>
@@ -132,8 +140,8 @@ export default async function AboutPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary-900/50 to-transparent" />
                 <div className="absolute bottom-6 left-6 text-white">
-                  <div className="text-3xl font-extrabold">Est. 2018</div>
-                  <div className="text-sm text-primary-200">Nairobi, Kenya</div>
+                  <div className="text-3xl font-extrabold">{aboutEstablished}</div>
+                  <div className="text-sm text-primary-200">{aboutCity}</div>
                 </div>
               </div>
               <div>
@@ -142,20 +150,9 @@ export default async function AboutPage() {
                 </span>
                 <h2 className="section-title">From a Small Group to a Big Movement</h2>
                 <div className="mt-5 space-y-4 text-slate-600 leading-relaxed">
-                  <p>
-                    4W&apos;S Inua Jamii Foundation was born in 2018 from a simple conviction held
-                    by a group of four friends: that wealth, wisdom, will, and work — our four W&apos;s
-                    — when combined with community spirit, can transform any situation.
-                  </p>
-                  <p>
-                    What started as neighborhood clean-up drives and school supply donations has
-                    grown into a full-scale foundation running 12 active programs, serving over
-                    5,000 beneficiaries annually, with a growing family of 350+ dedicated volunteers.
-                  </p>
-                  <p>
-                    Today, we operate with a professional team, transparent governance, and a
-                    passionate community of members and donors who believe in our mission.
-                  </p>
+                  <p>{storyP1}</p>
+                  <p>{storyP2}</p>
+                  <p>{storyP3}</p>
                 </div>
                 <Link href="/auth/signup" className="btn-primary mt-7 inline-flex">
                   Be Part of the Story

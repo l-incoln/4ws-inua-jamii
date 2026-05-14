@@ -41,6 +41,8 @@ const tabs = [
   'Legal & Footer',
   'Impact Metrics',
   'Our Team',
+  'About Page',
+  'Donate Page',
 ] as const
 type Tab = typeof tabs[number]
 
@@ -143,6 +145,7 @@ export default function AdminSettingsClient({
     { label: 'Platform',     tabs: ['Membership', 'Events & RSVP', 'Homepage'] },
     { label: 'Integrations', tabs: ['Payments', 'Email & Notifications', 'SEO & Metadata'] },
     { label: 'Display',      tabs: ['Impact Metrics', 'Our Team'] },
+    { label: 'Pages',        tabs: ['About Page', 'Donate Page'] },
   ]
 
   return (
@@ -672,6 +675,69 @@ export default function AdminSettingsClient({
                   <input name="footer_tagline" className="input" value={s.footer_tagline ?? ''} onChange={(e) => set('footer_tagline', e.target.value)} placeholder="Transforming communities, one life at a time." />
                 </Field>
               </div>
+            </Section>
+            <SaveBar isPending={isPending} />
+          </div>
+        )}
+
+        {/* ── About Page ── */}
+        {tab === 'About Page' && (
+          <div className="space-y-4">
+            <Section icon={<Info />} title="Hero Section">
+              <Field label="Hero Subtitle">
+                <textarea name="about_hero_subtitle" rows={3} className="input resize-none" value={s.about_hero_subtitle ?? ''} onChange={(e) => set('about_hero_subtitle', e.target.value)} placeholder="Founded on the belief that every community deserves to thrive…" />
+                <p className="text-xs text-slate-400 mt-1">Short tagline shown below the page title on the About page.</p>
+              </Field>
+            </Section>
+            <Section icon={<Info />} title="Our Story Section">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Established / Year Badge">
+                  <input name="about_established" className="input" value={s.about_established ?? ''} onChange={(e) => set('about_established', e.target.value)} placeholder="Est. 2018" />
+                  <p className="text-xs text-slate-400 mt-1">Text on the story image overlay.</p>
+                </Field>
+                <Field label="City">
+                  <input name="about_city" className="input" value={s.about_city ?? ''} onChange={(e) => set('about_city', e.target.value)} placeholder="Nairobi, Kenya" />
+                  <p className="text-xs text-slate-400 mt-1">City shown below the established badge.</p>
+                </Field>
+              </div>
+              <Field label="Story Paragraph 1">
+                <textarea name="about_story_p1" rows={4} className="input resize-none" value={s.about_story_p1 ?? ''} onChange={(e) => set('about_story_p1', e.target.value)} placeholder="4W'S Inua Jamii Foundation was born in 2018…" />
+              </Field>
+              <Field label="Story Paragraph 2">
+                <textarea name="about_story_p2" rows={4} className="input resize-none" value={s.about_story_p2 ?? ''} onChange={(e) => set('about_story_p2', e.target.value)} placeholder="What started as neighborhood clean-up drives…" />
+              </Field>
+              <Field label="Story Paragraph 3">
+                <textarea name="about_story_p3" rows={3} className="input resize-none" value={s.about_story_p3 ?? ''} onChange={(e) => set('about_story_p3', e.target.value)} placeholder="Today, we operate with a professional team…" />
+              </Field>
+            </Section>
+            <SaveBar isPending={isPending} />
+          </div>
+        )}
+
+        {/* ── Donate Page ── */}
+        {tab === 'Donate Page' && (
+          <div className="space-y-4">
+            <Section icon={<Info />} title="Hero Section">
+              <Field label="Hero Title">
+                <input name="donate_hero_title" className="input" value={s.donate_hero_title ?? ''} onChange={(e) => set('donate_hero_title', e.target.value)} placeholder="Your Donation Changes Lives" />
+                <p className="text-xs text-slate-400 mt-1">Use &lt;span&gt; tags to highlight a phrase, e.g. Your Donation &lt;span&gt;Changes Lives&lt;/span&gt;.</p>
+              </Field>
+              <Field label="Hero Subtitle">
+                <textarea name="donate_hero_subtitle" rows={3} className="input resize-none" value={s.donate_hero_subtitle ?? ''} onChange={(e) => set('donate_hero_subtitle', e.target.value)} placeholder="Every shilling you give is invested directly into programs that change lives." />
+              </Field>
+            </Section>
+            <Section icon={<Info />} title="Impact Amounts">
+              <Field label="Impact Amounts (JSON)">
+                <textarea
+                  name="donate_impact_amounts"
+                  rows={10}
+                  className="input resize-none font-mono text-xs"
+                  value={s.donate_impact_amounts ?? ''}
+                  onChange={(e) => set('donate_impact_amounts', e.target.value)}
+                  placeholder={'[\n  { "amount": 500, "impact": "Feeds a family for a week" },\n  { "amount": 1000, "impact": "Buys school supplies for one child" }\n]'}
+                />
+                <p className="text-xs text-slate-400 mt-1">JSON array of objects with &quot;amount&quot; (number) and &quot;impact&quot; (string). Leave blank to use defaults.</p>
+              </Field>
             </Section>
             <SaveBar isPending={isPending} />
           </div>
