@@ -97,9 +97,9 @@ export default function AdminSettingsClient({
   const vol2InputRef  = useRef<HTMLInputElement>(null)
   const vol3InputRef  = useRef<HTMLInputElement>(null)
 
-  // Gallery picker state (for volunteer section photos)
+  // Gallery picker state (for volunteer section photos + story image)
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
-  const [galleryPickerKey, setGalleryPickerKey]   = useState<'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3' | null>(null)
+  const [galleryPickerKey, setGalleryPickerKey]   = useState<string | null>(null)
   const [gallerySearch, setGallerySearch]         = useState('')
 
   // Leadership team state
@@ -167,7 +167,7 @@ export default function AdminSettingsClient({
     { label: 'Pages',        tabs: ['About Page', 'Donate Page'] },
   ]
 
-  const openGalleryPicker = (key: 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => {
+  const openGalleryPicker = (key: string) => {
     setGalleryPickerKey(key)
     setGallerySearch('')
     setGalleryPickerOpen(true)
@@ -780,6 +780,32 @@ export default function AdminSettingsClient({
               </Field>
               <Field label="Story Paragraph 3">
                 <textarea name="about_story_p3" rows={3} className="input resize-none" value={s.about_story_p3 ?? ''} onChange={(e) => set('about_story_p3', e.target.value)} placeholder="Today, we operate with a professional team…" />
+              </Field>
+              <Field label="Story Section Image">
+                <p className="text-xs text-slate-400 mb-2">Image shown beside the story text. Pick from the media gallery.</p>
+                <div className="flex items-start gap-4">
+                  <div className="w-32 h-24 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center relative flex-shrink-0">
+                    {s.about_story_image ? (
+                      <Image src={s.about_story_image} alt="Story image" fill className="object-cover" unoptimized />
+                    ) : (
+                      <ImageIcon className="w-7 h-7 text-slate-300" />
+                    )}
+                  </div>
+                  <input type="hidden" name="about_story_image" value={s.about_story_image ?? ''} />
+                  <div className="flex flex-col gap-2 justify-center mt-2">
+                    <button
+                      type="button"
+                      onClick={() => openGalleryPicker('about_story_image')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      Pick from Gallery
+                    </button>
+                    {s.about_story_image && (
+                      <button type="button" onClick={() => set('about_story_image', '')} className="text-xs text-red-500 hover:underline">Remove</button>
+                    )}
+                  </div>
+                </div>
               </Field>
             </Section>
 

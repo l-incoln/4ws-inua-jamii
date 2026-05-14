@@ -5,7 +5,7 @@ import { Calendar, Clock, ArrowLeft, Tag } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import BlogComments from '@/components/blog/BlogComments'
 

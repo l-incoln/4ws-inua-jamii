@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import { submitContactMessage } from '@/app/actions/contact'
 import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2, Clock, MessageSquare } from 'lucide-react'

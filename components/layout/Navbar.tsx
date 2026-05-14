@@ -29,15 +29,23 @@ const navLinks = [
   { label: 'Donate', href: '/donate' },
 ]
 
-export default function Navbar() {
+export default function Navbar({
+  initialLogoUrl = '',
+  initialSiteName = '',
+  initialLogoSize = 36,
+}: {
+  initialLogoUrl?: string
+  initialSiteName?: string
+  initialLogoSize?: number
+} = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [scrollPct, setScrollPct] = useState(0)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [logoUrl, setLogoUrl] = useState<string>('')
-  const [siteName, setSiteName] = useState<string>('')
-  const [logoSize, setLogoSize] = useState(36)
+  const [logoUrl, setLogoUrl] = useState<string>(initialLogoUrl)
+  const [siteName, setSiteName] = useState<string>(initialSiteName)
+  const [logoSize, setLogoSize] = useState(initialLogoSize)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()

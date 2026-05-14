@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2, HandHeart, Leaf, BookOpen, Stethoscope, ClipboardList, Megaphone } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -65,6 +65,7 @@ export default async function AboutPage() {
         'about_story_p1', 'about_story_p2', 'about_story_p3',
         'about_established', 'about_city',
         'volunteer_photo_1', 'volunteer_photo_2', 'volunteer_photo_3',
+        'about_story_image',
       ]),
     supabase
       .from('gallery_items')
@@ -147,7 +148,7 @@ export default async function AboutPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="relative h-80 lg:h-auto rounded-3xl overflow-hidden shadow-2xl">
                 <Image
-                  src="https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg"
+                  src={sv.about_story_image || 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'}
                   alt="Community impact"
                   fill
                   className="object-cover"

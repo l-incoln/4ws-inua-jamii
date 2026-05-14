@@ -349,6 +349,8 @@ export async function saveSiteSettings(formData: FormData) {
     'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
     // Volunteer section photos
     'volunteer_photo_1', 'volunteer_photo_2', 'volunteer_photo_3',
+    // About page story image
+    'about_story_image',
   ]
 
   const upserts = keys.map((key) => ({

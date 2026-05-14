@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import RsvpButton from '@/components/events/RsvpButton'
 import { createPublicClient } from '@/lib/supabase/public-client'

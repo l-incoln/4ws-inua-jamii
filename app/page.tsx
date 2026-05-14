@@ -1,4 +1,4 @@
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import Hero from '@/components/home/Hero'
 import ImpactStats from '@/components/home/ImpactStats'

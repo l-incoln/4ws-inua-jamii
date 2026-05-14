@@ -1,4 +1,4 @@
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import GalleryGrid from '@/components/gallery/GalleryGrid'
 import { createPublicClient } from '@/lib/supabase/public-client'

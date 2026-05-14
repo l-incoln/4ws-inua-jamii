@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import DonateForm from '@/components/donate/DonateForm'
 import { createClient } from '@/lib/supabase/server'

@@ -1,4 +1,4 @@
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import EventsGrid from '@/components/events/EventsGrid'
 import type { Metadata } from 'next'

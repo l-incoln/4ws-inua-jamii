@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import { ArrowRight, Heart, BookOpen, Sprout, DollarSign, Users, Globe } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
