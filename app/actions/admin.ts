@@ -347,6 +347,8 @@ export async function saveSiteSettings(formData: FormData) {
     'about_established', 'about_city',
     // Donate Page
     'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
+    // Volunteer section photos
+    'volunteer_photo_1', 'volunteer_photo_2', 'volunteer_photo_3',
   ]
 
   const upserts = keys.map((key) => ({
@@ -418,7 +420,7 @@ export async function uploadImage(formData: FormData, folder: string = 'general'
 // Uploads an image to storage and saves the URL to site_settings under `settingKey`.
 export async function uploadSiteImage(
   formData: FormData,
-  settingKey: 'logo_url' | 'hero_image_url' | 'og_image_url',
+  settingKey: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3',
 ) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }

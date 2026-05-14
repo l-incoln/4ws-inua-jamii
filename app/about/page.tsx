@@ -64,6 +64,7 @@ export default async function AboutPage() {
         'about_hero_subtitle',
         'about_story_p1', 'about_story_p2', 'about_story_p3',
         'about_established', 'about_city',
+        'volunteer_photo_1', 'volunteer_photo_2', 'volunteer_photo_3',
       ]),
     supabase
       .from('gallery_items')
@@ -74,7 +75,13 @@ export default async function AboutPage() {
   ])
 
   const leadership = (leadershipData && leadershipData.length > 0) ? leadershipData : defaultLeadership
-  const volunteerPhotos = volunteerGallery ?? []
+  // Build ordered volunteer photo list: CMS-set photos take priority, then fall back to gallery
+  const galleryPhotos = volunteerGallery ?? []
+  const volunteerPhotos = [
+    sv.volunteer_photo_1 || galleryPhotos[0]?.image_url || '',
+    sv.volunteer_photo_2 || galleryPhotos[1]?.image_url || '',
+    sv.volunteer_photo_3 || galleryPhotos[2]?.image_url || '',
+  ]
   const sv: Record<string, string> = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
   const volunteerTitle    = sv.volunteer_title    || 'Volunteer With Us'
   const volunteerSubtitle = sv.volunteer_subtitle || 'Your time and skills can transform lives. Join 350+ volunteers who give back to Kenyan communities every year.'
@@ -208,13 +215,13 @@ export default async function AboutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {leadership.map(({ name, role, bio, image_url }) => (
                 <div key={name} className="card overflow-hidden group">
-                  <div className="relative h-72 bg-slate-50">
+                  <div className="relative h-72 bg-slate-100">
                     <Image
                       src={image_url ?? 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'}
                       alt={name}
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      className="object-contain group-hover:scale-105 transition-transform duration-500"
+                      className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
@@ -277,25 +284,15 @@ export default async function AboutPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-4">
                     <div className="rounded-3xl overflow-hidden h-44 relative bg-primary-100">
-                      {volunteerPhotos[0]?.image_url ? (
-                        <Image
-                          src={volunteerPhotos[0].image_url}
-                          alt={volunteerPhotos[0].title ?? 'Community photo'}
-                          fill
-                          className="object-cover"
-                        />
+                      {volunteerPhotos[0] ? (
+                        <Image src={volunteerPhotos[0]} alt="Volunteer photo 1" fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200" />
                       )}
                     </div>
                     <div className="rounded-3xl overflow-hidden h-56 relative bg-primary-100">
-                      {volunteerPhotos[1]?.image_url ? (
-                        <Image
-                          src={volunteerPhotos[1].image_url}
-                          alt={volunteerPhotos[1].title ?? 'Community photo'}
-                          fill
-                          className="object-cover"
-                        />
+                      {volunteerPhotos[1] ? (
+                        <Image src={volunteerPhotos[1]} alt="Volunteer photo 2" fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-sky-100 to-sky-200" />
                       )}
@@ -303,13 +300,8 @@ export default async function AboutPage() {
                   </div>
                   <div className="space-y-4 mt-8">
                     <div className="rounded-3xl overflow-hidden h-56 relative bg-primary-100">
-                      {volunteerPhotos[2]?.image_url ? (
-                        <Image
-                          src={volunteerPhotos[2].image_url}
-                          alt={volunteerPhotos[2].title ?? 'Community photo'}
-                          fill
-                          className="object-cover"
-                        />
+                      {volunteerPhotos[2] ? (
+                        <Image src={volunteerPhotos[2]} alt="Volunteer photo 3" fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-green-100 to-green-200" />
                       )}

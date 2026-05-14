@@ -61,7 +61,7 @@ export default function AdminSettingsClient({
   leadership: LeadershipMember[]
   saveSiteSettings: (fd: FormData) => Promise<{ error?: unknown; success?: boolean }>
   saveImpactMetric: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
-  uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url') => Promise<{ error?: unknown; url?: string }>
+  uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => Promise<{ error?: unknown; url?: string }>
   saveLeadershipMember: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   deleteLeadershipMember: (id: string) => Promise<{ error?: unknown; success?: boolean }>
 }) {
@@ -80,8 +80,14 @@ export default function AdminSettingsClient({
   // Image upload state
   const [logoUploading, setLogoUploading]     = useState(false)
   const [heroUploading, setHeroUploading]     = useState(false)
-  const logoInputRef = useRef<HTMLInputElement>(null)
-  const heroInputRef = useRef<HTMLInputElement>(null)
+  const [vol1Uploading, setVol1Uploading]     = useState(false)
+  const [vol2Uploading, setVol2Uploading]     = useState(false)
+  const [vol3Uploading, setVol3Uploading]     = useState(false)
+  const logoInputRef  = useRef<HTMLInputElement>(null)
+  const heroInputRef  = useRef<HTMLInputElement>(null)
+  const vol1InputRef  = useRef<HTMLInputElement>(null)
+  const vol2InputRef  = useRef<HTMLInputElement>(null)
+  const vol3InputRef  = useRef<HTMLInputElement>(null)
 
   // Leadership team state
   const [leadershipList, setLeadershipList] = useState<LeadershipMember[]>(initialLeadership)
@@ -93,19 +99,19 @@ export default function AdminSettingsClient({
 
   const handleImageUpload = async (
     file: File,
-    key: 'logo_url' | 'hero_image_url',
+    key: 'logo_url' | 'hero_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3',
     setUploading: (v: boolean) => void,
   ) => {
     setUploading(true)
     const fd = new FormData()
     fd.set('file', file)
-    const result = await uploadSiteImage(fd, key)
+    const result = await uploadSiteImage(fd, key as Parameters<typeof uploadSiteImage>[1])
     setUploading(false)
     if (result?.error) {
       showToast({ type: 'error', msg: result.error as string })
     } else if (result?.url) {
       set(key, result.url)
-      showToast({ type: 'success', msg: `${key === 'logo_url' ? 'Logo' : 'Hero image'} updated successfully.` })
+      showToast({ type: 'success', msg: 'Image updated successfully.' })
     }
   }
 
@@ -710,6 +716,52 @@ export default function AdminSettingsClient({
                 <textarea name="about_story_p3" rows={3} className="input resize-none" value={s.about_story_p3 ?? ''} onChange={(e) => set('about_story_p3', e.target.value)} placeholder="Today, we operate with a professional team…" />
               </Field>
             </Section>
+
+            {/* Volunteer section photos */}
+            <Section icon={<Info />} title="Volunteer Section Photos">
+              <p className="text-xs text-slate-500 -mt-1 mb-3">These three photos appear in the image grid next to the &quot;Volunteer With Us&quot; section. Leave a slot empty to show a colour placeholder.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {([
+                  { key: 'volunteer_photo_1' as const, label: 'Photo 1 (top-left)',    ref: vol1InputRef, uploading: vol1Uploading, setUploading: setVol1Uploading },
+                  { key: 'volunteer_photo_2' as const, label: 'Photo 2 (bottom-left)', ref: vol2InputRef, uploading: vol2Uploading, setUploading: setVol2Uploading },
+                  { key: 'volunteer_photo_3' as const, label: 'Photo 3 (top-right)',   ref: vol3InputRef, uploading: vol3Uploading, setUploading: setVol3Uploading },
+                ] as const).map(({ key, label, ref, uploading, setUploading }) => (
+                  <div key={key} className="space-y-2">
+                    <label className="label text-xs">{label}</label>
+                    <div className="w-full h-28 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
+                      {s[key] ? (
+                        <Image src={s[key]!} alt={label} fill className="object-cover" unoptimized />
+                      ) : (
+                        <ImageIcon className="w-7 h-7 text-slate-300" />
+                      )}
+                    </div>
+                    <input
+                      ref={ref}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, key, setUploading) }}
+                    />
+                    <input type="hidden" name={key} value={s[key] ?? ''} />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={uploading}
+                        onClick={() => ref.current?.click()}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
+                      >
+                        {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        {uploading ? 'Uploading…' : 'Upload'}
+                      </button>
+                      {s[key] && (
+                        <button type="button" onClick={() => set(key, '')} className="text-xs text-red-500 hover:underline">Remove</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
             <SaveBar isPending={isPending} />
           </div>
         )}
