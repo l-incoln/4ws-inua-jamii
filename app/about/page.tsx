@@ -75,6 +75,7 @@ export default async function AboutPage() {
   ])
 
   const leadership = (leadershipData && leadershipData.length > 0) ? leadershipData : defaultLeadership
+  const sv: Record<string, string> = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
   // Build ordered volunteer photo list: CMS-set photos take priority, then fall back to gallery
   const galleryPhotos = volunteerGallery ?? []
   const volunteerPhotos = [
@@ -82,7 +83,6 @@ export default async function AboutPage() {
     sv.volunteer_photo_2 || galleryPhotos[1]?.image_url || '',
     sv.volunteer_photo_3 || galleryPhotos[2]?.image_url || '',
   ]
-  const sv: Record<string, string> = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
   const volunteerTitle    = sv.volunteer_title    || 'Volunteer With Us'
   const volunteerSubtitle = sv.volunteer_subtitle || 'Your time and skills can transform lives. Join 350+ volunteers who give back to Kenyan communities every year.'
   const volunteerCount    = sv.volunteer_count    || '350+'
