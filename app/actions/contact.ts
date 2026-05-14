@@ -1,8 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { sendEmail } from '@/lib/email'
 import { z } from 'zod'
-import { headers } from 'next/headers'
 
 const contactSchema = z.object({
   name:    z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -46,6 +46,31 @@ export async function submitContactMessage(
   })
 
   if (error) return { error: 'Failed to send message. Please try again.' }
+
+  // Notify admin by email (best-effort, don't block response)
+  const { data: settings } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'admin_notify_email')
+    .maybeSingle()
+
+  const adminEmail = settings?.value as string | undefined
+  if (adminEmail) {
+    await sendEmail({
+      to: adminEmail,
+      subject: `[Inua Jamii] New contact message: ${parsed.data.subject}`,
+      replyTo: parsed.data.email,
+      html: `
+        <h2>New Contact Message</h2>
+        <p><strong>From:</strong> ${parsed.data.name} &lt;${parsed.data.email}&gt;</p>
+        <p><strong>Subject:</strong> ${parsed.data.subject}</p>
+        <hr />
+        <p style="white-space: pre-wrap;">${parsed.data.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+        <hr />
+        <p style="color:#888;font-size:12px;">Sent via Inua Jamii contact form</p>
+      `,
+    })
+  }
 
   return { success: true }
 }

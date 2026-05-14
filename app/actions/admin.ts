@@ -433,8 +433,8 @@ export async function uploadSiteImage(
   const file = formData.get('file') as File
   if (!file || file.size === 0) return { error: 'No file provided' }
 
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
-  if (!allowedTypes.includes(file.type)) return { error: 'Only JPEG, PNG, WebP, GIF or SVG images are allowed' }
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(file.type)) return { error: 'Only JPEG, PNG, WebP and GIF images are allowed' }
   if (file.size > 5 * 1024 * 1024) return { error: 'Image must be under 5 MB' }
 
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'png'
