@@ -146,7 +146,7 @@ export default async function AboutPage() {
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="relative h-80 lg:h-auto rounded-3xl overflow-hidden shadow-2xl">
+              <div className="relative h-80 lg:h-[480px] rounded-3xl overflow-hidden shadow-2xl">
                 <Image
                   src={sv.about_story_image || 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'}
                   alt="Community impact"

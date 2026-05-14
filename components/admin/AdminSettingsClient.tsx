@@ -49,6 +49,7 @@ const tabs = [
   'Our Team',
   'About Page',
   'Donate Page',
+  'FAQ Page',
 ] as const
 type Tab = typeof tabs[number]
 
@@ -164,7 +165,7 @@ export default function AdminSettingsClient({
     { label: 'Platform',     tabs: ['Membership', 'Events & RSVP', 'Homepage'] },
     { label: 'Integrations', tabs: ['Payments', 'Email & Notifications', 'SEO & Metadata'] },
     { label: 'Display',      tabs: ['Impact Metrics', 'Our Team'] },
-    { label: 'Pages',        tabs: ['About Page', 'Donate Page'] },
+    { label: 'Pages',        tabs: ['About Page', 'Donate Page', 'FAQ Page'] },
   ]
 
   const openGalleryPicker = (key: string) => {
@@ -875,6 +876,25 @@ export default function AdminSettingsClient({
                 <p className="text-xs text-slate-400 mt-1">JSON array of objects with &quot;amount&quot; (number) and &quot;impact&quot; (string). Leave blank to use defaults.</p>
               </Field>
             </Section>
+            <SaveBar isPending={isPending} />
+          </div>
+        )}
+
+        {/* ── FAQ Page ── */}
+        {tab === 'FAQ Page' && (
+          <div className="space-y-4">
+            <Section icon={<Info />} title="Hero Section">
+              <p className="text-xs text-slate-500 -mt-1 mb-2">Text shown at the top of the public FAQ page.</p>
+              <Field label="Hero Title">
+                <input name="faq_hero_title" className="input" value={s.faq_hero_title ?? ''} onChange={(e) => set('faq_hero_title', e.target.value)} placeholder="Frequently Asked Questions" />
+              </Field>
+              <Field label="Hero Subtitle">
+                <textarea name="faq_hero_subtitle" rows={2} className="input resize-none" value={s.faq_hero_subtitle ?? ''} onChange={(e) => set('faq_hero_subtitle', e.target.value)} placeholder="Find answers to common questions about our Foundation…" />
+              </Field>
+            </Section>
+            <div className="p-4 bg-primary-50 rounded-xl border border-primary-100 text-sm text-primary-800">
+              To add, edit or delete FAQ entries, go to <a href="/admin/faq" className="font-semibold underline">Admin → FAQ Management</a>.
+            </div>
             <SaveBar isPending={isPending} />
           </div>
         )}

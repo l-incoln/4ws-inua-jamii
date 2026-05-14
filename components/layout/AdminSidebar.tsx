@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, CalendarDays, FileText, Heart,
   Settings, LogOut, BarChart3, ShieldCheck, Megaphone,
   FolderOpen, Mail, Target, MessageSquare, ClipboardList,
-  CheckSquare, ImageIcon, GalleryHorizontal, Activity, Menu, X,
+  CheckSquare, ImageIcon, GalleryHorizontal, Activity, Menu, X, HelpCircle,
 } from 'lucide-react'
 import SiteLogoClient from '@/components/layout/SiteLogoClient'
 import GlobalSearch from '@/components/ui/GlobalSearch'
@@ -32,6 +32,7 @@ const communityNavItems = [
   { href: '/admin/applications', label: 'Applications', icon: ClipboardList },
   { href: '/admin/volunteers',   label: 'Volunteers',   icon: CheckSquare },
   { href: '/admin/comments',     label: 'Comments',     icon: MessageSquare },
+  { href: '/admin/faq',          label: 'FAQ',          icon: HelpCircle },
 ]
 
 interface Props {

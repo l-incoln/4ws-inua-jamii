@@ -351,6 +351,8 @@ export async function saveSiteSettings(formData: FormData) {
     'volunteer_photo_1', 'volunteer_photo_2', 'volunteer_photo_3',
     // About page story image
     'about_story_image',
+    // FAQ page
+    'faq_hero_title', 'faq_hero_subtitle',
   ]
 
   const upserts = keys.map((key) => ({
@@ -1194,4 +1196,62 @@ export async function bulkDeleteGalleryItems(ids: string[]) {
   revalidatePath('/gallery')
   revalidatePath('/admin/gallery')
   return { success: true, deleted: ids.length }
+}
+
+// ─── FAQs ─────────────────────────────────────────────────────────────────────
+export async function saveFaq(formData: FormData, faqId?: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const question   = (formData.get('question') as string)?.trim()
+  const answer     = (formData.get('answer') as string)?.trim()
+  const category   = (formData.get('category') as string)?.trim() || 'general'
+  const sort_order = Number(formData.get('sort_order')) || 0
+  const is_active  = formData.get('is_active') !== 'false'
+
+  if (!question || !answer) return { error: 'Question and answer are required' }
+
+  if (faqId) {
+    const { error: dbError } = await supabase
+      .from('faqs')
+      .update({ question, answer, category, sort_order, is_active })
+      .eq('id', faqId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('faqs')
+      .insert({ question, answer, category, sort_order, is_active })
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/faq')
+  revalidatePath('/admin/faq')
+  return { success: true }
+}
+
+export async function deleteFaq(faqId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase.from('faqs').delete().eq('id', faqId)
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/faq')
+  revalidatePath('/admin/faq')
+  return { success: true }
+}
+
+export async function toggleFaqStatus(faqId: string, isActive: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('faqs')
+    .update({ is_active: isActive })
+    .eq('id', faqId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/faq')
+  revalidatePath('/admin/faq')
+  return { success: true }
 }
