@@ -49,7 +49,7 @@ const defaultLeadership = [
 
 export default async function AboutPage() {
   const supabase = createPublicClient()
-  const [{ data: leadershipData }, { data: settingsRows }] = await Promise.all([
+  const [{ data: leadershipData }, { data: settingsRows }, { data: volunteerGallery }] = await Promise.all([
     supabase
       .from('leadership_team')
       .select('id, name, role, bio, image_url, sort_order')
@@ -65,9 +65,16 @@ export default async function AboutPage() {
         'about_story_p1', 'about_story_p2', 'about_story_p3',
         'about_established', 'about_city',
       ]),
+    supabase
+      .from('gallery_items')
+      .select('image_url, title')
+      .not('image_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(3),
   ])
 
   const leadership = (leadershipData && leadershipData.length > 0) ? leadershipData : defaultLeadership
+  const volunteerPhotos = volunteerGallery ?? []
   const sv: Record<string, string> = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
   const volunteerTitle    = sv.volunteer_title    || 'Volunteer With Us'
   const volunteerSubtitle = sv.volunteer_subtitle || 'Your time and skills can transform lives. Join 350+ volunteers who give back to Kenyan communities every year.'
@@ -201,13 +208,13 @@ export default async function AboutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {leadership.map(({ name, role, bio, image_url }) => (
                 <div key={name} className="card overflow-hidden group">
-                  <div className="relative h-72 bg-slate-100">
+                  <div className="relative h-72 bg-slate-50">
                     <Image
                       src={image_url ?? 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'}
                       alt={name}
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                      className="object-contain group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
@@ -269,31 +276,43 @@ export default async function AboutPage() {
               <div className="relative">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-4">
-                    <div className="rounded-3xl overflow-hidden h-44 relative">
-                      <Image
-                        src="https://images.pexels.com/photos/1667853/pexels-photo-1667853.jpeg"
-                        alt="Volunteers working together"
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="rounded-3xl overflow-hidden h-44 relative bg-primary-100">
+                      {volunteerPhotos[0]?.image_url ? (
+                        <Image
+                          src={volunteerPhotos[0].image_url}
+                          alt={volunteerPhotos[0].title ?? 'Community photo'}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200" />
+                      )}
                     </div>
-                    <div className="rounded-3xl overflow-hidden h-56 relative">
-                      <Image
-                        src="https://images.pexels.com/photos/325718/pexels-photo-325718.jpeg"
-                        alt="Community health outreach"
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="rounded-3xl overflow-hidden h-56 relative bg-primary-100">
+                      {volunteerPhotos[1]?.image_url ? (
+                        <Image
+                          src={volunteerPhotos[1].image_url}
+                          alt={volunteerPhotos[1].title ?? 'Community photo'}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-sky-100 to-sky-200" />
+                      )}
                     </div>
                   </div>
                   <div className="space-y-4 mt-8">
-                    <div className="rounded-3xl overflow-hidden h-56 relative">
-                      <Image
-                        src="https://images.pexels.com/photos/3185488/pexels-photo-3185488.jpeg"
-                        alt="Education support"
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="rounded-3xl overflow-hidden h-56 relative bg-primary-100">
+                      {volunteerPhotos[2]?.image_url ? (
+                        <Image
+                          src={volunteerPhotos[2].image_url}
+                          alt={volunteerPhotos[2].title ?? 'Community photo'}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-green-100 to-green-200" />
+                      )}
                     </div>
                     <div className="rounded-3xl overflow-hidden h-44 relative bg-primary-600 flex flex-col items-center justify-center text-white p-6">
                       <div className="text-4xl font-extrabold">{volunteerCount}</div>

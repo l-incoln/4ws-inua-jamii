@@ -31,12 +31,14 @@ function AuthAwareMemberLink() {
 export default function CallToAction() {
   return (
     <section className="py-16 md:py-24 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0F2260 0%, #1E3A8A 40%, #2D5CC8 75%, #4FA3D1 100%)' }}>
-      {/* Animated orbs */}
+      {/* Animated orbs — hidden on mobile for performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-20 animate-float-slow"
-          style={{ background: 'radial-gradient(circle, #4FA3D1 0%, transparent 70%)' }} />
-        <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full opacity-15 animate-float"
-          style={{ background: 'radial-gradient(circle, #6DBE45 0%, transparent 70%)', animationDelay: '3s' }} />
+        <div className="hidden sm:block absolute inset-0">
+          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-20 animate-float-slow"
+            style={{ background: 'radial-gradient(circle, #4FA3D1 0%, transparent 70%)' }} />
+          <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full opacity-15 animate-float"
+            style={{ background: 'radial-gradient(circle, #6DBE45 0%, transparent 70%)', animationDelay: '3s' }} />
+        </div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full opacity-[0.04] border border-white" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] rounded-full opacity-[0.06] border border-white" />
         {/* Noise overlay */}

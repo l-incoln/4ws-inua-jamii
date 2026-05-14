@@ -342,6 +342,11 @@ export async function saveSiteSettings(formData: FormData) {
     'rsvp_enabled', 'rsvp_require_login', 'event_reminder_days',
     // Legal / Footer
     'privacy_policy_url', 'terms_url', 'registration_number', 'footer_tagline',
+    // About Page
+    'about_hero_subtitle', 'about_story_p1', 'about_story_p2', 'about_story_p3',
+    'about_established', 'about_city',
+    // Donate Page
+    'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
   ]
 
   const upserts = keys.map((key) => ({
@@ -356,14 +361,16 @@ export async function saveSiteSettings(formData: FormData) {
 
   if (dbError) return { error: dbError.message }
 
-  // Revalidate all public-facing pages so changes appear immediately
+  // Revalidate all public-facing pages so changes appear immediately on every device
   revalidatePath('/', 'layout')
+  revalidatePath('/')
   revalidatePath('/about')
   revalidatePath('/blog')
   revalidatePath('/events')
   revalidatePath('/programs')
   revalidatePath('/contact')
   revalidatePath('/donate')
+  revalidatePath('/gallery')
   revalidatePath('/admin/settings')
   return { success: true }
 }

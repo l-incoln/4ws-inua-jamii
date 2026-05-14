@@ -38,7 +38,7 @@ export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
           src={imageUrl}
           alt="Hero background"
           fill
-          className="object-cover opacity-20"
+          className="object-cover object-[center_25%] opacity-20"
           priority
           unoptimized
         />
@@ -46,27 +46,30 @@ export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
 
       {/* Animated glow orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Large centre glow */}
-        <motion.div
-          animate={{ scale: [1, 1.25, 1], opacity: [0.12, 0.22, 0.12] }}
-          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-1/3 left-1/3 w-[600px] h-[600px] rounded-full blur-[120px]"
-          style={{ background: 'radial-gradient(circle, #2D5CC8 0%, transparent 70%)' }}
-        />
-        {/* Sky-blue top-right orb */}
-        <motion.div
-          animate={{ scale: [1.2, 1, 1.2], opacity: [0.10, 0.18, 0.10] }}
-          transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-          className="absolute -top-20 right-0 w-[480px] h-[480px] rounded-full blur-[100px]"
-          style={{ background: 'radial-gradient(circle, #4FA3D1 0%, transparent 70%)' }}
-        />
-        {/* Green bottom-left orb */}
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.06, 0.14, 0.06] }}
-          transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 5 }}
-          className="absolute bottom-0 -left-20 w-[400px] h-[400px] rounded-full blur-[90px]"
-          style={{ background: 'radial-gradient(circle, #6DBE45 0%, transparent 70%)' }}
-        />
+        {/* Heavy blur orbs — hidden on mobile for performance */}
+        <div className="hidden sm:block absolute inset-0">
+          {/* Large centre glow */}
+          <motion.div
+            animate={{ scale: [1, 1.25, 1], opacity: [0.12, 0.22, 0.12] }}
+            transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute top-1/3 left-1/3 w-[600px] h-[600px] rounded-full blur-[120px]"
+            style={{ background: 'radial-gradient(circle, #2D5CC8 0%, transparent 70%)' }}
+          />
+          {/* Sky-blue top-right orb */}
+          <motion.div
+            animate={{ scale: [1.2, 1, 1.2], opacity: [0.10, 0.18, 0.10] }}
+            transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+            className="absolute -top-20 right-0 w-[480px] h-[480px] rounded-full blur-[100px]"
+            style={{ background: 'radial-gradient(circle, #4FA3D1 0%, transparent 70%)' }}
+          />
+          {/* Green bottom-left orb */}
+          <motion.div
+            animate={{ scale: [1, 1.3, 1], opacity: [0.06, 0.14, 0.06] }}
+            transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 5 }}
+            className="absolute bottom-0 -left-20 w-[400px] h-[400px] rounded-full blur-[90px]"
+            style={{ background: 'radial-gradient(circle, #6DBE45 0%, transparent 70%)' }}
+          />
+        </div>
 
         {/* Dot grid pattern */}
         <div

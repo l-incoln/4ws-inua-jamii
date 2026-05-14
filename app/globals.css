@@ -332,6 +332,15 @@
 }
 
 /* ── Animations ──────────────────────────────────────────── */
+/* Disable expensive animations on mobile for performance */
+@media (max-width: 639px) {
+  .animate-float,
+  .animate-float-slow,
+  .animate-pulse-slow {
+    animation: none !important;
+  }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
