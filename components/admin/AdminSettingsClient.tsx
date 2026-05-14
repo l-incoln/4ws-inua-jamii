@@ -27,6 +27,12 @@ type LeadershipMember = {
   is_active: boolean
 }
 
+type GalleryItem = {
+  id: string
+  image_url: string
+  title: string | null
+}
+
 type Toast = { type: 'success' | 'error'; msg: string }
 
 const tabs = [
@@ -50,6 +56,7 @@ export default function AdminSettingsClient({
   settings,
   metrics,
   leadership: initialLeadership,
+  galleryItems,
   saveSiteSettings,
   saveImpactMetric,
   uploadSiteImage,
@@ -59,6 +66,7 @@ export default function AdminSettingsClient({
   settings: Record<string, string>
   metrics: Metric[]
   leadership: LeadershipMember[]
+  galleryItems: GalleryItem[]
   saveSiteSettings: (fd: FormData) => Promise<{ error?: unknown; success?: boolean }>
   saveImpactMetric: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => Promise<{ error?: unknown; url?: string }>
@@ -88,6 +96,11 @@ export default function AdminSettingsClient({
   const vol1InputRef  = useRef<HTMLInputElement>(null)
   const vol2InputRef  = useRef<HTMLInputElement>(null)
   const vol3InputRef  = useRef<HTMLInputElement>(null)
+
+  // Gallery picker state (for volunteer section photos)
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
+  const [galleryPickerKey, setGalleryPickerKey]   = useState<'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3' | null>(null)
+  const [gallerySearch, setGallerySearch]         = useState('')
 
   // Leadership team state
   const [leadershipList, setLeadershipList] = useState<LeadershipMember[]>(initialLeadership)
@@ -154,9 +167,62 @@ export default function AdminSettingsClient({
     { label: 'Pages',        tabs: ['About Page', 'Donate Page'] },
   ]
 
+  const openGalleryPicker = (key: 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => {
+    setGalleryPickerKey(key)
+    setGallerySearch('')
+    setGalleryPickerOpen(true)
+  }
+
+  const filteredGallery = galleryItems.filter((g) =>
+    !gallerySearch || (g.title ?? '').toLowerCase().includes(gallerySearch.toLowerCase())
+  )
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Gallery Picker Modal */}
+      {galleryPickerOpen && galleryPickerKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setGalleryPickerOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h3 className="font-semibold text-slate-800">Pick from Media Gallery</h3>
+              <button type="button" onClick={() => setGalleryPickerOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-5 py-3 border-b border-slate-100">
+              <input
+                className="input text-sm w-full"
+                placeholder="Search by title…"
+                value={gallerySearch}
+                onChange={(e) => setGallerySearch(e.target.value)}
+              />
+            </div>
+            <div className="overflow-y-auto p-4 flex-1">
+              {filteredGallery.length === 0 ? (
+                <p className="text-slate-400 text-sm text-center py-8">No gallery images found.</p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {filteredGallery.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      className="relative h-24 rounded-xl overflow-hidden border-2 border-transparent hover:border-primary-500 focus:border-primary-600 focus:outline-none transition-all group"
+                      onClick={() => { set(galleryPickerKey, g.image_url); setGalleryPickerOpen(false) }}
+                    >
+                      <Image src={g.image_url} alt={g.title ?? ''} fill className="object-cover" unoptimized />
+                      {g.title && (
+                        <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[10px] px-1.5 py-0.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                          {g.title}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
         <p className="text-slate-500 text-sm mt-1">Configure your website, platform behaviour, and integrations.</p>
@@ -719,39 +785,31 @@ export default function AdminSettingsClient({
 
             {/* Volunteer section photos */}
             <Section icon={<Info />} title="Volunteer Section Photos">
-              <p className="text-xs text-slate-500 -mt-1 mb-3">These three photos appear in the image grid next to the &quot;Volunteer With Us&quot; section. Leave a slot empty to show a colour placeholder.</p>
+              <p className="text-xs text-slate-500 -mt-1 mb-3">These three photos appear in the image grid next to the &quot;Volunteer With Us&quot; section. Pick from your media gallery or leave a slot empty to show a colour placeholder.</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {([
-                  { key: 'volunteer_photo_1' as const, label: 'Photo 1 (top-left)',    ref: vol1InputRef, uploading: vol1Uploading, setUploading: setVol1Uploading },
-                  { key: 'volunteer_photo_2' as const, label: 'Photo 2 (bottom-left)', ref: vol2InputRef, uploading: vol2Uploading, setUploading: setVol2Uploading },
-                  { key: 'volunteer_photo_3' as const, label: 'Photo 3 (top-right)',   ref: vol3InputRef, uploading: vol3Uploading, setUploading: setVol3Uploading },
-                ] as const).map(({ key, label, ref, uploading, setUploading }) => (
+                  { key: 'volunteer_photo_1' as const, label: 'Photo 1 (top-left)'    },
+                  { key: 'volunteer_photo_2' as const, label: 'Photo 2 (bottom-left)' },
+                  { key: 'volunteer_photo_3' as const, label: 'Photo 3 (top-right)'   },
+                ] as const).map(({ key, label }) => (
                   <div key={key} className="space-y-2">
                     <label className="label text-xs">{label}</label>
-                    <div className="w-full h-28 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
+                    <div className="w-full h-28 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center relative">
                       {s[key] ? (
                         <Image src={s[key]!} alt={label} fill className="object-cover" unoptimized />
                       ) : (
                         <ImageIcon className="w-7 h-7 text-slate-300" />
                       )}
                     </div>
-                    <input
-                      ref={ref}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, key, setUploading) }}
-                    />
                     <input type="hidden" name={key} value={s[key] ?? ''} />
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        disabled={uploading}
-                        onClick={() => ref.current?.click()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
+                        onClick={() => openGalleryPicker(key)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors"
                       >
-                        {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        {uploading ? 'Uploading…' : 'Upload'}
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        Pick from Gallery
                       </button>
                       {s[key] && (
                         <button type="button" onClick={() => set(key, '')} className="text-xs text-red-500 hover:underline">Remove</button>
