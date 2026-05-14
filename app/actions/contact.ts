@@ -2,12 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { headers } from 'next/headers'
 
 const contactSchema = z.object({
-  name:    z.string().min(2, 'Name must be at least 2 characters'),
-  email:   z.string().email('Please enter a valid email address'),
-  subject: z.string().min(3, 'Subject is required'),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
+  name:    z.string().min(2, 'Name must be at least 2 characters').max(100),
+  email:   z.string().email('Please enter a valid email address').max(200),
+  subject: z.string().min(3, 'Subject is required').max(200),
+  message: z.string().min(10, 'Message must be at least 10 characters').max(5000),
 })
 
 export async function submitContactMessage(
@@ -24,6 +25,18 @@ export async function submitContactMessage(
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
   const supabase = await createClient()
+
+  // Rate-limit: max 3 messages per email per hour
+  const oneHourAgo = new Date(Date.now() - 3600_000).toISOString()
+  const { count } = await supabase
+    .from('contact_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('email', parsed.data.email)
+    .gte('created_at', oneHourAgo)
+
+  if ((count ?? 0) >= 3) {
+    return { error: 'You have sent too many messages recently. Please try again later.' }
+  }
 
   const { error } = await supabase.from('contact_messages').insert({
     name:    parsed.data.name,

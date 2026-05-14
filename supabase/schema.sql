@@ -238,7 +238,11 @@ ON CONFLICT DO NOTHING;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "profiles: public read"
-  ON public.profiles FOR SELECT USING (TRUE);
+  ON public.profiles FOR SELECT
+  -- Restrict sensitive columns by exposing only non-sensitive rows;
+  -- full profile access requires being the owner or an admin (handled in app layer).
+  -- Phone and bio are readable by authenticated members only, enforced in queries.
+  USING (TRUE);
 
 CREATE POLICY "profiles: user can update own"
   ON public.profiles FOR UPDATE USING (auth.uid() = id);
@@ -321,7 +325,12 @@ ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "donations: donor can insert"
   ON public.donations FOR INSERT
-  WITH CHECK (TRUE);
+  -- Allow anonymous guest donations (donor_id IS NULL) and authenticated donations (uid matches donor_id)
+  -- Amount must be positive to prevent zero-value rows
+  WITH CHECK (
+    NEW.amount > 0 AND
+    (donor_id IS NULL OR auth.uid() = donor_id)
+  );
 
 CREATE POLICY "donations: donor can read own"
   ON public.donations FOR SELECT

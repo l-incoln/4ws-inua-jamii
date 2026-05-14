@@ -58,6 +58,7 @@ export default function AdminSettingsClient({
   metrics,
   leadership: initialLeadership,
   galleryItems,
+  mediaItems,
   saveSiteSettings,
   saveImpactMetric,
   uploadSiteImage,
@@ -68,6 +69,7 @@ export default function AdminSettingsClient({
   metrics: Metric[]
   leadership: LeadershipMember[]
   galleryItems: GalleryItem[]
+  mediaItems: GalleryItem[]
   saveSiteSettings: (fd: FormData) => Promise<{ error?: unknown; success?: boolean }>
   saveImpactMetric: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => Promise<{ error?: unknown; url?: string }>
@@ -101,6 +103,7 @@ export default function AdminSettingsClient({
   // Gallery picker state (for volunteer section photos + story image)
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
   const [galleryPickerKey, setGalleryPickerKey]   = useState<string | null>(null)
+  const [galleryPickerSource, setGalleryPickerSource] = useState<'gallery' | 'media'>('gallery')
   const [gallerySearch, setGallerySearch]         = useState('')
 
   // Leadership team state
@@ -168,13 +171,15 @@ export default function AdminSettingsClient({
     { label: 'Pages',        tabs: ['About Page', 'Donate Page', 'FAQ Page'] },
   ]
 
-  const openGalleryPicker = (key: string) => {
+  const openGalleryPicker = (key: string, source: 'gallery' | 'media' = 'gallery') => {
     setGalleryPickerKey(key)
+    setGalleryPickerSource(source)
     setGallerySearch('')
     setGalleryPickerOpen(true)
   }
 
-  const filteredGallery = galleryItems.filter((g) =>
+  const pickerItems = galleryPickerSource === 'media' ? mediaItems : galleryItems
+  const filteredGallery = pickerItems.filter((g) =>
     !gallerySearch || (g.title ?? '').toLowerCase().includes(gallerySearch.toLowerCase())
   )
 
@@ -185,7 +190,7 @@ export default function AdminSettingsClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setGalleryPickerOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h3 className="font-semibold text-slate-800">Pick from Media Gallery</h3>
+              <h3 className="font-semibold text-slate-800">Pick from {galleryPickerSource === 'media' ? 'Media Library' : 'Media Gallery'}</h3>
               <button type="button" onClick={() => setGalleryPickerOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
@@ -796,11 +801,11 @@ export default function AdminSettingsClient({
                   <div className="flex flex-col gap-2 justify-center mt-2">
                     <button
                       type="button"
-                      onClick={() => openGalleryPicker('about_story_image')}
+                      onClick={() => openGalleryPicker('about_story_image', 'media')}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors"
                     >
                       <ImageIcon className="w-3.5 h-3.5" />
-                      Pick from Gallery
+                      Pick from Media Library
                     </button>
                     {s.about_story_image && (
                       <button type="button" onClick={() => set('about_story_image', '')} className="text-xs text-red-500 hover:underline">Remove</button>

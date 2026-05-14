@@ -377,6 +377,7 @@ export async function saveSiteSettings(formData: FormData) {
   revalidatePath('/contact')
   revalidatePath('/donate')
   revalidatePath('/gallery')
+  revalidatePath('/faq')
   revalidatePath('/admin/settings')
   return { success: true }
 }

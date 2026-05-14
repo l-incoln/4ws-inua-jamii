@@ -13,6 +13,15 @@ import { sendEmail, donationReceiptHtml } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
+    // Validate callback secret header set in Daraja app dashboard
+    const callbackSecret = process.env.MPESA_CALLBACK_SECRET
+    if (callbackSecret) {
+      const incoming = req.headers.get('x-mpesa-signature') ?? req.headers.get('authorization') ?? ''
+      if (incoming !== callbackSecret) {
+        return NextResponse.json({ ResultCode: 1, ResultDesc: 'Forbidden' }, { status: 403 })
+      }
+    }
+
     const body = await req.json()
 
     // Daraja sends the result inside Body.stkCallback
@@ -56,6 +65,16 @@ export async function POST(req: NextRequest) {
       .eq('reference', checkoutRequestId)
       .select('donor_name, donor_email, amount')
       .single()
+
+    // Audit log — store raw callback for reconciliation
+    await supabase.from('mpesa_transactions').insert({
+      checkout_request_id: checkoutRequestId,
+      result_code: resultCode,
+      receipt_number: mpesaReceiptNumber || null,
+      phone_number: phoneNumber || null,
+      amount,
+      raw_payload: body,
+    }).then(() => {})
 
     // Send receipt email if we have donor details
     if (donation?.donor_email) {

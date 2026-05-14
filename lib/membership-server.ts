@@ -5,7 +5,9 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 
 function getSecret(): string {
-  return process.env.MEMBERSHIP_HMAC_SECRET ?? 'dev-fallback-secret-change-in-production'
+  const secret = process.env.MEMBERSHIP_HMAC_SECRET
+  if (!secret) throw new Error('MEMBERSHIP_HMAC_SECRET environment variable is not set')
+  return secret
 }
 
 /** Signs a token and returns the hex HMAC digest */
