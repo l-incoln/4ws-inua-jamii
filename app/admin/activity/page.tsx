@@ -33,7 +33,7 @@ export default async function ActivityLogPage({
     .select('action')
     .order('action')
 
-  const uniqueActions = [...new Set((actionTypes ?? []).map((r) => r.action))].sort()
+  const uniqueActions = Array.from(new Set((actionTypes ?? []).map((r) => r.action))).sort()
 
   return (
     <ActivityLogClient
