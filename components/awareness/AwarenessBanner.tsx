@@ -38,7 +38,7 @@ export default function AwarenessBanner({ days }: { days: AwarenessDay[] }) {
     try {
       localStorage.setItem(
         `awareness_dismissed_${today}`,
-        JSON.stringify([...next]),
+        JSON.stringify(Array.from(next)),
       )
     } catch {
       // ignore storage errors
