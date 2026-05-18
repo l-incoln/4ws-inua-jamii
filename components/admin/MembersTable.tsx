@@ -394,7 +394,7 @@ export default function MembersTable({ members }: { members: Member[] }) {
                           onClick={() => {
                             setIssuingMember(member)
                             setIssueTier(member.tier as 'basic' | 'active' | 'champion')
-                            setIssueMonths(12)
+                            setIssueYears(1)
                             setIssueNotes('')
                             setIssueError('')
                           }}
