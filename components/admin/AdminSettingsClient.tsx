@@ -70,11 +70,14 @@ export default function AdminSettingsClient({
   leadership: initialLeadership,
   galleryItems,
   mediaItems,
+  partners,
   saveSiteSettings,
   saveImpactMetric,
   uploadSiteImage,
   saveLeadershipMember,
   deleteLeadershipMember,
+  savePartner,
+  deletePartner,
 }: {
   settings: Record<string, string>
   metrics: Metric[]
