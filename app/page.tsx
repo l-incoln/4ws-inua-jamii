@@ -6,7 +6,9 @@ import ProgramsOverview from '@/components/home/ProgramsOverview'
 import EventsPreview from '@/components/home/EventsPreview'
 import CallToAction from '@/components/home/CallToAction'
 import PartnersSection from '@/components/home/PartnersSection'
+import AwarenessBanner from '@/components/awareness/AwarenessBanner'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { getAwarenessDaysForDate, filterByMinPriority } from '@/lib/awareness'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -27,6 +29,7 @@ export default async function HomePage() {
       'hero_badge_text', 'hero_image_url',
       'show_impact_stats', 'show_events_preview',
       'show_partners_section', 'partners_section_title',
+      'show_awareness_banner', 'awareness_min_priority',
     ])
 
   const allSettings    = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
@@ -34,6 +37,8 @@ export default async function HomePage() {
   const showStats      = allSettings.show_impact_stats   !== 'false'
   const showEventsPreview = allSettings.show_events_preview !== 'false'
   const showPartners   = allSettings.show_partners_section !== 'false'
+  const showBanner     = allSettings.show_awareness_banner !== 'false'
+  const minPriority    = (allSettings.awareness_min_priority as 'high' | 'medium' | 'low') || 'medium'
 
   // Fetch real upcoming events for the homepage preview
   const { data: upcomingEvents } = await supabase
@@ -76,6 +81,18 @@ export default async function HomePage() {
     if (p.slug && p.image_url) programDbImages[p.slug] = p.image_url
   }
 
+  // Fetch today's awareness days for homepage banner
+  const { data: allAwarenessDays } = showBanner
+    ? await supabase
+        .from('awareness_days')
+        .select('id, name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active')
+        .eq('is_active', true)
+    : { data: [] }
+  const todaysDays = filterByMinPriority(
+    getAwarenessDaysForDate(allAwarenessDays ?? [], new Date()),
+    minPriority,
+  )
+
   // Fetch active partners for homepage strip
   const { data: partners } = showPartners
     ? await supabase
@@ -90,6 +107,7 @@ export default async function HomePage() {
       <Navbar />
       <main>
         <Hero settings={heroSettings} />
+        {showBanner && <AwarenessBanner days={todaysDays} />}
         {showStats && <ImpactStats metrics={impactMetrics ?? []} />}
         <ProgramsOverview dbImages={programDbImages} />
         {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} />}

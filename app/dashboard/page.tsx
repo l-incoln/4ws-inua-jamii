@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarCheck, Bell, ArrowRight, Users, Heart, Star } from 'lucide-react'
 import { getTierStyle } from '@/lib/tier-colors'
+import AwarenessGreeting from '@/components/awareness/AwarenessGreeting'
+import { getAwarenessDaysForDate, getUpcomingAwarenessDays } from '@/lib/awareness'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +16,7 @@ export default async function DashboardPage() {
   if (!user) redirect('/auth/login')
 
   // Fetch real stats and announcements in parallel
-  const [rsvpRes, donationRes, profileRes, announcementsRes] = await Promise.all([
+  const [rsvpRes, donationRes, profileRes, announcementsRes, awarenessRes] = await Promise.all([
     supabase
       .from('rsvps')
       .select('id', { count: 'exact', head: true })
@@ -35,6 +37,10 @@ export default async function DashboardPage() {
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(3),
+    supabase
+      .from('awareness_days')
+      .select('id, name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active')
+      .eq('is_active', true),
   ])
 
   const eventsAttended = rsvpRes.count ?? 0
@@ -48,6 +54,10 @@ export default async function DashboardPage() {
   const isApproved = profileRes.data?.membership_status === 'approved'
 
   const announcements = announcementsRes.data ?? []
+
+  const today = new Date()
+  const todayAwarenessDays    = getAwarenessDaysForDate(awarenessRes.data ?? [], today)
+  const upcomingAwarenessDays = getUpcomingAwarenessDays(awarenessRes.data ?? [], today, 7)
 
   const quickStats = [
     { label: 'Events Attended', value: String(eventsAttended), icon: CalendarCheck, color: 'text-primary-600', bg: 'bg-primary-50' },
@@ -88,6 +98,13 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Awareness greeting */}
+      <AwarenessGreeting
+        todayDays={todayAwarenessDays}
+        upcomingDays={upcomingAwarenessDays}
+        memberName={displayName}
+      />
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

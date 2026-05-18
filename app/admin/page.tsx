@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Users, CalendarDays, Heart, FileText, TrendingUp, AlertCircle, ArrowRight, ArrowUpRight } from 'lucide-react'
+import UpcomingDaysWidget from '@/components/awareness/UpcomingDaysWidget'
+import { getUpcomingAwarenessDays } from '@/lib/awareness'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +20,7 @@ export default async function AdminPage() {
     { data: recentMembers },
     { data: recentDonations },
     { data: donationTotal },
+    { data: allAwarenessDays },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('events').select('*', { count: 'exact', head: true }),
@@ -38,10 +41,15 @@ export default async function AdminPage() {
       .from('donations')
       .select('amount')
       .eq('status', 'completed'),
+    supabase
+      .from('awareness_days')
+      .select('id, name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active')
+      .eq('is_active', true),
   ])
 
   const totalRaised = (donationTotal ?? []).reduce((sum: number, d: { amount: number }) => sum + (d.amount ?? 0), 0)
   const pendingCount = (pendingMembers ?? []).length
+  const upcomingAwarenessDays = getUpcomingAwarenessDays(allAwarenessDays ?? [], new Date(), 30)
 
   const stats = [
     {
@@ -181,6 +189,9 @@ export default async function AdminPage() {
           ))}
         </div>
       </div>
+
+      {/* Awareness Calendar Widget */}
+      <UpcomingDaysWidget days={upcomingAwarenessDays} />
     </div>
   )
 }
