@@ -210,28 +210,3 @@ export default function AdminSidebar({ displayName, initials, unreadMessages, pe
     </>
   )
 }
-                subColor="text-slate-400"
-                invert
-              />
-              <button
-                onClick={closeMobile}
-                aria-label="Close menu"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex flex-col flex-1 overflow-y-auto">
-              <SidebarContent
-                displayName={displayName}
-                initials={initials}
-                unreadMessages={unreadMessages}
-                onNavClick={closeMobile}
-              />
-            </div>
-          </aside>
-        </div>
-      )}
-    </>
-  )
-}
