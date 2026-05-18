@@ -142,9 +142,9 @@ export default function DashboardSidebar({ displayName, email, initials, unread,
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <SiteLogoClient subLabel="Member Portal" />
+      {/* Mobile top bar — locked to h-16 so layout pt-16 always matches */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 bg-white border-b border-gray-100 px-4 flex items-center justify-between">
+        <SiteLogoClient subLabel="Member Portal" maxSize={36} />
         <div className="flex items-center gap-3">
           <Link href="/dashboard/notifications" className="relative p-1.5 rounded-lg text-slate-500 hover:bg-gray-100 transition-colors">
             <Bell className="w-5 h-5" />

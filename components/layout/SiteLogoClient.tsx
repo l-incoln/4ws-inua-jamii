@@ -21,6 +21,8 @@ interface Props {
   href?: string
   /** Apply brightness(0) invert(1) filter to logo image — use on dark backgrounds */
   invert?: boolean
+  /** Cap the effective logo height regardless of the DB setting (px). Use in fixed-height bars. */
+  maxSize?: number
 }
 
 export default function SiteLogoClient({
@@ -31,10 +33,11 @@ export default function SiteLogoClient({
   className = '',
   href = '/',
   invert = false,
+  maxSize,
 }: Props) {
   const [logoUrl,  setLogoUrl]  = useState('')
   const [siteName, setSiteName] = useState('')
-  const [logoSize, setLogoSize] = useState(52)
+  const [logoSize, setLogoSize] = useState(maxSize ?? 52)
 
   useEffect(() => {
     const supabase = createClient()
@@ -46,7 +49,7 @@ export default function SiteLogoClient({
         const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value ?? '']))
         if (map.logo_url)  setLogoUrl(map.logo_url)
         if (map.site_name) setSiteName(map.site_name)
-        if (map.logo_size) setLogoSize(parseInt(map.logo_size) || 52)
+        if (map.logo_size) setLogoSize(maxSize ? Math.min(parseInt(map.logo_size) || 52, maxSize) : (parseInt(map.logo_size) || 52))
       })
   }, [])
 

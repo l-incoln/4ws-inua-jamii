@@ -320,7 +320,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                   <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full border border-white/10" />
                   <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full border border-white/10" />
 
-                  <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6">
+                  <div className="relative z-10 h-full flex flex-col justify-between p-3.5 sm:p-5">
                     {/* Row 1: org identity + tier badge + profile photo stacked right */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -337,10 +337,10 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                           {config.shortLabel}
                         </span>
                         {profile.avatar_url ? (
-                          <img src={profile.avatar_url} alt="" crossOrigin="anonymous" className="w-11 h-11 rounded-full object-cover border-2 border-white/30 shadow-md" />
+                          <img src={profile.avatar_url} alt="" crossOrigin="anonymous" className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white/30 shadow-md" />
                         ) : (
-                          <div className="w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center">
-                            <User className="w-5 h-5 text-white/50" />
+                          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center">
+                            <User className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" />
                           </div>
                         )}
                       </div>
@@ -358,7 +358,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                     <div className="flex items-end justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className={`text-[9px] font-semibold tracking-[0.18em] uppercase ${config.accent} mb-0.5`}>{config.label}</p>
-                        <p className="text-white font-bold text-[19px] sm:text-[22px] leading-tight tracking-tight truncate">
+                        <p className="text-white font-bold text-[16px] sm:text-[22px] leading-tight tracking-tight truncate">
                           {profile.full_name ?? 'Unnamed Member'}
                         </p>
                         <p className="text-white/55 text-[10px] mt-0.5 tracking-wide">{ROLE_LABELS[profile.role] ?? 'Member'}</p>
@@ -378,18 +378,18 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                       {/* QR corner */}
                       <div className="flex-shrink-0 flex flex-col items-center gap-1">
                         {qrSmall && isActive ? (
-                          <button onClick={() => setQrModal(true)} className="group relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-white/10 p-1.5 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all hover:scale-105 cursor-zoom-in" title="Click to enlarge">
+                          <button onClick={() => setQrModal(true)} className="group relative w-12 h-12 sm:w-[64px] sm:h-[64px] rounded-xl overflow-hidden bg-white/10 p-1 sm:p-1.5 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all hover:scale-105 cursor-zoom-in" title="Click to enlarge">
                             <img src={qrSmall} alt="QR Code" className="w-full h-full" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                              <Maximize2 className="w-4 h-4 text-white" />
+                              <Maximize2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                             </div>
                           </button>
                         ) : (
-                          <div className="w-[64px] h-[64px] rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
-                            <QrCode className="w-6 h-6 text-white/25" />
+                          <div className="w-12 h-12 sm:w-[64px] sm:h-[64px] rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
+                            <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-white/25" />
                           </div>
                         )}
-                        {qrSmall && isActive && <p className="text-white/35 text-[7px] tracking-[0.15em] uppercase">Scan to verify</p>}
+                        {qrSmall && isActive && <p className="hidden sm:block text-white/35 text-[7px] tracking-[0.15em] uppercase">Scan to verify</p>}
                       </div>
                     </div>
 
@@ -408,7 +408,9 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                         <span className="text-[9px] px-2 py-0.5 rounded-full bg-red-400/20 text-red-300 border border-red-400/30 font-bold tracking-wider">EXPIRED</span>
                       )}
                       {!activeTerm && (
-                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-white/40 border border-white/10 font-bold tracking-wider">PENDING</span>
+                        <span className="flex items-center gap-1 bg-amber-400/25 text-amber-200 text-[9px] px-2 py-0.5 rounded-full border border-amber-400/40 font-bold tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> PENDING
+                        </span>
                       )}
                     </div>
                   </div>
@@ -428,7 +430,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                   <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full border border-white/10" />
                   <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full border border-white/10" />
 
-                  <div className="relative z-10 h-full flex flex-col items-center justify-between p-5 sm:p-6">
+                  <div className="relative z-10 h-full flex flex-col items-center justify-between p-3.5 sm:p-5">
                     <div className="text-center">
                       <p className="text-white/80 font-bold text-[11px] tracking-[0.18em] uppercase">4W&apos;S Inua Jamii Foundation</p>
                       <p className="text-white/40 text-[9px] tracking-[0.12em] mt-0.5">Kenya · Member Verification</p>
@@ -436,15 +438,15 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                     <div className="flex flex-col items-center gap-2">
                       {qrBack && isActive ? (
                         <>
-                          <div className="bg-white/95 rounded-2xl p-2.5 shadow-lg">
-                            <img src={qrBack} alt="Verification QR" className="w-28 h-28 rounded-lg" />
+                          <div className="bg-white/95 rounded-2xl p-2 sm:p-2.5 shadow-lg">
+                            <img src={qrBack} alt="Verification QR" className="w-20 h-20 sm:w-28 sm:h-28 rounded-lg" />
                           </div>
                           <p className="text-white/60 text-[9px] tracking-[0.18em] uppercase">Scan to Verify Membership</p>
                         </>
                       ) : (
                         <>
-                          <div className="w-28 h-28 bg-white/10 rounded-2xl border border-white/20 flex items-center justify-center">
-                            <QrCode className="w-10 h-10 text-white/25" />
+                          <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white/10 rounded-2xl border border-white/20 flex items-center justify-center">
+                            <QrCode className="w-8 h-8 sm:w-10 sm:h-10 text-white/25" />
                           </div>
                           <p className="text-white/40 text-[9px] uppercase tracking-wider">
                             {!isApproved ? 'Pending Approval' : expired ? 'Membership Expired' : 'No Active Term'}
