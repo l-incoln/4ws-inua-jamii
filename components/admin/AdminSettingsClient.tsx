@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import {
   Globe, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube, Linkedin,
   Wallet, BarChart3, Info, CheckCircle, AlertCircle, Edit2, Save,
-  Search, Users, Bell, Home, Calendar, Scale, CreditCard,
+  Search, Users, Bell, Home, Calendar, CalendarDays, Scale, CreditCard,
   Upload, ImageIcon, Loader2, Plus, Trash2, X, Link2, Heart,
 } from 'lucide-react'
 import Image from 'next/image'
@@ -52,6 +52,7 @@ const tabs = [
   'Membership',
   'Email & Notifications',
   'Homepage',
+  'Awareness Calendar',
   'Partners & Sponsors',
   'Core Values',
   'Events & RSVP',
@@ -190,7 +191,7 @@ export default function AdminSettingsClient({
 
   const tabGroups: { label: string; tabs: Tab[] }[] = [
     { label: 'Organisation', tabs: ['Site Info', 'Contact & Socials', 'Legal & Footer'] },
-    { label: 'Platform',     tabs: ['Membership', 'Events & RSVP', 'Homepage'] },
+    { label: 'Platform',     tabs: ['Membership', 'Events & RSVP', 'Homepage', 'Awareness Calendar'] },
     { label: 'Integrations', tabs: ['Payments', 'Email & Notifications', 'SEO & Metadata'] },
     { label: 'Display',      tabs: ['Impact Metrics', 'Our Team', 'Partners & Sponsors', 'Core Values'] },
     { label: 'Pages',        tabs: ['About Page', 'Donate Page', 'FAQ Page'] },
@@ -756,6 +757,50 @@ export default function AdminSettingsClient({
                 <Field label="Volunteer Count Callout">
                   <input name="volunteer_count" className="input" value={s.volunteer_count ?? ''} onChange={(e) => set('volunteer_count', e.target.value)} placeholder="350+" />
                 </Field>
+              </div>
+            </Section>
+            <SaveBar isPending={isPending} />
+          </div>
+        )}
+
+        {/* ── Awareness Calendar ── */}
+        {tab === 'Awareness Calendar' && (
+          <div className="space-y-4">
+            <Section icon={<CalendarDays />} title="Awareness Banner">
+              <div className="space-y-5">
+                <ToggleField
+                  label="Show Awareness Banner on Homepage"
+                  description="Displays a themed banner below the hero section when today matches a national, international, or foundation observance day."
+                  value={s.show_awareness_banner !== 'false'}
+                  onToggle={() => toggle('show_awareness_banner')}
+                  name="show_awareness_banner"
+                />
+                <div className="pt-1">
+                  <label className="label">Minimum Priority to Show</label>
+                  <p className="text-xs text-slate-400 mb-2">Only awareness days at or above this priority will appear in the homepage banner.</p>
+                  <select
+                    name="awareness_min_priority"
+                    className="input"
+                    value={s.awareness_min_priority ?? 'medium'}
+                    onChange={(e) => set('awareness_min_priority', e.target.value)}
+                  >
+                    <option value="high">High only — major national & international days</option>
+                    <option value="medium">Medium &amp; above — recommended (default)</option>
+                    <option value="low">All — every observance day including low priority</option>
+                  </select>
+                  <input type="hidden" name="awareness_min_priority" value={s.awareness_min_priority ?? 'medium'} />
+                </div>
+              </div>
+            </Section>
+            <Section icon={<Calendar />} title="How It Works">
+              <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm text-slate-600 space-y-2">
+                <p>The Intelligent Calendar system automatically surfaces awareness days based on today&apos;s date.</p>
+                <ul className="list-disc list-inside space-y-1 text-xs text-slate-500">
+                  <li><strong>Homepage banner</strong> — dismissable colour-coded strip below the hero, showing today&apos;s observances.</li>
+                  <li><strong>Member dashboard greeting</strong> — personalised card acknowledging today&apos;s day and upcoming observances within 7 days.</li>
+                  <li><strong>Admin overview widget</strong> — scrollable list of the next 30 days&apos; awareness days with priority badges.</li>
+                </ul>
+                <p className="text-xs text-slate-400 pt-1">To add or edit individual awareness days, run an SQL migration or manage the <code className="bg-slate-100 px-1 rounded">awareness_days</code> table directly in Supabase.</p>
               </div>
             </Section>
             <SaveBar isPending={isPending} />
