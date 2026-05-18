@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { AwarenessDay } from '@/lib/awareness'
-import { getCategoryMeta } from '@/lib/awareness'
+import { getCategoryMeta, getDayThemeStyles } from '@/lib/awareness'
 
 export default function AwarenessBanner({ days }: { days: AwarenessDay[] }) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
@@ -29,6 +29,7 @@ export default function AwarenessBanner({ days }: { days: AwarenessDay[] }) {
   const safeIdx = Math.min(idx, activeDays.length - 1)
   const day = activeDays[safeIdx]
   const meta = getCategoryMeta(day.category)
+  const theme = getDayThemeStyles(day.theme_color)
 
   const dismiss = (id: string) => {
     const today = new Date().toISOString().split('T')[0]
@@ -50,12 +51,19 @@ export default function AwarenessBanner({ days }: { days: AwarenessDay[] }) {
   const next = () => setIdx(Math.min(activeDays.length - 1, safeIdx + 1))
 
   return (
-    <div className={`${meta.gradientClass} text-white`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="relative overflow-hidden text-white" style={theme.banner}>
+      {/* Decorative glow blobs for depth */}
+      <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full blur-3xl opacity-30" style={{ background: 'rgba(255,255,255,0.25)' }} />
+      <div className="pointer-events-none absolute left-0 bottom-0 translate-y-1/2 w-40 h-40 rounded-full blur-2xl opacity-20" style={{ background: 'rgba(255,255,255,0.3)' }} />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center gap-3 md:gap-5">
 
-          {/* Emoji icon */}
-          <div className="hidden sm:flex w-11 h-11 rounded-xl bg-white/15 items-center justify-center text-2xl flex-shrink-0">
+          {/* Emoji icon — glassmorphism ring */}
+          <div
+            className="hidden sm:flex w-14 h-14 rounded-2xl items-center justify-center text-3xl flex-shrink-0"
+            style={theme.bannerEmoji}
+          >
             {day.icon_emoji ?? '📅'}
           </div>
 
@@ -127,3 +135,4 @@ export default function AwarenessBanner({ days }: { days: AwarenessDay[] }) {
     </div>
   )
 }
+

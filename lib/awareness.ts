@@ -19,6 +19,54 @@ export type AwarenessDay = {
   is_active: boolean
 }
 
+// ── Per-day inline theme styles ───────────────────────────────
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
+    : null
+}
+
+/**
+ * Returns React inline style objects derived from a day's theme_color hex.
+ * Falls back to the foundation blue if null / unparseable.
+ */
+export function getDayThemeStyles(themeColor: string | null) {
+  const hex = themeColor ?? '#1E3A8A'
+  const rgb = hexToRgb(hex) ?? { r: 30, g: 58, b: 138 }
+  const { r, g, b } = rgb
+  return {
+    /** Full-bleed banner gradient */
+    banner: {
+      background: `linear-gradient(135deg, ${hex} 0%, rgba(${r},${g},${b},0.78) 100%)`,
+    } as React.CSSProperties,
+    /** Glass-morphism emoji container on banner */
+    bannerEmoji: {
+      background: 'rgba(255,255,255,0.18)',
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)',
+      border: '1.5px solid rgba(255,255,255,0.30)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+    } as React.CSSProperties,
+    /** Decorative glow blob (absolute positioned) */
+    glow: {
+      background: `rgba(${r},${g},${b},0.35)`,
+    } as React.CSSProperties,
+    /** Card border colour */
+    cardBorder: { borderColor: `rgba(${r},${g},${b},0.35)` } as React.CSSProperties,
+    /** Subtle card gradient background */
+    cardBg: {
+      background: `linear-gradient(135deg, rgba(${r},${g},${b},0.05) 0%, rgba(${r},${g},${b},0.02) 100%)`,
+    } as React.CSSProperties,
+    /** Icon circle background on cards */
+    iconBg: { background: `rgba(${r},${g},${b},0.12)` } as React.CSSProperties,
+    /** Badge colours on cards */
+    badgeBg: { background: `rgba(${r},${g},${b},0.10)` } as React.CSSProperties,
+    badgeText: { color: hex } as React.CSSProperties,
+  }
+}
+
 export type AwarenessDayWithOffset = AwarenessDay & {
   daysUntil: number
   dateLabel: string

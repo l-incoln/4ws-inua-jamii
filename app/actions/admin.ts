@@ -1331,6 +1331,7 @@ export async function saveAwarenessDay(formData: FormData, dayId?: string) {
   const category       = (formData.get('category') as string) || 'international'
   const priority       = (formData.get('priority') as string) || 'medium'
   const icon_emoji     = (formData.get('icon_emoji') as string)?.trim() || '📅'
+  const theme_color    = (formData.get('theme_color') as string)?.trim() || '#1E3A8A'
   const banner_message = (formData.get('banner_message') as string)?.trim() || null
   const link_url       = (formData.get('link_url') as string)?.trim() || null
   const link_label     = (formData.get('link_label') as string)?.trim() || null
@@ -1338,7 +1339,7 @@ export async function saveAwarenessDay(formData: FormData, dayId?: string) {
 
   if (!name) return { error: 'Name is required' }
 
-  const payload = { name, description, month, day, specific_date, category, priority, icon_emoji, banner_message, link_url, link_label, is_active }
+  const payload = { name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active }
 
   if (dayId) {
     const { error: dbError } = await supabase.from('awareness_days').update(payload).eq('id', dayId)

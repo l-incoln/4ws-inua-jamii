@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { AwarenessDay, AwarenessDayWithOffset } from '@/lib/awareness'
-import { getCategoryMeta } from '@/lib/awareness'
+import { getCategoryMeta, getDayThemeStyles } from '@/lib/awareness'
 
 type Props = {
   todayDays: AwarenessDay[]
@@ -13,6 +13,7 @@ export default function AwarenessGreeting({ todayDays, upcomingDays, memberName 
   if (todayDays.length > 0) {
     const primary = todayDays[0]
     const meta = getCategoryMeta(primary.category)
+    const theme = getDayThemeStyles(primary.theme_color)
 
     // Personalise the message: replace placeholder or append name
     const rawMessage = primary.banner_message ?? primary.description ?? ''
@@ -22,12 +23,14 @@ export default function AwarenessGreeting({ todayDays, upcomingDays, memberName 
 
     return (
       <div
-        className={`rounded-2xl border ${meta.cardBorderClass} ${meta.cardGradientClass} p-5`}
+        className="rounded-2xl border p-5"
+        style={{ ...theme.cardBg, ...theme.cardBorder }}
       >
         <div className="flex items-start gap-3">
-          {/* Icon */}
+          {/* Icon — themed circle */}
           <div
-            className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${meta.iconBgClass}`}
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+            style={theme.iconBg}
           >
             {primary.icon_emoji ?? '📅'}
           </div>
@@ -36,7 +39,8 @@ export default function AwarenessGreeting({ todayDays, upcomingDays, memberName 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span
-                className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${meta.badgeBgClass} ${meta.badgeTextClass}`}
+                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                style={{ ...theme.badgeBg, ...theme.badgeText }}
               >
                 {meta.emoji}&nbsp;{meta.label}
               </span>
@@ -56,7 +60,8 @@ export default function AwarenessGreeting({ todayDays, upcomingDays, memberName 
             {primary.link_url && primary.link_label && (
               <Link
                 href={primary.link_url}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors mt-2"
+                className="inline-flex items-center gap-1 text-sm font-semibold mt-2 transition-colors"
+                style={theme.badgeText}
               >
                 {primary.link_label}&nbsp;→
               </Link>

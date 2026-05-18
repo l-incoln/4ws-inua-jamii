@@ -52,6 +52,7 @@ type AwarenessDay = {
   category: string
   priority: string
   icon_emoji: string | null
+  theme_color: string | null
   banner_message: string | null
   link_url: string | null
   link_label: string | null
@@ -163,7 +164,7 @@ export default function AdminSettingsClient({
   const [partnerDeleteId, setPartnerDeleteId] = useState<string | null>(null)
 
   // Awareness days state
-  const blankAwareness = { name: '', description: '', date_type: 'annual', month: '', day: '', specific_date: '', category: 'international', priority: 'medium', icon_emoji: '📅', banner_message: '', link_url: '', link_label: '', is_active: 'true' }
+  const blankAwareness = { name: '', description: '', date_type: 'annual', month: '', day: '', specific_date: '', category: 'international', priority: 'medium', icon_emoji: '📅', theme_color: '#1E3A8A', banner_message: '', link_url: '', link_label: '', is_active: 'true' }
   const [awarenessList, setAwarenessList] = useState<AwarenessDay[]>(awarenessInitial)
   const [showAwarenessForm, setShowAwarenessForm] = useState(false)
   const [editAwarenessId, setEditAwarenessId] = useState<string | null>(null)
@@ -1469,10 +1470,59 @@ export default function AdminSettingsClient({
                   </div>
                 )}
 
-                {/* Icon emoji */}
+                {/* Icon emoji + Theme colour */}
                 <div>
                   <label className="label text-xs">Icon Emoji</label>
                   <input className="input text-sm" value={awarenessForm.icon_emoji} onChange={(e) => setAwarenessForm((p) => ({ ...p, icon_emoji: e.target.value }))} placeholder="🌍" maxLength={4} />
+                </div>
+
+                {/* Theme colour */}
+                <div>
+                  <label className="label text-xs">Theme Colour</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={awarenessForm.theme_color}
+                      onChange={(e) => setAwarenessForm((p) => ({ ...p, theme_color: e.target.value }))}
+                      className="w-10 h-9 rounded cursor-pointer border border-slate-200 p-0.5 bg-white"
+                      title="Pick banner colour"
+                    />
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { hex: '#3E6A27', label: 'Kenya Green' },
+                        { hex: '#1E3A8A', label: 'Foundation Blue' },
+                        { hex: '#0284C7', label: 'Sky Blue' },
+                        { hex: '#db2777', label: 'Pink' },
+                        { hex: '#059669', label: 'Emerald' },
+                        { hex: '#D97706', label: 'Amber' },
+                        { hex: '#7C3AED', label: 'Violet' },
+                        { hex: '#DC2626', label: 'Red' },
+                        { hex: '#0F766E', label: 'Teal' },
+                        { hex: '#475569', label: 'Slate' },
+                      ].map((s) => (
+                        <button
+                          key={s.hex}
+                          type="button"
+                          title={s.label}
+                          onClick={() => setAwarenessForm((p) => ({ ...p, theme_color: s.hex }))}
+                          className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none"
+                          style={{
+                            background: s.hex,
+                            borderColor: awarenessForm.theme_color === s.hex ? '#1e293b' : 'transparent',
+                            boxShadow: awarenessForm.theme_color === s.hex ? '0 0 0 2px white, 0 0 0 4px #1e293b' : 'none',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {/* Live preview strip */}
+                  <div
+                    className="mt-2 h-8 rounded-lg flex items-center px-3 gap-2 text-white text-xs font-medium"
+                    style={{ background: `linear-gradient(135deg, ${awarenessForm.theme_color} 0%, ${awarenessForm.theme_color}BB 100%)` }}
+                  >
+                    <span>{awarenessForm.icon_emoji || '📅'}</span>
+                    <span className="opacity-90">{awarenessForm.name || 'Preview banner…'}</span>
+                  </div>
                 </div>
 
                 {/* Active toggle */}
@@ -1523,6 +1573,7 @@ export default function AdminSettingsClient({
                         category: awarenessForm.category,
                         priority: awarenessForm.priority,
                         icon_emoji: awarenessForm.icon_emoji || null,
+                        theme_color: awarenessForm.theme_color || null,
                         banner_message: awarenessForm.banner_message || null,
                         link_url: awarenessForm.link_url || null,
                         link_label: awarenessForm.link_label || null,
@@ -1589,6 +1640,7 @@ export default function AdminSettingsClient({
                                 category: d.category,
                                 priority: d.priority,
                                 icon_emoji: d.icon_emoji ?? '📅',
+                                theme_color: d.theme_color ?? '#1E3A8A',
                                 banner_message: d.banner_message ?? '',
                                 link_url: d.link_url ?? '',
                                 link_label: d.link_label ?? '',
