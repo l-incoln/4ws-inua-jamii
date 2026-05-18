@@ -5,6 +5,7 @@ import ImpactStats from '@/components/home/ImpactStats'
 import ProgramsOverview from '@/components/home/ProgramsOverview'
 import EventsPreview from '@/components/home/EventsPreview'
 import CallToAction from '@/components/home/CallToAction'
+import PartnersSection from '@/components/home/PartnersSection'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import type { Metadata } from 'next'
 
@@ -25,12 +26,14 @@ export default async function HomePage() {
       'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
       'hero_badge_text', 'hero_image_url',
       'show_impact_stats', 'show_events_preview',
+      'show_partners_section', 'partners_section_title',
     ])
 
   const allSettings    = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
   const heroSettings   = allSettings
   const showStats      = allSettings.show_impact_stats   !== 'false'
   const showEventsPreview = allSettings.show_events_preview !== 'false'
+  const showPartners   = allSettings.show_partners_section !== 'false'
 
   // Fetch real upcoming events for the homepage preview
   const { data: upcomingEvents } = await supabase
@@ -73,6 +76,15 @@ export default async function HomePage() {
     if (p.slug && p.image_url) programDbImages[p.slug] = p.image_url
   }
 
+  // Fetch active partners for homepage strip
+  const { data: partners } = showPartners
+    ? await supabase
+        .from('partners')
+        .select('id, name, logo_url, website_url')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+    : { data: [] }
+
   return (
     <>
       <Navbar />
@@ -81,6 +93,12 @@ export default async function HomePage() {
         {showStats && <ImpactStats metrics={impactMetrics ?? []} />}
         <ProgramsOverview dbImages={programDbImages} />
         {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} />}
+        {showPartners && (partners ?? []).length > 0 && (
+          <PartnersSection
+            partners={(partners ?? []) as { id: string; name: string; logo_url: string | null; website_url: string | null }[]}
+            title={allSettings.partners_section_title || 'Our Partners & Supporters'}
+          />
+        )}
         <CallToAction />
       </main>
       <Footer />

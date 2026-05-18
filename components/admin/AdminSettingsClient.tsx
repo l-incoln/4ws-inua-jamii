@@ -5,7 +5,7 @@ import {
   Globe, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube, Linkedin,
   Wallet, BarChart3, Info, CheckCircle, AlertCircle, Edit2, Save,
   Search, Users, Bell, Home, Calendar, Scale, CreditCard,
-  Upload, ImageIcon, Loader2, Plus, Trash2, X,
+  Upload, ImageIcon, Loader2, Plus, Trash2, X, Link2, Heart,
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -33,6 +33,15 @@ type GalleryItem = {
   title: string | null
 }
 
+type Partner = {
+  id: string
+  name: string
+  logo_url: string | null
+  website_url: string | null
+  sort_order: number
+  is_active: boolean
+}
+
 type Toast = { type: 'success' | 'error'; msg: string }
 
 const tabs = [
@@ -43,6 +52,8 @@ const tabs = [
   'Membership',
   'Email & Notifications',
   'Homepage',
+  'Partners & Sponsors',
+  'Core Values',
   'Events & RSVP',
   'Legal & Footer',
   'Impact Metrics',
@@ -70,11 +81,14 @@ export default function AdminSettingsClient({
   leadership: LeadershipMember[]
   galleryItems: GalleryItem[]
   mediaItems: GalleryItem[]
+  partners: Partner[]
   saveSiteSettings: (fd: FormData) => Promise<{ error?: unknown; success?: boolean }>
   saveImpactMetric: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => Promise<{ error?: unknown; url?: string }>
   saveLeadershipMember: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   deleteLeadershipMember: (id: string) => Promise<{ error?: unknown; success?: boolean }>
+  savePartner: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
+  deletePartner: (id: string) => Promise<{ error?: unknown; success?: boolean }>
 }) {
   const [tab, setTab]      = useState<Tab>('Site Info')
   const [isPending, start] = useTransition()
@@ -113,6 +127,14 @@ export default function AdminSettingsClient({
   const [leaderForm, setLeaderForm] = useState({ name: '', role: '', bio: '', image_url: '', sort_order: '0', is_active: 'true' })
   const [leaderSaving, setLeaderSaving] = useState(false)
   const [leaderDeleteId, setLeaderDeleteId] = useState<string | null>(null)
+
+  // Partners state
+  const [partnerList, setPartnerList] = useState<Partner[]>(partners)
+  const [showPartnerForm, setShowPartnerForm] = useState(false)
+  const [editPartnerId, setEditPartnerId] = useState<string | null>(null)
+  const [partnerForm, setPartnerForm] = useState({ name: '', logo_url: '', website_url: '', sort_order: '0', is_active: 'true' })
+  const [partnerSaving, setPartnerSaving] = useState(false)
+  const [partnerDeleteId, setPartnerDeleteId] = useState<string | null>(null)
 
   const handleImageUpload = async (
     file: File,
@@ -167,7 +189,7 @@ export default function AdminSettingsClient({
     { label: 'Organisation', tabs: ['Site Info', 'Contact & Socials', 'Legal & Footer'] },
     { label: 'Platform',     tabs: ['Membership', 'Events & RSVP', 'Homepage'] },
     { label: 'Integrations', tabs: ['Payments', 'Email & Notifications', 'SEO & Metadata'] },
-    { label: 'Display',      tabs: ['Impact Metrics', 'Our Team'] },
+    { label: 'Display',      tabs: ['Impact Metrics', 'Our Team', 'Partners & Sponsors', 'Core Values'] },
     { label: 'Pages',        tabs: ['About Page', 'Donate Page', 'FAQ Page'] },
   ]
 
@@ -384,6 +406,8 @@ export default function AdminSettingsClient({
                   { key: 'instagram_url', label: 'Instagram',   icon: <Instagram className="w-3.5 h-3.5" />, placeholder: 'https://instagram.com/…' },
                   { key: 'youtube_url',   label: 'YouTube',     icon: <Youtube className="w-3.5 h-3.5" />,   placeholder: 'https://youtube.com/…' },
                   { key: 'linkedin_url',  label: 'LinkedIn',    icon: <Linkedin className="w-3.5 h-3.5" />,  placeholder: 'https://linkedin.com/…' },
+                  { key: 'tiktok_url',    label: 'TikTok',      icon: <span className="w-3.5 h-3.5 font-bold text-xs leading-none">TT</span>, placeholder: 'https://tiktok.com/@…' },
+                  { key: 'whatsapp_url',  label: 'WhatsApp Channel', icon: <span className="w-3.5 h-3.5 font-bold text-xs leading-none">WA</span>, placeholder: 'https://whatsapp.com/channel/…' },
                 ].map(({ key, label, icon, placeholder }) => (
                   <Field key={key} label={label} icon={icon}>
                     <input name={key} type="url" className="input" value={(s as Record<string, string>)[key] ?? ''} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} />
@@ -545,6 +569,50 @@ export default function AdminSettingsClient({
               </div>
               <p className="text-xs text-slate-400">These amounts are displayed to members as reference — payment is processed via M-Pesa or bank transfer.</p>
             </Section>
+            <Section icon={<Calendar />} title="Membership Duration (Years)">
+              <p className="text-xs text-slate-500 -mt-1 mb-2">Default membership validity period per tier (in years). Admins can override per issuance.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { key: 'membership_duration_basic',    label: 'Classic (Basic)' },
+                  { key: 'membership_duration_active',   label: 'Premium (Active)' },
+                  { key: 'membership_duration_champion', label: 'Gold (Champion)' },
+                ].map(({ key, label }) => (
+                  <Field key={key} label={label}>
+                    <div className="relative">
+                      <input
+                        name={key}
+                        type="number"
+                        min="1"
+                        max="10"
+                        className="input pr-12"
+                        value={(s as Record<string, string>)[key] ?? '1'}
+                        onChange={(e) => set(key, e.target.value)}
+                        placeholder="1"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">yr(s)</span>
+                    </div>
+                  </Field>
+                ))}
+              </div>
+            </Section>
+            <Section icon={<Bell />} title="Admin Notifications">
+              <div className="space-y-3">
+                <ToggleField
+                  label="Notify admin on new member registration"
+                  description="Sends an in-app notification when a new member registers and is pending approval."
+                  value={s.admin_notify_new_member !== 'false'}
+                  onToggle={() => toggle('admin_notify_new_member')}
+                  name="admin_notify_new_member"
+                />
+                <ToggleField
+                  label="Notify admin on new donation"
+                  description="Sends an in-app notification whenever a donation is completed."
+                  value={s.admin_notify_new_donation !== 'false'}
+                  onToggle={() => toggle('admin_notify_new_donation')}
+                  name="admin_notify_new_donation"
+                />
+              </div>
+            </Section>
             <SaveBar isPending={isPending} />
           </div>
         )}
@@ -685,6 +753,61 @@ export default function AdminSettingsClient({
                 <Field label="Volunteer Count Callout">
                   <input name="volunteer_count" className="input" value={s.volunteer_count ?? ''} onChange={(e) => set('volunteer_count', e.target.value)} placeholder="350+" />
                 </Field>
+              </div>
+            </Section>
+            <SaveBar isPending={isPending} />
+          </div>
+        )}
+
+        {/* ── Partners & Sponsors (inside form for show_partners_section toggle) ── */}
+        {tab === 'Partners & Sponsors' && (
+          <div className="space-y-4">
+            <Section icon={<Link2 />} title="Partners Section Settings">
+              <ToggleField
+                label="Show Partners Section on Homepage"
+                description="Displays logos of partner organisations and sponsors in a strip on the homepage."
+                value={s.show_partners_section !== 'false'}
+                onToggle={() => toggle('show_partners_section')}
+                name="show_partners_section"
+              />
+              <Field label="Section Title">
+                <input name="partners_section_title" className="input" value={s.partners_section_title ?? ''} onChange={(e) => set('partners_section_title', e.target.value)} placeholder="Our Partners & Supporters" />
+              </Field>
+            </Section>
+            <SaveBar isPending={isPending} />
+          </div>
+        )}
+
+        {/* ── Core Values (inside form) ── */}
+        {tab === 'Core Values' && (
+          <div className="space-y-4">
+            <Section icon={<Heart />} title="Core Values">
+              <p className="text-xs text-slate-500 -mt-1 mb-2">These six values appear on the About page. Edit titles and descriptions here.</p>
+              <div className="grid grid-cols-1 gap-5">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <div key={n} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Value {n}</p>
+                    <Field label="Title">
+                      <input
+                        name={`core_value_${n}_title`}
+                        className="input"
+                        value={(s as Record<string, string>)[`core_value_${n}_title`] ?? ''}
+                        onChange={(e) => set(`core_value_${n}_title`, e.target.value)}
+                        placeholder={`Core Value ${n} Title`}
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        name={`core_value_${n}_body`}
+                        rows={2}
+                        className="input resize-none"
+                        value={(s as Record<string, string>)[`core_value_${n}_body`] ?? ''}
+                        onChange={(e) => set(`core_value_${n}_body`, e.target.value)}
+                        placeholder="Brief description of this core value…"
+                      />
+                    </Field>
+                  </div>
+                ))}
               </div>
             </Section>
             <SaveBar isPending={isPending} />
@@ -1131,6 +1254,166 @@ export default function AdminSettingsClient({
                     <button
                       type="button"
                       onClick={() => setLeaderDeleteId(member.id)}
+                      className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Partners & Sponsors management (outside shared form) ── */}
+      {tab === 'Partners & Sponsors' && (
+        <div className="space-y-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-primary-600" />
+              <h2 className="font-semibold text-slate-900">Partner Logos</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEditPartnerId(null)
+                setPartnerForm({ name: '', logo_url: '', website_url: '', sort_order: String(partnerList.length), is_active: 'true' })
+                setShowPartnerForm(true)
+              }}
+              className="btn-primary text-xs flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Partner
+            </button>
+          </div>
+          <p className="text-sm text-slate-500">Add partners whose logos will be displayed on the homepage strip.</p>
+
+          {showPartnerForm && (
+            <div className="card p-5 border-2 border-primary-200 bg-primary-50/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm text-slate-900">{editPartnerId ? 'Edit Partner' : 'New Partner'}</h3>
+                <button type="button" onClick={() => setShowPartnerForm(false)} className="p-1 rounded hover:bg-gray-200 text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="label text-xs">Organisation Name *</label>
+                  <input className="input text-sm" value={partnerForm.name} onChange={(e) => setPartnerForm((p) => ({ ...p, name: e.target.value }))} placeholder="ACME Corp" />
+                </div>
+                <div>
+                  <label className="label text-xs">Website URL</label>
+                  <input className="input text-sm" type="url" value={partnerForm.website_url} onChange={(e) => setPartnerForm((p) => ({ ...p, website_url: e.target.value }))} placeholder="https://..." />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label text-xs">Logo URL</label>
+                  <input className="input text-sm" value={partnerForm.logo_url} onChange={(e) => setPartnerForm((p) => ({ ...p, logo_url: e.target.value }))} placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="label text-xs">Display Order</label>
+                  <input type="number" className="input text-sm" value={partnerForm.sort_order} onChange={(e) => setPartnerForm((p) => ({ ...p, sort_order: e.target.value }))} />
+                </div>
+                <div className="flex items-center gap-2 pt-5">
+                  <input type="checkbox" id="partner_active" checked={partnerForm.is_active === 'true'} onChange={(e) => setPartnerForm((p) => ({ ...p, is_active: e.target.checked ? 'true' : 'false' }))} className="w-4 h-4 accent-primary-600" />
+                  <label htmlFor="partner_active" className="text-sm text-slate-700">Visible on homepage</label>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={partnerSaving || !partnerForm.name}
+                  onClick={async () => {
+                    setPartnerSaving(true)
+                    const fd = new FormData()
+                    Object.entries(partnerForm).forEach(([k, v]) => fd.append(k, v))
+                    const result = await savePartner(fd, editPartnerId ?? undefined)
+                    setPartnerSaving(false)
+                    if (result?.error) {
+                      showToast({ type: 'error', msg: result.error as string })
+                    } else {
+                      showToast({ type: 'success', msg: editPartnerId ? 'Partner updated.' : 'Partner added.' })
+                      setShowPartnerForm(false)
+                      const newPartner: Partner = {
+                        id: editPartnerId ?? Date.now().toString(),
+                        name: partnerForm.name,
+                        logo_url: partnerForm.logo_url || null,
+                        website_url: partnerForm.website_url || null,
+                        sort_order: parseInt(partnerForm.sort_order) || 0,
+                        is_active: partnerForm.is_active === 'true',
+                      }
+                      if (!editPartnerId) {
+                        setPartnerList((prev) => [...prev, newPartner])
+                      } else {
+                        setPartnerList((prev) => prev.map((p) => p.id === editPartnerId ? newPartner : p))
+                      }
+                    }
+                  }}
+                  className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {partnerSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {partnerSaving ? 'Saving…' : 'Save'}
+                </button>
+                <button type="button" onClick={() => setShowPartnerForm(false)} className="btn-secondary text-xs">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {partnerList.length === 0 && (
+              <p className="text-sm text-slate-400 col-span-full">No partners yet. Click &quot;Add Partner&quot; to get started.</p>
+            )}
+            {partnerList.map((partner) => (
+              <div key={partner.id} className="card p-4 flex gap-3 items-center">
+                <div className="w-14 h-10 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0 border border-slate-200">
+                  {partner.logo_url ? (
+                    <Image src={partner.logo_url} alt={partner.name} width={56} height={40} className="w-full h-full object-contain" unoptimized />
+                  ) : (
+                    <ImageIcon className="w-5 h-5 text-slate-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-slate-900 truncate">{partner.name}</div>
+                  {partner.website_url && <div className="text-xs text-primary-600 truncate">{partner.website_url}</div>}
+                  {!partner.is_active && <span className="text-xs text-slate-400">(hidden)</span>}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditPartnerId(partner.id)
+                      setPartnerForm({
+                        name: partner.name,
+                        logo_url: partner.logo_url ?? '',
+                        website_url: partner.website_url ?? '',
+                        sort_order: String(partner.sort_order),
+                        is_active: partner.is_active ? 'true' : 'false',
+                      })
+                      setShowPartnerForm(true)
+                    }}
+                    className="p-1.5 rounded-lg bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  {partnerDeleteId === partner.id ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const result = await deletePartner(partner.id)
+                        if (result?.error) showToast({ type: 'error', msg: result.error as string })
+                        else {
+                          setPartnerList((prev) => prev.filter((p) => p.id !== partner.id))
+                          showToast({ type: 'success', msg: 'Partner removed.' })
+                        }
+                        setPartnerDeleteId(null)
+                      }}
+                      className="p-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                      title="Confirm delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setPartnerDeleteId(partner.id)}
                       className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
                       title="Delete"
                     >

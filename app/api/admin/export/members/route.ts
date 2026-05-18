@@ -20,13 +20,13 @@ export async function GET() {
 
   const { data: members, error } = await supabase
     .from('profiles')
-    .select('id, full_name, email, phone, location, tier, membership_status, role, created_at')
+    .select('id, full_name, email, phone, location, tier, membership_status, role, payment_confirmed, payment_reference, created_at')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Build CSV
-  const headers = ['Name', 'Email', 'Phone', 'Location', 'Tier', 'Status', 'Role', 'Joined']
+  const headers = ['Name', 'Email', 'Phone', 'Location', 'Tier', 'Status', 'Role', 'Payment Confirmed', 'Payment Reference', 'Joined']
   const rows = (members ?? []).map((m) => [
     m.full_name ?? '',
     m.email ?? '',
@@ -35,6 +35,8 @@ export async function GET() {
     TIER_LABELS[m.tier as keyof typeof TIER_LABELS] ?? m.tier,
     m.membership_status,
     m.role,
+    m.payment_confirmed ? 'Yes' : 'No',
+    m.payment_reference ?? '',
     new Date(m.created_at).toLocaleDateString('en-KE'),
   ])
 

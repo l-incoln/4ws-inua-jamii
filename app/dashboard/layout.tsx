@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import { createClient } from '@/lib/supabase/server'
+import { AlertTriangle, Clock, CheckCircle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,13 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
+
+  // Fetch profile including membership status and payment info
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('membership_status, payment_confirmed, payment_reference, tier, selected_tier')
+    .eq('id', user.id)
+    .single()
 
   // Fetch unread notification count
   const { count: unreadCount } = await supabase
@@ -31,6 +39,11 @@ export default async function DashboardLayout({
     .join('')
     .toUpperCase()
 
+  const membershipStatus  = profile?.membership_status ?? 'pending'
+  const paymentConfirmed  = profile?.payment_confirmed ?? false
+  const isPending         = membershipStatus === 'pending'
+  const isRejected        = membershipStatus === 'rejected'
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <DashboardSidebar
@@ -38,11 +51,42 @@ export default async function DashboardLayout({
         email={user.email ?? ''}
         initials={initials}
         unread={unread}
+        isPending={isPending}
       />
 
       {/* Main content */}
       <main className="flex-1 lg:ml-64 pt-16 lg:pt-0 pb-20 lg:pb-0">
-        <div className="max-w-5xl mx-auto p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto p-6 lg:p-8 space-y-4">
+          {/* Pending member banner */}
+          {isPending && !paymentConfirmed && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+              <Clock className="w-5 h-5 mt-0.5 flex-shrink-0 text-amber-500" />
+              <div>
+                <p className="font-semibold text-sm">Membership Pending Approval</p>
+                <p className="text-xs mt-0.5">
+                  Your application is awaiting review. To speed up activation, complete your membership fee payment via M-Pesa or bank transfer and send proof to our admin team. Full access will be granted after approval.
+                </p>
+              </div>
+            </div>
+          )}
+          {isPending && paymentConfirmed && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800">
+              <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-500" />
+              <div>
+                <p className="font-semibold text-sm">Payment Received — Awaiting Admin Approval</p>
+                <p className="text-xs mt-0.5">Your payment has been recorded. An admin will review and activate your membership shortly.</p>
+              </div>
+            </div>
+          )}
+          {isRejected && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800">
+              <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-red-500" />
+              <div>
+                <p className="font-semibold text-sm">Membership Application Not Approved</p>
+                <p className="text-xs mt-0.5">Your membership application was not approved. Please contact our team for more information.</p>
+              </div>
+            </div>
+          )}
           {children}
         </div>
       </main>

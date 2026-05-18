@@ -15,6 +15,7 @@ const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   phone: z.string().optional(),
+  tier: z.enum(['basic', 'active', 'champion']).default('basic'),
 })
 
 export async function login(formData: FormData) {
@@ -69,11 +70,17 @@ export async function signup(formData: FormData) {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
     phone: (formData.get('phone') as string) || undefined,
+    tier: ((formData.get('tier') as string) || 'basic') as 'basic' | 'active' | 'champion',
   }
 
   const parsed = signupSchema.safeParse(raw)
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message }
+  }
+
+  const consentAgreed = formData.get('consent_agreed') === 'true'
+  if (!consentAgreed) {
+    return { error: 'You must agree to the Privacy Policy to create an account.' }
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -83,6 +90,8 @@ export async function signup(formData: FormData) {
       data: {
         full_name: parsed.data.full_name,
         phone:     parsed.data.phone,
+        tier:      parsed.data.tier,
+        consent_agreed: 'true',
         membership_status: autoApprove ? 'approved' : 'pending',
       },
     },

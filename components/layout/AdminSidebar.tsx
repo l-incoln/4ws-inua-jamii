@@ -39,16 +39,18 @@ interface Props {
   displayName: string
   initials: string
   unreadMessages: number
+  pendingNotifications?: number
 }
 
 interface ContentProps {
   displayName: string
   initials: string
   unreadMessages: number
+  pendingNotifications: number
   onNavClick: () => void
 }
 
-function SidebarContent({ displayName, initials, unreadMessages, onNavClick }: ContentProps) {
+function SidebarContent({ displayName, initials, unreadMessages, pendingNotifications, onNavClick }: ContentProps) {
   return (
     <>
       {/* Admin badge */}
@@ -75,7 +77,9 @@ function SidebarContent({ displayName, initials, unreadMessages, onNavClick }: C
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto" onClick={onNavClick}>
         <p className="text-xs text-slate-500 uppercase tracking-widest px-3 py-2 mt-1">Management</p>
         {mainNavItems.map(({ href, label, icon, exact }) => (
-          <AdminNavItem key={href} href={href} label={label} icon={icon} exact={exact} />
+          <AdminNavItem key={href} href={href} label={label} icon={icon} exact={exact}
+            badge={href === '/admin/members' ? pendingNotifications : undefined}
+          />
         ))}
         <AdminNavItem href="/admin/messages" label="Messages" icon={Mail} badge={unreadMessages} />
 
@@ -126,7 +130,7 @@ function AdminNavItem({ href, label, icon: Icon, exact = false, badge }: {
   )
 }
 
-export default function AdminSidebar({ displayName, initials, unreadMessages }: Props) {
+export default function AdminSidebar({ displayName, initials, unreadMessages, pendingNotifications = 0 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const closeMobile = () => setMobileOpen(false)
 
@@ -146,6 +150,7 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
           displayName={displayName}
           initials={initials}
           unreadMessages={unreadMessages}
+          pendingNotifications={pendingNotifications}
           onNavClick={closeMobile}
         />
       </aside>
@@ -179,6 +184,32 @@ export default function AdminSidebar({ displayName, initials, unreadMessages }: 
               <SiteLogoClient
                 subLabel="Admin Panel"
                 nameColor="text-white"
+                subColor="text-slate-400"
+                invert
+              />
+              <button
+                onClick={closeMobile}
+                aria-label="Close menu"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex flex-col flex-1 overflow-y-auto">
+              <SidebarContent
+                displayName={displayName}
+                initials={initials}
+                unreadMessages={unreadMessages}
+                pendingNotifications={pendingNotifications}
+                onNavClick={closeMobile}
+              />
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
+  )
+}
                 subColor="text-slate-400"
                 invert
               />

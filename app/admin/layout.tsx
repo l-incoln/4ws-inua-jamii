@@ -31,12 +31,19 @@ export default async function AdminLayout({
     .select('id', { count: 'exact', head: true })
     .eq('is_read', false)
 
+  // Unread admin notifications (pending approvals, new donations, etc.)
+  const { count: unreadNotifications } = await supabase
+    .from('admin_notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_read', false)
+
   return (
     <div className="min-h-screen bg-slate-950 flex">
       <AdminSidebar
         displayName={displayName}
         initials={initials}
         unreadMessages={unreadMessages ?? 0}
+        pendingNotifications={unreadNotifications ?? 0}
       />
 
       {/* Main content */}

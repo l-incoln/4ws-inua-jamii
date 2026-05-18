@@ -35,6 +35,7 @@ interface Props {
   email: string
   initials: string
   unread: number
+  isPending?: boolean
 }
 
 function NavItem({ href, label, icon: Icon, exact = false, badge }: {
@@ -82,7 +83,7 @@ function MobileNavItem({ href, label, icon: Icon, exact = false }: {
   )
 }
 
-export default function DashboardSidebar({ displayName, email, initials, unread }: Props) {
+export default function DashboardSidebar({ displayName, email, initials, unread, isPending = false }: Props) {
   return (
     <>
       {/* Desktop Sidebar */}
@@ -107,9 +108,18 @@ export default function DashboardSidebar({ displayName, email, initials, unread 
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ href, label, icon, exact }) => (
-            <NavItem key={href} href={href} label={label} icon={icon} exact={exact} />
-          ))}
+          {navItems.map(({ href, label, icon: Icon, exact }) => {
+            // Restrict sensitive pages for pending members
+            const restricted = isPending && ['/dashboard/membership-card', '/dashboard/achievements', '/dashboard/tasks'].includes(href)
+            if (restricted) return (
+              <span key={href} title="Available after membership is approved" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 cursor-not-allowed select-none">
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="flex-1">{label}</span>
+                <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-semibold">Pending</span>
+              </span>
+            )
+            return <NavItem key={href} href={href} label={label} icon={Icon} exact={exact} />
+          })}
           <NavItem href="/dashboard/notifications" label="Notifications" icon={Bell} exact badge={unread} />
         </nav>
 

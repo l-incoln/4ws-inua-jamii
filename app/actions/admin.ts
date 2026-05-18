@@ -23,10 +23,30 @@ async function requireAdmin() {
   return { supabase, user, error: null }
 }
 
+// ─── Activity Logging ──────────────────────────────────────────────────────────
+async function logActivity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  action: string,
+  entityType: string,
+  entityId?: string,
+  metadata?: Record<string, unknown>,
+) {
+  try {
+    await supabase.from('activity_logs').insert({
+      user_id: userId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId ?? null,
+      metadata: metadata ?? null,
+    })
+  } catch { /* non-fatal */ }
+}
+
 // ─── Member Management ─────────────────────────────────────────────────────────
 export async function updateMemberStatus(profileId: string, status: 'approved' | 'rejected' | 'pending') {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
 
   const { error: dbError } = await supabase
     .from('profiles')
@@ -34,13 +54,14 @@ export async function updateMemberStatus(profileId: string, status: 'approved' |
     .eq('id', profileId)
 
   if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, status === 'approved' ? 'approve' : status === 'rejected' ? 'reject' : 'update', 'profiles', profileId, { new_status: status })
   revalidatePath('/admin/members')
   return { success: true }
 }
 
 export async function updateMemberTier(profileId: string, tier: 'basic' | 'active' | 'champion') {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
 
   const { error: dbError } = await supabase
     .from('profiles')
@@ -48,6 +69,7 @@ export async function updateMemberTier(profileId: string, tier: 'basic' | 'activ
     .eq('id', profileId)
 
   if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'update', 'profiles', profileId, { field: 'tier', new_value: tier })
   revalidatePath('/admin/members')
   return { success: true }
 }
@@ -312,15 +334,16 @@ export async function deleteEvent(eventId: string) {
 
 // ─── Site Settings ─────────────────────────────────────────────────────────────
 export async function saveSiteSettings(formData: FormData) {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
 
   const keys = [
     // Site Info
     'site_name', 'tagline', 'about_mission', 'about_vision', 'logo_url', 'logo_size',
-    // Contact & Socials
+    // Contact & Socials (including new TikTok + WhatsApp)
     'contact_email', 'contact_phone', 'address',
     'facebook_url', 'twitter_url', 'instagram_url', 'youtube_url', 'linkedin_url',
+    'tiktok_url', 'whatsapp_url',
     // Payments
     'mpesa_paybill', 'mpesa_account', 'bank_name', 'bank_account',
     'donation_currency', 'min_donation_amount', 'mpesa_shortcode_type',
@@ -328,16 +351,19 @@ export async function saveSiteSettings(formData: FormData) {
     // SEO & Metadata
     'meta_description', 'og_image_url',
     'google_analytics_id', 'google_tag_manager_id', 'facebook_pixel_id',
-    // Membership
+    // Membership (including duration years)
     'membership_fee_basic', 'membership_fee_active', 'membership_fee_champion',
     'membership_currency', 'new_signups_enabled', 'auto_approve_members',
+    'membership_duration_basic', 'membership_duration_active', 'membership_duration_champion',
     // Email / Notifications
     'from_email', 'from_name', 'admin_notify_email',
     'welcome_email_enabled', 'welcome_email_body',
-    // Homepage
-    'show_events_preview', 'show_impact_stats',
+    'admin_notify_new_member', 'admin_notify_new_donation',
+    // Homepage (including partners)
+    'show_events_preview', 'show_impact_stats', 'show_partners_section',
     'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
     'hero_image_url', 'hero_badge_text',
+    'partners_section_title',
     // Events & RSVP
     'rsvp_enabled', 'rsvp_require_login', 'event_reminder_days',
     // Legal / Footer
@@ -345,6 +371,13 @@ export async function saveSiteSettings(formData: FormData) {
     // About Page
     'about_hero_subtitle', 'about_story_p1', 'about_story_p2', 'about_story_p3',
     'about_established', 'about_city',
+    // Core Values (6 editable pairs)
+    'core_value_1_title', 'core_value_1_body',
+    'core_value_2_title', 'core_value_2_body',
+    'core_value_3_title', 'core_value_3_body',
+    'core_value_4_title', 'core_value_4_body',
+    'core_value_5_title', 'core_value_5_body',
+    'core_value_6_title', 'core_value_6_body',
     // Donate Page
     'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
     // Volunteer section photos
@@ -366,6 +399,12 @@ export async function saveSiteSettings(formData: FormData) {
     .upsert(upserts, { onConflict: 'key' })
 
   if (dbError) return { error: dbError.message }
+
+  // Log admin settings change
+  await logActivity(supabase, user.id, 'settings', 'site_settings', undefined, {
+    keys_updated: keys.length,
+    timestamp: new Date().toISOString(),
+  })
 
   // Revalidate all public-facing pages so changes appear immediately on every device
   revalidatePath('/', 'layout')
@@ -954,6 +993,13 @@ export async function issueMembership(
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }
 
+  // Check payment confirmation before approving
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('payment_confirmed, full_name')
+    .eq('id', userId)
+    .single()
+
   // Deactivate any current active terms
   await supabase
     .from('membership_terms')
@@ -964,6 +1010,7 @@ export async function issueMembership(
   const now = new Date()
   const validUntil = new Date(now)
   validUntil.setMonth(validUntil.getMonth() + months)
+  const durationYears = Math.max(1, Math.round(months / 12))
 
   const { data: term, error: termErr } = await supabase
     .from('membership_terms')
@@ -975,6 +1022,8 @@ export async function issueMembership(
       valid_from: now.toISOString().split('T')[0],
       valid_until: validUntil.toISOString().split('T')[0],
       is_active: true,
+      duration_years: durationYears,
+      approved_by: user.id,
     })
     .select('id')
     .single()
@@ -991,6 +1040,15 @@ export async function issueMembership(
     .from('profiles')
     .update({ tier, membership_status: 'approved' })
     .eq('id', userId)
+
+  await logActivity(supabase, user.id, 'issue', 'membership_terms', term.id, {
+    user_id: userId,
+    member_name: profile?.full_name,
+    tier,
+    duration_months: months,
+    duration_years: durationYears,
+    valid_until: validUntil.toISOString().split('T')[0],
+  })
 
   revalidatePath('/admin/members')
   revalidatePath('/dashboard/membership-card')
@@ -1254,5 +1312,139 @@ export async function toggleFaqStatus(faqId: string, isActive: boolean) {
   if (dbError) return { error: dbError.message }
   revalidatePath('/faq')
   revalidatePath('/admin/faq')
+  return { success: true }
+}
+
+// ─── Partners / Sponsors CRUD ─────────────────────────────────────────────────
+export async function savePartner(formData: FormData, partnerId?: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const name       = (formData.get('name') as string)?.trim()
+  const logo_url   = (formData.get('logo_url') as string)?.trim() || null
+  const website_url = (formData.get('website_url') as string)?.trim() || null
+  const sort_order = parseInt(formData.get('sort_order') as string) || 0
+  const is_active  = formData.get('is_active') !== 'false'
+
+  if (!name) return { error: 'Partner name is required' }
+
+  const payload = { name, logo_url, website_url, sort_order, is_active }
+
+  if (partnerId) {
+    const { error: dbError } = await supabase
+      .from('partners')
+      .update(payload)
+      .eq('id', partnerId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('partners')
+      .insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  await logActivity(supabase, user.id, partnerId ? 'update' : 'create', 'partners', partnerId, { name })
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deletePartner(partnerId: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from('partners')
+    .delete()
+    .eq('id', partnerId)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'delete', 'partners', partnerId)
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function reorderPartners(orderedIds: string[]) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from('partners').update({ sort_order: index }).eq('id', id)
+    )
+  )
+
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  return { success: true }
+}
+
+// ─── Archive / Unarchive ──────────────────────────────────────────────────────
+type ArchivableTable = 'blog_posts' | 'announcements' | 'events' | 'programs' | 'documents'
+
+export async function archiveItem(id: string, table: ArchivableTable) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from(table)
+    .update({ is_archived: true } as never)
+    .eq('id', id)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'archive', table, id)
+
+  revalidatePath('/admin')
+  revalidatePath(`/admin/${table === 'blog_posts' ? 'content' : table}`)
+  return { success: true }
+}
+
+export async function unarchiveItem(id: string, table: ArchivableTable) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from(table)
+    .update({ is_archived: false } as never)
+    .eq('id', id)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'unarchive', table, id)
+
+  revalidatePath('/admin')
+  revalidatePath(`/admin/${table === 'blog_posts' ? 'content' : table}`)
+  return { success: true }
+}
+
+// ─── Payment Confirmation ─────────────────────────────────────────────────────
+export async function confirmMemberPayment(profileId: string, paymentRef: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  if (!paymentRef.trim()) return { error: 'Payment reference is required' }
+
+  const { error: dbError } = await supabase
+    .from('profiles')
+    .update({ payment_confirmed: true, payment_reference: paymentRef.trim() })
+    .eq('id', profileId)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'payment_confirmed', 'profiles', profileId, { payment_ref: paymentRef.trim() })
+  revalidatePath('/admin/members')
+  return { success: true }
+}
+
+// ─── Mark Admin Notifications Read ───────────────────────────────────────────
+export async function markAdminNotificationsRead() {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  await supabase
+    .from('admin_notifications')
+    .update({ is_read: true })
+    .eq('is_read', false)
+
+  revalidatePath('/admin')
   return { success: true }
 }

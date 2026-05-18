@@ -3,6 +3,25 @@ import Image from 'next/image'
 import { Leaf, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Linkedin } from 'lucide-react'
 import { createPublicClient } from '@/lib/supabase/public-client'
 
+// TikTok SVG icon (not in Lucide)
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.73a8.21 8.21 0 0 0 4.8 1.53V6.82a4.85 4.85 0 0 1-1.03-.13z" />
+    </svg>
+  )
+}
+
+// WhatsApp SVG icon
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.113.553 4.1 1.523 5.829L.046 24l6.296-1.648A11.934 11.934 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.803 9.803 0 0 1-5.003-1.371l-.359-.213-3.722.974.997-3.634-.233-.372A9.782 9.782 0 0 1 2.182 12C2.182 6.56 6.56 2.182 12 2.182c5.441 0 9.818 4.377 9.818 9.818 0 5.44-4.377 9.818-9.818 9.818z" />
+    </svg>
+  )
+}
+
 const footerLinks = {
   Foundation: [
     { label: 'About Us', href: '/about' },
@@ -32,10 +51,12 @@ const footerLinks = {
 
 const SOCIAL_KEYS = [
   { key: 'facebook_url',  label: 'Facebook',  Icon: Facebook  },
-  { key: 'twitter_url',   label: 'Twitter',   Icon: Twitter   },
+  { key: 'twitter_url',   label: 'X / Twitter', Icon: Twitter   },
   { key: 'instagram_url', label: 'Instagram', Icon: Instagram },
   { key: 'youtube_url',   label: 'YouTube',   Icon: Youtube   },
   { key: 'linkedin_url',  label: 'LinkedIn',  Icon: Linkedin  },
+  { key: 'tiktok_url',    label: 'TikTok',    Icon: TikTokIcon },
+  { key: 'whatsapp_url',  label: 'WhatsApp',  Icon: WhatsAppIcon },
 ]
 
 export default async function Footer() {
@@ -47,6 +68,7 @@ export default async function Footer() {
       'logo_url', 'site_name', 'footer_tagline',
       'contact_email', 'contact_phone', 'address',
       'facebook_url', 'twitter_url', 'instagram_url', 'youtube_url', 'linkedin_url',
+      'tiktok_url', 'whatsapp_url',
       'logo_size',
     ])
 

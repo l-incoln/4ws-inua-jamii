@@ -11,9 +11,11 @@ import { TIER_LABELS, TIER_COLORS, type MembershipTier } from '@/types'
 type Member = {
   id: string
   full_name: string | null
+  email?: string | null
   phone: string | null
   tier: string
   membership_status: string
+  payment_confirmed?: boolean
   created_at: string
   rsvp_count: number
 }
@@ -38,10 +40,13 @@ export default function MembersTable({ members }: { members: Member[] }) {
   // Issue membership modal
   const [issuingMember, setIssuingMember] = useState<Member | null>(null)
   const [issueTier, setIssueTier] = useState<'basic' | 'active' | 'champion'>('basic')
-  const [issueMonths, setIssueMonths] = useState(12)
+  const [issueYears, setIssueYears] = useState(1)
   const [issueNotes, setIssueNotes] = useState('')
   const [issuing, setIssuing] = useState(false)
   const [issueError, setIssueError] = useState('')
+  const [markPaymentId, setMarkPaymentId] = useState<string | null>(null)
+  const [paymentRef, setPaymentRef] = useState('')
+  const [paymentSaving, setPaymentSaving] = useState(false)
 
   // Add member modal
   const [showAddMember, setShowAddMember] = useState(false)
@@ -104,11 +109,21 @@ export default function MembersTable({ members }: { members: Member[] }) {
     if (!issuingMember) return
     setIssuing(true)
     setIssueError('')
-    const result = await issueMembership(issuingMember.id, issueTier, issueMonths, issueNotes || undefined)
+    const result = await issueMembership(issuingMember.id, issueTier, issueYears * 12, issueNotes || undefined)
     setIssuing(false)
     if (result?.error) { setIssueError(result.error as string); return }
     setIssuingMember(null)
     setIssueNotes('')
+  }
+
+  async function handleMarkPayment(memberId: string, reference: string) {
+    setPaymentSaving(true)
+    const fd = new FormData()
+    fd.set('payment_reference', reference)
+    await updateMemberStatus(memberId, 'pending') // keep pending until admin approves
+    setPaymentSaving(false)
+    setMarkPaymentId(null)
+    setPaymentRef('')
   }
 
   async function handleExport(exportSelected = false) {
@@ -253,7 +268,7 @@ export default function MembersTable({ members }: { members: Member[] }) {
                   <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-primary-600" />
                 </th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Member</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Phone</th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Phone</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Joined</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tier</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Events</th>
@@ -280,10 +295,13 @@ export default function MembersTable({ members }: { members: Member[] }) {
                         <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
                           {initials}
                         </div>
-                        <span className="font-semibold text-slate-800">{name}</span>
+                        <div>
+                          <p className="font-semibold text-slate-800">{name}</p>
+                          {member.email && <p className="text-xs text-slate-400">{member.email}</p>}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-slate-500 text-sm">{member.phone || '—'}</td>
+                    <td className="px-5 py-4 text-slate-500 text-sm hidden md:table-cell">{member.phone || '—'}</td>
                     <td className="px-5 py-4 text-slate-500 text-sm">
                       {new Date(member.created_at).toLocaleDateString('en-KE', {
                         month: 'short', day: 'numeric', year: 'numeric',
@@ -364,7 +382,9 @@ export default function MembersTable({ members }: { members: Member[] }) {
                           </>
                         )}
                         <a
-                          href={`/admin/members/${member.id}`}
+                          href={`/members/${member.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="p-1.5 rounded-lg text-slate-400 hover:bg-gray-100 transition-colors"
                           title="View profile"
                         >
@@ -422,14 +442,14 @@ export default function MembersTable({ members }: { members: Member[] }) {
                 </select>
               </div>
               <div>
-                <label className="label">Duration</label>
-                <select value={issueMonths} onChange={(e) => setIssueMonths(Number(e.target.value))} className="input">
-                  <option value={1}>1 month</option>
-                  <option value={3}>3 months</option>
-                  <option value={6}>6 months</option>
-                  <option value={12}>1 year</option>
-                  <option value={24}>2 years</option>
+                <label className="label">Duration (Years)</label>
+                <select value={issueYears} onChange={(e) => setIssueYears(Number(e.target.value))} className="input">
+                  <option value={1}>1 year</option>
+                  <option value={2}>2 years</option>
+                  <option value={3}>3 years</option>
+                  <option value={5}>5 years</option>
                 </select>
+                <p className="text-xs text-slate-400 mt-1">Membership is year-based. 1 year = 12 months.</p>
               </div>
               <div>
                 <label className="label">Notes (optional)</label>

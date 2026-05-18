@@ -12,10 +12,20 @@ export default async function AdminMembersPage() {
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name, phone, tier, membership_status, role, avatar_url, created_at')
+    .select('id, full_name, phone, tier, membership_status, role, avatar_url, created_at, payment_confirmed')
     .order('created_at', { ascending: false })
 
   const members = profiles ?? []
+
+  // Fetch auth users for email data
+  // We get emails from auth.users via admin client — fall back to profile data
+  let emailMap: Record<string, string> = {}
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin-client')
+    const admin = createAdminClient()
+    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+    for (const u of users ?? []) emailMap[u.id] = u.email ?? ''
+  } catch { /* admin client optional */ }
 
   // Fetch RSVP counts per member
   let rsvpCounts: Record<string, number> = {}
@@ -59,7 +69,9 @@ export default async function AdminMembersPage() {
 
   const membersWithCounts = members.map((m) => ({
     ...m,
+    email: emailMap[m.id] || null,
     membership_status: (m as Record<string, string>).membership_status ?? 'pending',
+    payment_confirmed: (m as any).payment_confirmed ?? false,
     rsvp_count: rsvpCounts[m.id] || 0,
   }))
 
