@@ -2,7 +2,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
-import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2, HandHeart, Leaf, BookOpen, Stethoscope, ClipboardList, Megaphone } from 'lucide-react'
+import PartnersSection from '@/components/home/PartnersSection'
+import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2, HandHeart, Leaf, BookOpen, Stethoscope, ClipboardList, Megaphone, Zap, Shield, Globe } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
 
@@ -13,12 +14,8 @@ export const metadata: Metadata = {
   description: 'Learn about the mission, vision, and leadership of 4W\'S Inua Jamii Foundation.',
 }
 
-const values = [
-  { icon: Heart, title: 'Compassion', description: 'We lead with empathy, listening to the needs of every community we serve.' },
-  { icon: Users, title: 'Unity', description: 'Stronger together. We believe collective action creates lasting change.' },
-  { icon: CheckCircle2, title: 'Integrity', description: 'Transparency and accountability in all our operations and partnerships.' },
-  { icon: Target, title: 'Impact', description: 'Every initiative is measured by the tangible difference it makes in lives.' },
-]
+// Icon set for CMS core values (positional fallback)
+const VALUE_ICONS = [Heart, Shield, Zap, Globe, Target, Leaf]
 
 const defaultLeadership = [
   {
@@ -49,7 +46,7 @@ const defaultLeadership = [
 
 export default async function AboutPage() {
   const supabase = createPublicClient()
-  const [{ data: leadershipData }, { data: settingsRows }, { data: volunteerGallery }] = await Promise.all([
+  const [{ data: leadershipData }, { data: settingsRows }, { data: volunteerGallery }, { data: partnersData }] = await Promise.all([
     supabase
       .from('leadership_team')
       .select('id, name, role, bio, image_url, sort_order')
@@ -66,6 +63,13 @@ export default async function AboutPage() {
         'about_established', 'about_city',
         'volunteer_photo_1', 'volunteer_photo_2', 'volunteer_photo_3',
         'about_story_image',
+        'core_value_1_title', 'core_value_1_body',
+        'core_value_2_title', 'core_value_2_body',
+        'core_value_3_title', 'core_value_3_body',
+        'core_value_4_title', 'core_value_4_body',
+        'core_value_5_title', 'core_value_5_body',
+        'core_value_6_title', 'core_value_6_body',
+        'show_partners_section', 'partners_section_title',
       ]),
     supabase
       .from('gallery_items')
@@ -73,6 +77,11 @@ export default async function AboutPage() {
       .not('image_url', 'is', null)
       .order('created_at', { ascending: false })
       .limit(3),
+    supabase
+      .from('partners')
+      .select('id, name, logo_url, website_url')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
   ])
 
   const leadership = (leadershipData && leadershipData.length > 0) ? leadershipData : defaultLeadership
@@ -96,6 +105,24 @@ export default async function AboutPage() {
   const storyP3           = sv.about_story_p3     || 'Today, we operate with a professional team, transparent governance, and a passionate community of members and donors who believe in our mission.'
   const aboutEstablished  = sv.about_established  || 'Est. 2018'
   const aboutCity         = sv.about_city         || 'Nairobi, Kenya'
+
+  // Build core values from CMS (fall back to defaults if not set)
+  const defaultCoreValues = [
+    { title: 'Community First',  description: 'Every decision we make is guided by what is best for our communities.' },
+    { title: 'Integrity',        description: 'We operate with transparency, honesty, and accountability in all we do.' },
+    { title: 'Empowerment',      description: 'We believe in building capacity so communities can sustain themselves.' },
+    { title: 'Collaboration',    description: 'We achieve more together through partnerships and shared purpose.' },
+    { title: 'Excellence',       description: 'We hold ourselves to high standards in program delivery and governance.' },
+    { title: 'Sustainability',   description: 'Our work is designed for lasting impact, not just short-term relief.' },
+  ]
+  const coreValues = [1, 2, 3, 4, 5, 6].map((n, i) => ({
+    icon: VALUE_ICONS[i],
+    title:       sv[`core_value_${n}_title`] || defaultCoreValues[i].title,
+    description: sv[`core_value_${n}_body`]  || defaultCoreValues[i].description,
+  })).filter((v) => v.title)
+
+  const showPartners     = sv.show_partners_section !== 'false'
+  const partnersList     = (showPartners ? partnersData : null) ?? []
 
   return (
     <>
@@ -187,9 +214,9 @@ export default async function AboutPage() {
               </span>
               <h2 className="section-title">Our Core Values</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {values.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="card p-6 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {coreValues.map(({ icon: Icon, title, description }) => (
+                <div key={title} className="card p-6 text-center hover:shadow-md transition-shadow">
                   <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Icon className="w-6 h-6 text-primary-600" />
                   </div>
@@ -317,6 +344,15 @@ export default async function AboutPage() {
             </div>
           </div>
         </section>
+        {/* Partners & Sponsors */}
+        {partnersList.length > 0 && (
+          <section id="partners">
+            <PartnersSection
+              partners={partnersList as { id: string; name: string; logo_url: string | null; website_url: string | null }[]}
+              title={sv.partners_section_title || 'Our Partners & Sponsors'}
+            />
+          </section>
+        )}
       </main>
       <Footer />
     </>

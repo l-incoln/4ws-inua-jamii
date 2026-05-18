@@ -203,7 +203,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Ensure activity_logs table exists (should from phase 3/4)
 CREATE TABLE IF NOT EXISTS public.activity_logs (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id     UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  actor_id    UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   action      TEXT NOT NULL,   -- insert, update, delete, login, upload, rsvp, badge, notify, settings, approve, reject, issue
   entity_type TEXT,            -- profiles, events, blog_posts, site_settings, donations, membership_terms, etc.
   entity_id   TEXT,
@@ -233,7 +233,7 @@ END $$;
 CREATE INDEX IF NOT EXISTS activity_logs_created_idx    ON public.activity_logs (created_at DESC);
 CREATE INDEX IF NOT EXISTS activity_logs_action_idx     ON public.activity_logs (action, created_at DESC);
 CREATE INDEX IF NOT EXISTS activity_logs_entity_idx     ON public.activity_logs (entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS activity_logs_user_idx       ON public.activity_logs (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS activity_logs_user_idx       ON public.activity_logs (actor_id, created_at DESC);
 
 
 -- ============================================================
