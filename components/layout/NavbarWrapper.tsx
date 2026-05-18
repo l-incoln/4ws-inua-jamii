@@ -18,7 +18,7 @@ export default async function Navbar() {
     <NavbarClient
       initialLogoUrl={map.logo_url || ''}
       initialSiteName={map.site_name || ''}
-      initialLogoSize={map.logo_size ? parseInt(map.logo_size) || 36 : 36}
+      initialLogoSize={map.logo_size ? parseInt(map.logo_size) || 52 : 52}
     />
   )
 }

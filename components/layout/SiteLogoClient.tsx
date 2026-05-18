@@ -34,7 +34,7 @@ export default function SiteLogoClient({
 }: Props) {
   const [logoUrl,  setLogoUrl]  = useState('')
   const [siteName, setSiteName] = useState('')
-  const [logoSize, setLogoSize] = useState(40)
+  const [logoSize, setLogoSize] = useState(52)
 
   useEffect(() => {
     const supabase = createClient()
@@ -46,7 +46,7 @@ export default function SiteLogoClient({
         const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value ?? '']))
         if (map.logo_url)  setLogoUrl(map.logo_url)
         if (map.site_name) setSiteName(map.site_name)
-        if (map.logo_size) setLogoSize(parseInt(map.logo_size) || 40)
+        if (map.logo_size) setLogoSize(parseInt(map.logo_size) || 52)
       })
   }, [])
 
@@ -66,10 +66,10 @@ export default function SiteLogoClient({
         <Image
           src={logoUrl}
           alt={displayName}
-          width={logoSize}
+          width={logoSize * 6}
           height={logoSize}
-          className={`rounded-xl object-contain transition-[filter] duration-200${invert ? ' brightness-0 invert' : ''}`}
-          style={{ width: logoSize, height: logoSize }}
+          className={`object-contain transition-[filter] duration-200${invert ? ' brightness-0 invert' : ''}`}
+          style={{ height: logoSize, width: 'auto', maxWidth: logoSize * 6 }}
           unoptimized
         />
       ) : (

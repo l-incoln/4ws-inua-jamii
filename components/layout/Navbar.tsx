@@ -32,7 +32,7 @@ const navLinks = [
 export default function Navbar({
   initialLogoUrl = '',
   initialSiteName = '',
-  initialLogoSize = 36,
+  initialLogoSize = 52,
 }: {
   initialLogoUrl?: string
   initialSiteName?: string
@@ -115,10 +115,10 @@ export default function Navbar({
               <Image
                 src={logoUrl}
                 alt={siteName || "Site Logo"}
-                width={logoSize}
+                width={logoSize * 6}
                 height={logoSize}
-                className={`rounded-xl object-contain group-hover:scale-110 transition-transform${!scrolled && isHomePage ? ' brightness-0 invert' : ''}`}
-                style={{ width: logoSize, height: logoSize }}
+                className={`object-contain group-hover:scale-105 transition-transform${!scrolled && isHomePage ? ' brightness-0 invert' : ''}`}
+                style={{ height: logoSize, width: 'auto', maxWidth: logoSize * 6 }}
                 unoptimized
               />
             ) : (

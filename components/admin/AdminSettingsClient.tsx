@@ -390,15 +390,15 @@ export default function AdminSettingsClient({
                   type="range"
                   name="logo_size"
                   min="24"
-                  max="80"
+                  max="120"
                   step="4"
-                  value={s.logo_size ?? '36'}
+                  value={s.logo_size ?? '52'}
                   onChange={(e) => set('logo_size', e.target.value)}
                   className="flex-1 accent-primary-600"
                 />
-                <span className="text-sm font-semibold text-slate-600 w-14 text-right">{s.logo_size ?? '36'}px</span>
+                <span className="text-sm font-semibold text-slate-600 w-14 text-right">{s.logo_size ?? '52'}px</span>
               </div>
-              <p className="text-xs text-slate-400">Controls logo size in the navbar and footer (24–80 px). Default is 36 px.</p>
+              <p className="text-xs text-slate-400">Controls logo <strong>height</strong> in the navbar and footer (24–120 px). Width scales automatically to preserve the logo&apos;s aspect ratio. Default is 52 px.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
