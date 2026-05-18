@@ -38,6 +38,7 @@ export default function SiteLogoClient({
   const [logoUrl,  setLogoUrl]  = useState('')
   const [siteName, setSiteName] = useState('')
   const [logoSize, setLogoSize] = useState(maxSize ?? 52)
+  const [ready,    setReady]    = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -50,6 +51,7 @@ export default function SiteLogoClient({
         if (map.logo_url)  setLogoUrl(map.logo_url)
         if (map.site_name) setSiteName(map.site_name)
         if (map.logo_size) setLogoSize(maxSize ? Math.min(parseInt(map.logo_size) || 52, maxSize) : (parseInt(map.logo_size) || 52))
+        setReady(true)
       })
   }, [])
 
@@ -75,7 +77,8 @@ export default function SiteLogoClient({
           style={{ height: logoSize, width: 'auto', maxWidth: logoSize * 6 }}
           unoptimized
         />
-      ) : (
+      ) : ready ? (
+        // DB fetch complete but no logo configured — show icon fallback
         <div
           className="rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
           style={{
@@ -86,6 +89,9 @@ export default function SiteLogoClient({
         >
           <Leaf className="w-5 h-5 text-white" />
         </div>
+      ) : (
+        // Still fetching — transparent placeholder; prevents hardcoded logo flash
+        <div style={{ width: logoSize, height: logoSize, flexShrink: 0 }} />
       )}
 
       <div className={centered ? 'text-center' : ''}>

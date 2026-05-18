@@ -79,7 +79,7 @@ export default function Navbar({
         const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value ?? '']))
         if (map.logo_url) setLogoUrl(map.logo_url)
         if (map.site_name) setSiteName(map.site_name)
-        if (map.logo_size) setLogoSize(parseInt(map.logo_size) || 36)
+        if (map.logo_size) setLogoSize(parseInt(map.logo_size) || 52)
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
