@@ -42,6 +42,22 @@ type Partner = {
   is_active: boolean
 }
 
+type AwarenessDay = {
+  id: string
+  name: string
+  description: string | null
+  month: number | null
+  day: number | null
+  specific_date: string | null
+  category: string
+  priority: string
+  icon_emoji: string | null
+  banner_message: string | null
+  link_url: string | null
+  link_label: string | null
+  is_active: boolean
+}
+
 type Toast = { type: 'success' | 'error'; msg: string }
 
 const tabs = [
@@ -72,6 +88,7 @@ export default function AdminSettingsClient({
   galleryItems,
   mediaItems,
   partners,
+  awarenessInitial,
   saveSiteSettings,
   saveImpactMetric,
   uploadSiteImage,
@@ -79,6 +96,8 @@ export default function AdminSettingsClient({
   deleteLeadershipMember,
   savePartner,
   deletePartner,
+  saveAwarenessDay,
+  deleteAwarenessDay,
 }: {
   settings: Record<string, string>
   metrics: Metric[]
@@ -86,6 +105,7 @@ export default function AdminSettingsClient({
   galleryItems: GalleryItem[]
   mediaItems: GalleryItem[]
   partners: Partner[]
+  awarenessInitial: AwarenessDay[]
   saveSiteSettings: (fd: FormData) => Promise<{ error?: unknown; success?: boolean }>
   saveImpactMetric: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => Promise<{ error?: unknown; url?: string }>
@@ -93,6 +113,8 @@ export default function AdminSettingsClient({
   deleteLeadershipMember: (id: string) => Promise<{ error?: unknown; success?: boolean }>
   savePartner: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   deletePartner: (id: string) => Promise<{ error?: unknown; success?: boolean }>
+  saveAwarenessDay: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
+  deleteAwarenessDay: (id: string) => Promise<{ error?: unknown; success?: boolean }>
 }) {
   const [tab, setTab]      = useState<Tab>('Site Info')
   const [isPending, start] = useTransition()
@@ -139,6 +161,16 @@ export default function AdminSettingsClient({
   const [partnerForm, setPartnerForm] = useState({ name: '', logo_url: '', website_url: '', sort_order: '0', is_active: 'true' })
   const [partnerSaving, setPartnerSaving] = useState(false)
   const [partnerDeleteId, setPartnerDeleteId] = useState<string | null>(null)
+
+  // Awareness days state
+  const blankAwareness = { name: '', description: '', date_type: 'annual', month: '', day: '', specific_date: '', category: 'international', priority: 'medium', icon_emoji: '📅', banner_message: '', link_url: '', link_label: '', is_active: 'true' }
+  const [awarenessList, setAwarenessList] = useState<AwarenessDay[]>(awarenessInitial)
+  const [showAwarenessForm, setShowAwarenessForm] = useState(false)
+  const [editAwarenessId, setEditAwarenessId] = useState<string | null>(null)
+  const [awarenessForm, setAwarenessForm] = useState(blankAwareness)
+  const [awarenessSaving, setAwarenessSaving] = useState(false)
+  const [awarenessDeleteId, setAwarenessDeleteId] = useState<string | null>(null)
+  const [awarenessFilter, setAwarenessFilter] = useState<string>('all')
 
   const handleImageUpload = async (
     file: File,
@@ -800,7 +832,7 @@ export default function AdminSettingsClient({
                   <li><strong>Member dashboard greeting</strong> — personalised card acknowledging today&apos;s day and upcoming observances within 7 days.</li>
                   <li><strong>Admin overview widget</strong> — scrollable list of the next 30 days&apos; awareness days with priority badges.</li>
                 </ul>
-                <p className="text-xs text-slate-400 pt-1">To add or edit individual awareness days, run an SQL migration or manage the <code className="bg-slate-100 px-1 rounded">awareness_days</code> table directly in Supabase.</p>
+                <p className="text-xs text-slate-400 pt-1">Use the <strong>Awareness Days</strong> manager below to add, edit, or deactivate individual days.</p>
               </div>
             </Section>
             <SaveBar isPending={isPending} />
@@ -1311,6 +1343,297 @@ export default function AdminSettingsClient({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Awareness Days manager (outside shared form) ── */}
+      {tab === 'Awareness Calendar' && (
+        <div className="space-y-4 mt-4">
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-primary-600" />
+              <h2 className="font-semibold text-slate-900">Awareness Days</h2>
+              <span className="text-xs text-slate-400">({awarenessList.length} total)</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                className="input text-xs py-1.5 h-8"
+                value={awarenessFilter}
+                onChange={(e) => setAwarenessFilter(e.target.value)}
+              >
+                <option value="all">All categories</option>
+                <option value="kenyan_national">🇰🇪 Kenyan National</option>
+                <option value="international">🌐 International</option>
+                <option value="ngo_environmental">🌿 Environmental</option>
+                <option value="community_volunteer">🤝 Community</option>
+                <option value="education_youth">📚 Education & Youth</option>
+                <option value="foundation">🏛️ Foundation</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditAwarenessId(null)
+                  setAwarenessForm(blankAwareness)
+                  setShowAwarenessForm(true)
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+                className="btn-primary text-xs flex items-center gap-1.5 h-8 px-3"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Day
+              </button>
+            </div>
+          </div>
+
+          {/* Add / Edit Form */}
+          {showAwarenessForm && (
+            <div className="card p-5 border-2 border-primary-200 bg-primary-50/30 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm text-slate-900">{editAwarenessId ? 'Edit Awareness Day' : 'New Awareness Day'}</h3>
+                <button type="button" onClick={() => setShowAwarenessForm(false)} className="p-1 rounded hover:bg-gray-200 text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Name */}
+                <div className="sm:col-span-2">
+                  <label className="label text-xs">Name *</label>
+                  <input className="input text-sm" value={awarenessForm.name} onChange={(e) => setAwarenessForm((p) => ({ ...p, name: e.target.value }))} placeholder="World Environment Day" />
+                </div>
+
+                {/* Description */}
+                <div className="sm:col-span-2">
+                  <label className="label text-xs">Description</label>
+                  <textarea rows={2} className="input text-sm resize-none" value={awarenessForm.description} onChange={(e) => setAwarenessForm((p) => ({ ...p, description: e.target.value }))} placeholder="Brief description…" />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="label text-xs">Category</label>
+                  <select className="input text-sm" value={awarenessForm.category} onChange={(e) => setAwarenessForm((p) => ({ ...p, category: e.target.value }))}>
+                    <option value="kenyan_national">🇰🇪 Kenyan National</option>
+                    <option value="international">🌐 International</option>
+                    <option value="ngo_environmental">🌿 Environmental / NGO</option>
+                    <option value="community_volunteer">🤝 Community / Volunteer</option>
+                    <option value="education_youth">📚 Education & Youth</option>
+                    <option value="foundation">🏛️ Foundation</option>
+                  </select>
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label className="label text-xs">Priority</label>
+                  <select className="input text-sm" value={awarenessForm.priority} onChange={(e) => setAwarenessForm((p) => ({ ...p, priority: e.target.value }))}>
+                    <option value="high">High — always shown</option>
+                    <option value="medium">Medium — shown by default</option>
+                    <option value="low">Low — shown only if min priority is low</option>
+                  </select>
+                </div>
+
+                {/* Date type toggle */}
+                <div className="sm:col-span-2">
+                  <label className="label text-xs">Date Type</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAwarenessForm((p) => ({ ...p, date_type: 'annual' }))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${awarenessForm.date_type === 'annual' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-slate-600 border-slate-200 hover:border-primary-300'}`}
+                    >
+                      Annual (e.g. every June 5)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAwarenessForm((p) => ({ ...p, date_type: 'once' }))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${awarenessForm.date_type === 'once' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-slate-600 border-slate-200 hover:border-primary-300'}`}
+                    >
+                      One-time date
+                    </button>
+                  </div>
+                </div>
+
+                {awarenessForm.date_type === 'annual' ? (
+                  <>
+                    <div>
+                      <label className="label text-xs">Month (1–12)</label>
+                      <input type="number" min={1} max={12} className="input text-sm" value={awarenessForm.month} onChange={(e) => setAwarenessForm((p) => ({ ...p, month: e.target.value }))} placeholder="6" />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Day (1–31)</label>
+                      <input type="number" min={1} max={31} className="input text-sm" value={awarenessForm.day} onChange={(e) => setAwarenessForm((p) => ({ ...p, day: e.target.value }))} placeholder="5" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="sm:col-span-2">
+                    <label className="label text-xs">Specific Date</label>
+                    <input type="date" className="input text-sm" value={awarenessForm.specific_date} onChange={(e) => setAwarenessForm((p) => ({ ...p, specific_date: e.target.value }))} />
+                  </div>
+                )}
+
+                {/* Icon emoji */}
+                <div>
+                  <label className="label text-xs">Icon Emoji</label>
+                  <input className="input text-sm" value={awarenessForm.icon_emoji} onChange={(e) => setAwarenessForm((p) => ({ ...p, icon_emoji: e.target.value }))} placeholder="🌍" maxLength={4} />
+                </div>
+
+                {/* Active toggle */}
+                <div className="flex items-center gap-2 pt-5">
+                  <input type="checkbox" id="awareness_active" checked={awarenessForm.is_active === 'true'} onChange={(e) => setAwarenessForm((p) => ({ ...p, is_active: e.target.checked ? 'true' : 'false' }))} className="w-4 h-4 accent-primary-600" />
+                  <label htmlFor="awareness_active" className="text-sm text-slate-700">Active (visible)</label>
+                </div>
+
+                {/* Banner message */}
+                <div className="sm:col-span-2">
+                  <label className="label text-xs">Banner Message</label>
+                  <input className="input text-sm" value={awarenessForm.banner_message} onChange={(e) => setAwarenessForm((p) => ({ ...p, banner_message: e.target.value }))} placeholder="Happy World Environment Day! Every action counts…" />
+                </div>
+
+                {/* CTA link */}
+                <div>
+                  <label className="label text-xs">CTA Link URL</label>
+                  <input className="input text-sm" value={awarenessForm.link_url} onChange={(e) => setAwarenessForm((p) => ({ ...p, link_url: e.target.value }))} placeholder="/programs" />
+                </div>
+                <div>
+                  <label className="label text-xs">CTA Link Label</label>
+                  <input className="input text-sm" value={awarenessForm.link_label} onChange={(e) => setAwarenessForm((p) => ({ ...p, link_label: e.target.value }))} placeholder="Learn More" />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={awarenessSaving || !awarenessForm.name}
+                  onClick={async () => {
+                    setAwarenessSaving(true)
+                    const fd = new FormData()
+                    Object.entries(awarenessForm).forEach(([k, v]) => fd.append(k, v))
+                    const result = await saveAwarenessDay(fd, editAwarenessId ?? undefined)
+                    setAwarenessSaving(false)
+                    if (result?.error) {
+                      showToast({ type: 'error', msg: result.error as string })
+                    } else {
+                      showToast({ type: 'success', msg: editAwarenessId ? 'Awareness day updated.' : 'Awareness day added.' })
+                      setShowAwarenessForm(false)
+                      const updated: AwarenessDay = {
+                        id: editAwarenessId ?? Date.now().toString(),
+                        name: awarenessForm.name,
+                        description: awarenessForm.description || null,
+                        month: awarenessForm.date_type === 'annual' ? (parseInt(awarenessForm.month) || null) : null,
+                        day: awarenessForm.date_type === 'annual' ? (parseInt(awarenessForm.day) || null) : null,
+                        specific_date: awarenessForm.date_type === 'once' ? awarenessForm.specific_date || null : null,
+                        category: awarenessForm.category,
+                        priority: awarenessForm.priority,
+                        icon_emoji: awarenessForm.icon_emoji || null,
+                        banner_message: awarenessForm.banner_message || null,
+                        link_url: awarenessForm.link_url || null,
+                        link_label: awarenessForm.link_label || null,
+                        is_active: awarenessForm.is_active === 'true',
+                      }
+                      setAwarenessList((prev) => editAwarenessId ? prev.map((d) => d.id === editAwarenessId ? updated : d) : [...prev, updated])
+                    }
+                  }}
+                  className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {awarenessSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {awarenessSaving ? 'Saving…' : 'Save Day'}
+                </button>
+                <button type="button" onClick={() => setShowAwarenessForm(false)} className="btn-secondary text-xs">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* List */}
+          <div className="card overflow-hidden">
+            {awarenessList.filter((d) => awarenessFilter === 'all' || d.category === awarenessFilter).length === 0 ? (
+              <p className="p-6 text-sm text-slate-400 text-center">
+                {awarenessFilter === 'all' ? 'No awareness days yet. Click "Add Day" to get started.' : 'No days in this category.'}
+              </p>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {awarenessList
+                  .filter((d) => awarenessFilter === 'all' || d.category === awarenessFilter)
+                  .map((d) => {
+                    const dateStr = d.specific_date
+                      ? d.specific_date
+                      : d.month && d.day
+                      ? `${String(d.month).padStart(2, '0')}/${String(d.day).padStart(2, '0')} annually`
+                      : '—'
+                    return (
+                      <div key={d.id} className={`flex items-center gap-3 px-4 py-3 ${!d.is_active ? 'opacity-50' : ''}`}>
+                        <div className="text-xl w-8 text-center flex-shrink-0">{d.icon_emoji ?? '📅'}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-slate-800 truncate">{d.name}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${d.priority === 'high' ? 'bg-rose-100 text-rose-700' : d.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {d.priority}
+                            </span>
+                            {!d.is_active && <span className="text-xs text-slate-400">(inactive)</span>}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span>{dateStr}</span>
+                            <span>·</span>
+                            <span>{d.category.replace(/_/g, ' ')}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditAwarenessId(d.id)
+                              setAwarenessForm({
+                                name: d.name,
+                                description: d.description ?? '',
+                                date_type: d.specific_date ? 'once' : 'annual',
+                                month: d.month ? String(d.month) : '',
+                                day: d.day ? String(d.day) : '',
+                                specific_date: d.specific_date ?? '',
+                                category: d.category,
+                                priority: d.priority,
+                                icon_emoji: d.icon_emoji ?? '📅',
+                                banner_message: d.banner_message ?? '',
+                                link_url: d.link_url ?? '',
+                                link_label: d.link_label ?? '',
+                                is_active: d.is_active ? 'true' : 'false',
+                              })
+                              setShowAwarenessForm(true)
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            className="p-1.5 rounded-lg bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          {awarenessDeleteId === d.id ? (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const result = await deleteAwarenessDay(d.id)
+                                if (result?.error) showToast({ type: 'error', msg: result.error as string })
+                                else {
+                                  setAwarenessList((prev) => prev.filter((x) => x.id !== d.id))
+                                  showToast({ type: 'success', msg: 'Awareness day deleted.' })
+                                }
+                                setAwarenessDeleteId(null)
+                              }}
+                              className="p-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                              title="Confirm delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setAwarenessDeleteId(d.id)}
+                              className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
           </div>
         </div>
       )}

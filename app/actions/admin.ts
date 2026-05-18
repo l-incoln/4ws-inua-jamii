@@ -1317,6 +1317,60 @@ export async function toggleFaqStatus(faqId: string, isActive: boolean) {
   return { success: true }
 }
 
+// ─── Awareness Days CRUD ─────────────────────────────────────────────────────
+export async function saveAwarenessDay(formData: FormData, dayId?: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const name           = (formData.get('name') as string)?.trim()
+  const description    = (formData.get('description') as string)?.trim() || null
+  const dateType       = formData.get('date_type') as string   // 'annual' | 'once'
+  const month          = dateType === 'annual' ? parseInt(formData.get('month') as string) || null : null
+  const day            = dateType === 'annual' ? parseInt(formData.get('day') as string)   || null : null
+  const specific_date  = dateType === 'once'   ? (formData.get('specific_date') as string)?.trim() || null : null
+  const category       = (formData.get('category') as string) || 'international'
+  const priority       = (formData.get('priority') as string) || 'medium'
+  const icon_emoji     = (formData.get('icon_emoji') as string)?.trim() || '📅'
+  const banner_message = (formData.get('banner_message') as string)?.trim() || null
+  const link_url       = (formData.get('link_url') as string)?.trim() || null
+  const link_label     = (formData.get('link_label') as string)?.trim() || null
+  const is_active      = formData.get('is_active') !== 'false'
+
+  if (!name) return { error: 'Name is required' }
+
+  const payload = { name, description, month, day, specific_date, category, priority, icon_emoji, banner_message, link_url, link_label, is_active }
+
+  if (dayId) {
+    const { error: dbError } = await supabase.from('awareness_days').update(payload).eq('id', dayId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase.from('awareness_days').insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  await logActivity(supabase, user.id, dayId ? 'update' : 'create', 'awareness_days', dayId, { name })
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  revalidatePath('/dashboard')
+  revalidatePath('/admin')
+  return { success: true }
+}
+
+export async function deleteAwarenessDay(dayId: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase.from('awareness_days').delete().eq('id', dayId)
+  if (dbError) return { error: dbError.message }
+
+  await logActivity(supabase, user.id, 'delete', 'awareness_days', dayId)
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  revalidatePath('/dashboard')
+  revalidatePath('/admin')
+  return { success: true }
+}
+
 // ─── Partners / Sponsors CRUD ─────────────────────────────────────────────────
 export async function savePartner(formData: FormData, partnerId?: string) {
   const { supabase, user, error } = await requireAdmin()
