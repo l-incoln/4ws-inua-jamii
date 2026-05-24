@@ -372,13 +372,15 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           {logoUrl ? (
-                            <img
-                              src={logoUrl}
-                              alt="4W'S Inua Jamii"
-                              crossOrigin="anonymous"
-                              className="h-7 w-auto object-contain"
-                              style={{ maxWidth: 120 }}
-                            />
+                            <div className="bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 inline-flex items-center shadow-sm">
+                              <img
+                                src={logoUrl}
+                                alt="4W'S Inua Jamii"
+                                crossOrigin="anonymous"
+                                className="h-5 w-auto object-contain"
+                                style={{ maxWidth: 108 }}
+                              />
+                            </div>
                           ) : (
                             <>
                               <div className="w-7 h-7 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0">
@@ -388,7 +390,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                             </>
                           )}
                         </div>
-                        <p className="text-white/45 text-[9px] tracking-[0.2em] uppercase mt-0.5 ml-9">Foundation · Kenya</p>
+                        <p className="text-white/45 text-[9px] tracking-[0.2em] uppercase mt-1">Foundation · Kenya</p>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                         <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${config.badge} tracking-[0.15em] uppercase`}>
@@ -491,13 +493,15 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                   <div className="relative z-10 h-full flex flex-col items-center justify-between p-3.5 sm:p-5">
                     <div className="text-center">
                       {logoUrl ? (
-                        <img
-                          src={logoUrl}
-                          alt="4W'S Inua Jamii"
-                          crossOrigin="anonymous"
-                          className="h-6 w-auto object-contain mx-auto mb-1.5"
-                          style={{ maxWidth: 100 }}
-                        />
+                        <div className="bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 inline-flex items-center mx-auto mb-1.5 shadow-sm">
+                          <img
+                            src={logoUrl}
+                            alt="4W'S Inua Jamii"
+                            crossOrigin="anonymous"
+                            className="h-5 w-auto object-contain"
+                            style={{ maxWidth: 90 }}
+                          />
+                        </div>
                       ) : (
                         <p className="text-white/80 font-bold text-[11px] tracking-[0.18em] uppercase">4W&apos;S Inua Jamii Foundation</p>
                       )}
