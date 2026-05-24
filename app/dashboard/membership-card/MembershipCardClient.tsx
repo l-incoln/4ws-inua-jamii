@@ -339,7 +339,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                   className={`w-full rounded-[22px] bg-gradient-to-br ${config.cardBg} overflow-hidden select-none`}
                   style={{ aspectRatio: '1.586', boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08)' }}
                   animate={{ opacity: flipped ? 0 : 1, rotateY: flipped ? -90 : 0 }}
-                  transition={{ duration: 0.35, ease: 'easeIn' }}
+                  transition={{ duration: 0.35, ease: flipped ? 'easeIn' : 'easeOut', delay: flipped ? 0 : 0.3 }}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${config.shimmer} opacity-60`} />
                   <div className="absolute -inset-4 opacity-[0.12]" style={{ background: 'linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.9) 50%, transparent 70%)', transform: 'rotate(15deg) scaleY(3)' }} />
@@ -449,7 +449,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                   style={{ boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08)' }}
                   initial={{ opacity: 0, rotateY: 90 }}
                   animate={{ opacity: flipped ? 1 : 0, rotateY: flipped ? 0 : 90 }}
-                  transition={{ duration: 0.35, ease: 'easeOut', delay: flipped ? 0.3 : 0 }}
+                  transition={{ duration: 0.35, ease: flipped ? 'easeOut' : 'easeIn', delay: flipped ? 0.3 : 0 }}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${config.shimmer} opacity-60`} />
                   <div className="absolute -inset-4 opacity-[0.12]" style={{ background: 'linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.9) 50%, transparent 70%)', transform: 'rotate(15deg) scaleY(3)' }} />
