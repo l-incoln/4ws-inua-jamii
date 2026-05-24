@@ -25,13 +25,14 @@ export default async function DashboardDonationsPage() {
   }))
 
   const total = (donations ?? [])
-    .filter((d) => d.status === 'confirmed')
+    .filter((d) => d.status === 'completed')
     .reduce((sum, d) => sum + (d.amount ?? 0), 0)
 
   const statusBadge: Record<string, string> = {
-    confirmed: 'badge-green',
+    completed: 'badge-green',
     pending:   'badge-sky',
     failed:    'badge-red',
+    refunded:  'badge-gray',
   }
 
   return (

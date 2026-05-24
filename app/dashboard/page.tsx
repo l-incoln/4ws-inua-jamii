@@ -25,7 +25,7 @@ export default async function DashboardPage() {
     supabase
       .from('donations')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
+      .eq('donor_id', user.id),
     supabase
       .from('profiles')
       .select('created_at, tier, membership_status')
@@ -176,8 +176,8 @@ export default async function DashboardPage() {
             <p className="text-xs text-slate-500 leading-relaxed mb-3">
               Get full access to all programs, exclusive events, and community features.
             </p>
-            <Link href="/dashboard/profile" className="btn-primary text-sm w-full justify-center">
-              Upgrade Now
+            <Link href="/contact" className="btn-primary text-sm w-full justify-center">
+              Contact Us to Upgrade
             </Link>
           </div>
         </div>

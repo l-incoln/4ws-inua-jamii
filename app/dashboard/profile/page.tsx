@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Save, CheckCircle2 } from 'lucide-react'
+import { Loader2, Save, CheckCircle2, Camera, Upload } from 'lucide-react'
+import { compressImage } from '@/lib/compress-image'
 
 const tierLabels: Record<string, string> = {
   basic: 'Classic Member',
@@ -10,9 +11,21 @@ const tierLabels: Record<string, string> = {
   champion: 'Gold Member',
 }
 
+const tierBadgeColors: Record<string, string> = {
+  basic:    'badge-gray',
+  active:   'badge-green',
+  champion: 'bg-yellow-100 text-yellow-800 badge',
+}
+
+const statusLabels: Record<string, string> = {
+  approved: 'Approved',
+  pending:  'Pending',
+  rejected: 'Rejected',
+}
+
 const statusColors: Record<string, string> = {
   approved: 'badge-green',
-  pending: 'badge-sky',
+  pending:  'badge-sky',
   rejected: 'badge-red',
 }
 
@@ -23,6 +36,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarLoading, setAvatarLoading] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const [profile, setProfile] = useState<{
     tier: string
@@ -43,15 +61,17 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       setEmail(user.email ?? '')
+      setUserId(user.id)
 
       const { data: p } = await supabase
         .from('profiles')
-        .select('full_name, phone, bio, location, tier, membership_status, role, created_at')
+        .select('full_name, phone, bio, location, tier, membership_status, role, created_at, avatar_url')
         .eq('id', user.id)
         .single()
 
       if (p) {
         setProfile({ tier: p.tier, membership_status: p.membership_status, role: p.role, created_at: p.created_at })
+        setAvatarUrl(p.avatar_url ?? null)
         setForm({
           full_name: p.full_name || '',
           phone: p.phone || '',
@@ -63,6 +83,38 @@ export default function ProfilePage() {
     }
     load()
   }, [supabase])
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+    setAvatarLoading(true)
+    setAvatarError(null)
+    try {
+      const compressed = await compressImage(file, { maxWidth: 400, maxHeight: 400, quality: 0.85, outputType: 'image/webp' })
+      const ext = 'webp'
+      const storagePath = `avatars/${userId}.${ext}`
+      const { error: uploadErr } = await supabase.storage
+        .from('uploads')
+        .upload(storagePath, compressed, { upsert: true, contentType: 'image/webp' })
+      if (uploadErr) throw uploadErr
+      const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+      const cacheBusted = `${publicUrl}?t=${Date.now()}`
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', userId)
+      if (dbErr) throw dbErr
+      // Keep auth metadata in sync
+      await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
+      setAvatarUrl(cacheBusted)
+    } catch (err: unknown) {
+      setAvatarError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
+    } finally {
+      setAvatarLoading(false)
+      // Reset input so same file can be re-selected
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -118,16 +170,60 @@ export default function ProfilePage() {
       </div>
 
       {/* Avatar */}
-      <div className="card p-6 flex items-center gap-5">
-        <div className="w-20 h-20 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-2xl flex-shrink-0">
-          {initials}
-        </div>
-        <div>
-          <div className="font-bold text-slate-900">{form.full_name || 'Your Name'}</div>
-          <div className="text-sm text-slate-500">{email}</div>
-          <span className={`${statusColors[profile?.membership_status ?? 'pending'] ?? 'badge-gray'} mt-1 inline-block text-xs`}>
-            {tierLabels[profile?.tier ?? 'basic'] ?? 'Member'}
-          </span>
+      <div className="card p-6">
+        <div className="flex items-center gap-5">
+          {/* Avatar image / initials with upload button */}
+          <div className="relative flex-shrink-0">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-2xl">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="Profile photo" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarLoading}
+              title="Change profile photo"
+              className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-primary-600 hover:bg-primary-700 text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+            >
+              {avatarLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-slate-900 truncate">{form.full_name || 'Your Name'}</div>
+            <div className="text-sm text-slate-500 truncate">{email}</div>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className={`${tierBadgeColors[profile?.tier ?? 'basic'] ?? 'badge-gray'} text-xs`}>
+                {tierLabels[profile?.tier ?? 'basic'] ?? 'Member'}
+              </span>
+              <span className={`${statusColors[profile?.membership_status ?? 'pending'] ?? 'badge-gray'} text-xs`}>
+                {statusLabels[profile?.membership_status ?? 'pending'] ?? 'Pending'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarLoading}
+              className="mt-2 flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary-600 transition-colors"
+            >
+              <Upload className="w-3 h-3" />
+              {avatarLoading ? 'Uploading…' : avatarUrl ? 'Change photo' : 'Upload photo'}
+            </button>
+            {avatarError && (
+              <p className="text-xs text-red-600 mt-1">{avatarError}</p>
+            )}
+          </div>
         </div>
       </div>
 

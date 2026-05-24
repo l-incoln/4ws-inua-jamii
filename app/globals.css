@@ -490,3 +490,38 @@
 .article-body hr     { @apply border-gray-100 my-8; }
 .article-body img    { @apply rounded-2xl w-full object-cover my-6; }
 
+/* ── Print styles — membership card ─────────────────────── */
+@media print {
+  /* Hide everything by default */
+  body > * { display: none !important; }
+
+  /* Show only the dashboard main wrapper */
+  body > #__next,
+  body > div { display: block !important; }
+
+  /* Hide the sidebar and mobile nav */
+  aside,
+  nav,
+  .lg\\:flex.flex-col.w-64,
+  [class*="lg:ml-64"] > .max-w-5xl > div:first-child { display: none !important; }
+
+  /* Remove extra padding added by layout */
+  main { margin: 0 !important; padding: 0 !important; }
+
+  /* Hide everything on the membership-card page except the card and key content */
+  .print\\:hidden { display: none !important; }
+
+  /* Make the card fill the page nicely */
+  .space-y-6 { gap: 0 !important; }
+
+  /* Hide tabs, action grid, benefit list, QR modal — keep only the card itself */
+  [role="tablist"],
+  .grid.grid-cols-4,
+  .fixed.inset-0 { display: none !important; }
+
+  @page {
+    margin: 10mm;
+    size: A4 portrait;
+  }
+}
+

@@ -209,6 +209,33 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
     setTimeout(() => setCopied(false), 2500)
   }
 
+  async function printCard() {
+    if (!cardRef.current) return
+    const wasFlipped = flipped
+    if (wasFlipped) setFlipped(false)
+    await new Promise((r) => setTimeout(r, 350))
+    try {
+      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 3 })
+      const win = window.open('', '_blank', 'width=640,height=420')
+      if (!win) return
+      win.document.write(`<!DOCTYPE html><html><head>
+        <title>${memberId} — 4W'S Inua Jamii Membership Card</title>
+        <style>
+          body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;}
+          img{max-width:520px;width:100%;border-radius:22px;box-shadow:0 8px 32px rgba(0,0,0,0.2);}
+          @media print{body{margin:0;background:white;}img{max-width:100%;box-shadow:none;}}
+        </style>
+      </head><body>
+        <img src="${dataUrl}" alt="Membership Card" onload="setTimeout(()=>{window.print();window.close();},200)"/>
+      </body></html>`)
+      win.document.close()
+    } catch (e) {
+      console.error('Print failed:', e)
+    } finally {
+      if (wasFlipped) setFlipped(true)
+    }
+  }
+
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'card',    label: 'Card',    icon: CreditCard },
     { id: 'qr',     label: 'QR Code', icon: QrCode },
@@ -489,7 +516,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                 { label: downloading ? 'Saving…' : 'Download', icon: downloading ? RefreshCw : ImageDown, onClick: downloadPng, disabled: downloading, hoverCls: 'hover:border-primary-200 hover:bg-primary-50', iconCls: 'group-hover:text-primary-600', labelCls: 'group-hover:text-primary-700' },
                 { label: copied ? 'Copied!' : 'Share', icon: copied ? Check : Share2, onClick: copyLink, disabled: !verifyUrl, hoverCls: 'hover:border-green-200 hover:bg-green-50', iconCls: `group-hover:text-green-600 ${copied ? 'text-green-500' : ''}`, labelCls: 'group-hover:text-green-700' },
                 { label: 'View QR', icon: QrCode, onClick: () => setActiveTab('qr'), disabled: !qrLarge, hoverCls: 'hover:border-sky-200 hover:bg-sky-50', iconCls: 'group-hover:text-sky-600', labelCls: 'group-hover:text-sky-700' },
-                { label: 'Print', icon: Printer, onClick: () => window.print(), disabled: false, hoverCls: 'hover:border-amber-200 hover:bg-amber-50', iconCls: 'group-hover:text-amber-600', labelCls: 'group-hover:text-amber-700' },
+                { label: 'Print', icon: Printer, onClick: printCard, disabled: false, hoverCls: 'hover:border-amber-200 hover:bg-amber-50', iconCls: 'group-hover:text-amber-600', labelCls: 'group-hover:text-amber-700' },
               ].map(({ label, icon: Icon, onClick, disabled, hoverCls, iconCls, labelCls }) => (
                 <button
                   key={label}
