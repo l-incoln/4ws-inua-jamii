@@ -47,6 +47,7 @@ interface Props {
   history: HistoryItem[]
   eventsCount: number
   badgesCount: number
+  logoUrl: string | null
 }
 
 const TIER_CONFIG: Record<string, {
@@ -127,7 +128,7 @@ const TIER_LABELS: Record<string, string> = {
 
 type Tab = 'card' | 'qr' | 'details' | 'history'
 
-export default function MembershipCardClient({ profile, activeTerm, verifyUrl, history, eventsCount, badgesCount }: Props) {
+export default function MembershipCardClient({ profile, activeTerm, verifyUrl, history, eventsCount, badgesCount, logoUrl }: Props) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [qrSmall, setQrSmall] = useState<string | null>(null)
   const [qrLarge, setQrLarge] = useState<string | null>(null)
@@ -187,9 +188,19 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
     const wasFlipped = flipped
     if (wasFlipped) setFlipped(false)
     setDownloading(true)
-    await new Promise((r) => setTimeout(r, 350))
+    // When unflipping: delay(0.3s) + duration(0.35s) = 0.65s — wait 750ms to be safe
+    await new Promise((r) => setTimeout(r, wasFlipped ? 750 : 100))
     try {
-      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 3 })
+      const el = cardRef.current
+      // Neutralise Framer Motion inline transforms so html-to-image captures a flat element
+      const prevTransform = el.style.transform
+      const prevOpacity   = el.style.opacity
+      el.style.transform = 'none'
+      el.style.opacity   = '1'
+      await new Promise((r) => setTimeout(r, 50)) // allow one repaint
+      const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 3 })
+      el.style.transform = prevTransform
+      el.style.opacity   = prevOpacity
       const a = document.createElement('a')
       a.download = `${memberId}-membership-card.png`
       a.href = dataUrl
@@ -213,9 +224,17 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
     if (!cardRef.current) return
     const wasFlipped = flipped
     if (wasFlipped) setFlipped(false)
-    await new Promise((r) => setTimeout(r, 350))
+    await new Promise((r) => setTimeout(r, wasFlipped ? 750 : 100))
     try {
-      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 3 })
+      const el = cardRef.current
+      const prevTransform = el.style.transform
+      const prevOpacity   = el.style.opacity
+      el.style.transform = 'none'
+      el.style.opacity   = '1'
+      await new Promise((r) => setTimeout(r, 50))
+      const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 3 })
+      el.style.transform = prevTransform
+      el.style.opacity   = prevOpacity
       const win = window.open('', '_blank', 'width=640,height=420')
       if (!win) return
       win.document.write(`<!DOCTYPE html><html><head>
@@ -336,8 +355,8 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                 {/* ── FRONT FACE ── */}
                 <motion.div
                   ref={cardRef}
-                  className={`w-full rounded-[22px] bg-gradient-to-br ${config.cardBg} overflow-hidden select-none`}
-                  style={{ aspectRatio: '1.586', boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08)' }}
+                  className={`absolute inset-0 rounded-[22px] bg-gradient-to-br ${config.cardBg} overflow-hidden select-none`}
+                  style={{ boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08)', pointerEvents: flipped ? 'none' : 'auto' }}
                   animate={{ opacity: flipped ? 0 : 1, rotateY: flipped ? -90 : 0 }}
                   transition={{ duration: 0.35, ease: flipped ? 'easeIn' : 'easeOut', delay: flipped ? 0 : 0.3 }}
                 >
@@ -352,10 +371,22 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0">
-                            <TierIcon className="w-3.5 h-3.5 text-white" />
-                          </div>
-                          <span className="text-white font-bold text-[12px] sm:text-[13px] tracking-wider truncate">4W&apos;S INUA JAMII</span>
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt="4W'S Inua Jamii"
+                              crossOrigin="anonymous"
+                              className="h-7 w-auto object-contain"
+                              style={{ maxWidth: 120 }}
+                            />
+                          ) : (
+                            <>
+                              <div className="w-7 h-7 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0">
+                                <TierIcon className="w-3.5 h-3.5 text-white" />
+                              </div>
+                              <span className="text-white font-bold text-[12px] sm:text-[13px] tracking-wider truncate">4W&apos;S INUA JAMII</span>
+                            </>
+                          )}
                         </div>
                         <p className="text-white/45 text-[9px] tracking-[0.2em] uppercase mt-0.5 ml-9">Foundation · Kenya</p>
                       </div>
@@ -446,7 +477,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                 {/* ── BACK FACE ── */}
                 <motion.div
                   className={`absolute inset-0 rounded-[22px] bg-gradient-to-br ${config.cardBg} overflow-hidden select-none`}
-                  style={{ boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08)' }}
+                  style={{ boxShadow: '0 32px 64px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08)', pointerEvents: flipped ? 'auto' : 'none' }}
                   initial={{ opacity: 0, rotateY: 90 }}
                   animate={{ opacity: flipped ? 1 : 0, rotateY: flipped ? 0 : 90 }}
                   transition={{ duration: 0.35, ease: flipped ? 'easeOut' : 'easeIn', delay: flipped ? 0.3 : 0 }}
@@ -459,7 +490,17 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
 
                   <div className="relative z-10 h-full flex flex-col items-center justify-between p-3.5 sm:p-5">
                     <div className="text-center">
-                      <p className="text-white/80 font-bold text-[11px] tracking-[0.18em] uppercase">4W&apos;S Inua Jamii Foundation</p>
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt="4W'S Inua Jamii"
+                          crossOrigin="anonymous"
+                          className="h-6 w-auto object-contain mx-auto mb-1.5"
+                          style={{ maxWidth: 100 }}
+                        />
+                      ) : (
+                        <p className="text-white/80 font-bold text-[11px] tracking-[0.18em] uppercase">4W&apos;S Inua Jamii Foundation</p>
+                      )}
                       <p className="text-white/40 text-[9px] tracking-[0.12em] mt-0.5">Kenya · Member Verification</p>
                     </div>
                     <div className="flex flex-col items-center gap-2">

@@ -48,7 +48,7 @@ export default async function MembershipCardPage() {
 
   const verifyUrl = token ? getSignedVerifyUrl(token) : null
 
-  const [eventsRes, badgesRes] = await Promise.all([
+  const [eventsRes, badgesRes, settingsRes] = await Promise.all([
     supabase
       .from('rsvps')
       .select('id', { count: 'exact', head: true })
@@ -58,7 +58,13 @@ export default async function MembershipCardPage() {
       .from('member_badges')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id),
+    supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['logo_url']),
   ])
+
+  const logoUrl = settingsRes.data?.find((r) => r.key === 'logo_url')?.value ?? null
 
   return (
     <MembershipCardClient
@@ -68,6 +74,7 @@ export default async function MembershipCardPage() {
       history={history ?? []}
       eventsCount={eventsRes.count ?? 0}
       badgesCount={badgesRes.count ?? 0}
+      logoUrl={logoUrl}
     />
   )
 }
