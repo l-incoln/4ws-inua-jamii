@@ -73,6 +73,8 @@ export default async function AdminMembersPage() {
     membership_status: (m as Record<string, string>).membership_status ?? 'pending',
     payment_confirmed: (m as any).payment_confirmed ?? false,
     rsvp_count: rsvpCounts[m.id] || 0,
+    has_active_term: (termsByUser[m.id] ?? []).some((t) => t.is_active),
+    term_id: (termsByUser[m.id] ?? []).find((t) => t.is_active)?.id ?? null,
   }))
 
   const panelMembers = members.map((m) => ({

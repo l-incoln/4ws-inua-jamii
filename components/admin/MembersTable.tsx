@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react'
 import {
   Search, Filter, CheckCircle, XCircle, Eye, Loader2,
-  UserPlus, Download, Users, ChevronDown,
+  UserPlus, Download, Users, ChevronDown, CreditCard, RefreshCw, Plus, X,
 } from 'lucide-react'
-import { updateMemberStatus, updateMemberTier, bulkUpdateMemberStatus } from '@/app/actions/admin'
+import { updateMemberStatus, updateMemberTier, bulkUpdateMemberStatus, issueMembership, renewMembership } from '@/app/actions/admin'
 import { TIER_LABELS, TIER_COLORS, type MembershipTier } from '@/types'
 
 type Member = {
@@ -16,6 +16,8 @@ type Member = {
   membership_status: string
   created_at: string
   rsvp_count: number
+  has_active_term: boolean
+  term_id: string | null
 }
 
 const statusColors: Record<string, string> = {
@@ -34,6 +36,9 @@ export default function MembersTable({ members }: { members: Member[] }) {
   const [bulkAction, setBulkAction] = useState<'approved' | 'rejected' | 'pending' | ''>('')
   const [showTierDropdown, setShowTierDropdown] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [issueDropdown, setIssueDropdown] = useState<string | null>(null)
+  const [issueData, setIssueData] = useState<{ tier: MembershipTier; months: string }>({ tier: 'basic', months: '12' })
+  const [issueMsg, setIssueMsg] = useState<{ id: string; msg: string; ok: boolean } | null>(null)
 
   const filtered = members.filter((m) => {
     const name = m.full_name || ''
@@ -83,6 +88,30 @@ export default function MembersTable({ members }: { members: Member[] }) {
       await bulkUpdateMemberStatus(ids, bulkAction)
       setSelected(new Set())
       setBulkAction('')
+    })
+  }
+
+  function openIssueForm(member: Member) {
+    setIssueDropdown(member.id)
+    setIssueData({ tier: member.tier as MembershipTier, months: '12' })
+    setIssueMsg(null)
+  }
+
+  function handleIssueOrRenew(member: Member) {
+    startTransition(async () => {
+      setIssueMsg(null)
+      let res
+      if (member.has_active_term && member.term_id) {
+        res = await renewMembership(member.term_id, parseInt(issueData.months) || 12)
+      } else {
+        res = await issueMembership(member.id, issueData.tier, parseInt(issueData.months) || 12)
+      }
+      if (res?.error) {
+        setIssueMsg({ id: member.id, msg: res.error, ok: false })
+      } else {
+        setIssueMsg({ id: member.id, msg: member.has_active_term ? 'Renewed!' : 'Membership issued!', ok: true })
+        setTimeout(() => { setIssueDropdown(null); setIssueMsg(null) }, 2000)
+      }
     })
   }
 
@@ -326,6 +355,66 @@ export default function MembersTable({ members }: { members: Member[] }) {
                             )}
                           </>
                         )}
+                        <div className="relative">
+                          <button
+                            onClick={() => issueDropdown === member.id ? setIssueDropdown(null) : openIssueForm(member)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              member.has_active_term
+                                ? 'text-sky-500 bg-sky-50 hover:bg-sky-100'
+                                : 'text-primary-600 bg-primary-50 hover:bg-primary-100'
+                            }`}
+                            title={member.has_active_term ? 'Renew membership' : 'Issue membership'}
+                          >
+                            {member.has_active_term
+                              ? <RefreshCw className="w-4 h-4" />
+                              : <CreditCard className="w-4 h-4" />}
+                          </button>
+                          {issueDropdown === member.id && (
+                            <div className="absolute right-0 top-full mt-1 z-30 w-64 bg-white rounded-xl shadow-xl border border-gray-200 p-3 space-y-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-xs font-bold text-slate-700">
+                                  {member.has_active_term ? 'Renew Membership' : 'Issue Membership'}
+                                </p>
+                                <button onClick={() => setIssueDropdown(null)}><X className="w-3.5 h-3.5 text-slate-400" /></button>
+                              </div>
+                              {!member.has_active_term && (
+                                <select
+                                  value={issueData.tier}
+                                  onChange={(e) => setIssueData((d) => ({ ...d, tier: e.target.value as MembershipTier }))}
+                                  className="input text-xs w-full py-1.5"
+                                >
+                                  <option value="basic">Classic (Basic)</option>
+                                  <option value="active">Premium (Active)</option>
+                                  <option value="champion">Gold (Champion)</option>
+                                </select>
+                              )}
+                              <div className="flex gap-2">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={36}
+                                  value={issueData.months}
+                                  onChange={(e) => setIssueData((d) => ({ ...d, months: e.target.value }))}
+                                  placeholder="Months"
+                                  className="input text-xs flex-1 py-1.5"
+                                />
+                                <button
+                                  onClick={() => handleIssueOrRenew(member)}
+                                  disabled={pending}
+                                  className="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-semibold hover:bg-primary-700 disabled:opacity-50 flex items-center gap-1"
+                                >
+                                  {pending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                                  {member.has_active_term ? 'Renew' : 'Issue'}
+                                </button>
+                              </div>
+                              {issueMsg?.id === member.id && (
+                                <p className={`text-xs font-medium ${issueMsg.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+                                  {issueMsg.msg}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <a
                           href={`/admin/members/${member.id}`}
                           className="p-1.5 rounded-lg text-slate-400 hover:bg-gray-100 transition-colors"
