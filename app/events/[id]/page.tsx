@@ -11,7 +11,7 @@ import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 async function getEvent(id: string) {
   const supabase = createPublicClient()
@@ -24,13 +24,15 @@ async function getEvent(id: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const event = await getEvent(params.id)
+  const { id } = await params
+  const event = await getEvent(id)
   if (!event) return { title: 'Event Not Found' }
   return { title: event.title, description: event.description }
 }
 
 export default async function EventDetailPage({ params }: Props) {
-  const event = await getEvent(params.id)
+  const { id } = await params
+  const event = await getEvent(id)
   if (!event) notFound()
 
   const supabase = await createClient()
@@ -39,7 +41,7 @@ export default async function EventDetailPage({ params }: Props) {
   const { count: rsvpCount } = await supabase
     .from('rsvps')
     .select('id', { count: 'exact', head: true })
-    .eq('event_id', params.id)
+    .eq('event_id', id)
     .eq('status', 'confirmed')
 
   const attendees = rsvpCount ?? 0

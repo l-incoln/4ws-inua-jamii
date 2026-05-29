@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin-client'
 
 export async function POST() {
   try {
@@ -13,10 +13,7 @@ export async function POST() {
     }
 
     // 2. Use admin client (service role) to delete the user
-    const adminClient = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const adminClient = createAdminClient()
 
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id)
 

@@ -56,16 +56,17 @@ export async function submitContactMessage(
 
   const adminEmail = settings?.value as string | undefined
   if (adminEmail) {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     await sendEmail({
       to: adminEmail,
       subject: `[Inua Jamii] New contact message: ${parsed.data.subject}`,
       replyTo: parsed.data.email,
       html: `
         <h2>New Contact Message</h2>
-        <p><strong>From:</strong> ${parsed.data.name} &lt;${parsed.data.email}&gt;</p>
-        <p><strong>Subject:</strong> ${parsed.data.subject}</p>
+        <p><strong>From:</strong> ${esc(parsed.data.name)} &lt;${esc(parsed.data.email)}&gt;</p>
+        <p><strong>Subject:</strong> ${esc(parsed.data.subject)}</p>
         <hr />
-        <p style="white-space: pre-wrap;">${parsed.data.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+        <p style="white-space: pre-wrap;">${esc(parsed.data.message)}</p>
         <hr />
         <p style="color:#888;font-size:12px;">Sent via Inua Jamii contact form</p>
       `,

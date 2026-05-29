@@ -4,8 +4,9 @@ import { TIER_LABELS } from '@/types'
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -25,7 +26,7 @@ export async function GET(
   const { data: event } = await supabase
     .from('events')
     .select('title, event_date')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   // Fetch RSVPs with member info

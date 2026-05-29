@@ -3,8 +3,6 @@ import { Inter, Sora } from 'next/font/google'
 import './globals.css'
 import AnalyticsInjector from '@/components/layout/AnalyticsInjector'
 
-export const dynamic = 'force-dynamic'
-
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',

@@ -6,13 +6,14 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Edit Post — Admin' }
 
-export default async function EditBlogPostPage({ params }: { params: { id: string } }) {
+export default async function EditBlogPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data: post, error } = await supabase
     .from('blog_posts')
     .select('id, slug, title, excerpt, body, category, tags, image_url, status, read_time')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !post) return notFound()

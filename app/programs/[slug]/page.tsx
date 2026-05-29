@@ -12,7 +12,7 @@ import ProgramApplySection from '@/components/programs/ProgramApplySection'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { slug: string } }
+type Props = { params: Promise<{ slug: string }> }
 
 const iconMap: Record<string, LucideIcon> = {
   Heart, BookOpen, Sprout, DollarSign, Users, Globe,
@@ -30,13 +30,15 @@ async function getProgram(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const program = await getProgram(params.slug)
+  const { slug } = await params
+  const program = await getProgram(slug)
   if (!program) return { title: 'Program Not Found' }
   return { title: program.title, description: program.description }
 }
 
 export default async function ProgramDetailPage({ params }: Props) {
-  const program = await getProgram(params.slug)
+  const { slug } = await params
+  const program = await getProgram(slug)
   if (!program) notFound()
 
   const supabase = await createClient()

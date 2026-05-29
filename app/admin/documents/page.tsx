@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DocumentsManager from '@/components/admin/DocumentsManager'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata: Metadata = { title: 'Documents Management' }
 
 export default async function AdminDocumentsPage() {
