@@ -33,7 +33,7 @@ export async function GET(
   const { data: rsvps, error } = await supabase
     .from('rsvps')
     .select('status, created_at, profiles(full_name, email, phone, tier, membership_status)')
-    .eq('event_id', params.id)
+    .eq('event_id', id)
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -2,6 +2,8 @@
 export type UserRole = 'member' | 'volunteer' | 'admin'
 export type MembershipTier = 'basic' | 'active' | 'champion'
 export type MembershipStatus = 'pending' | 'approved' | 'rejected'
+export type BadgeType = 'founding_member' | 'active_member' | 'event_hero' | 'volunteer' | 'leader' | 'champion_donor' | 'top_contributor'
+export type NotificationType = 'general' | 'membership_expiry' | 'event' | 'donation' | 'badge' | 'announcement' | 'task' | 'system'
 
 /** Map DB tier values to display labels (Classic / Premium / Gold) */
 export const TIER_LABELS: Record<MembershipTier, string> = {
@@ -192,3 +194,42 @@ export interface Document {
   created_at: string
   updated_at: string
 }
+
+// ─── BADGES / ACHIEVEMENTS ─────────────────────────────────────────────────────
+export interface MemberBadge {
+  id: string
+  user_id: string
+  badge_type: BadgeType
+  awarded_by: string | null
+  notes: string | null
+  awarded_at: string
+}
+
+export interface ImpactScore {
+  user_id: string
+  full_name: string | null
+  events_attended: number
+  tasks_completed: number
+  comments_made: number
+  donations_made: number
+  total_score: number
+}
+
+// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+export interface Notification {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  body: string | null
+  link: string | null
+  read: boolean
+  created_at: string
+}
+
+// ─── VOLUNTEER TASKS ──────────────────────────────────────────────────────────
+export type TaskStatus = 'open' | 'claimed' | 'completed' | 'cancelled'
+
+// ─── PROGRAM APPLICATIONS ─────────────────────────────────────────────────────
+export type ApplicationStatus = 'pending' | 'accepted' | 'rejected'
+

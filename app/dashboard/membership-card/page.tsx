@@ -1,11 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
-import dynamicImport from 'next/dynamic'
+import MembershipCardClient from './MembershipCardWrapper'
 import { getSignedVerifyUrl } from '@/lib/membership-server'
-
-// Disable SSR — the card uses browser-only APIs (canvas for QR, DOM for html-to-image)
-const MembershipCardClient = dynamicImport(() => import('./MembershipCardClient'), { ssr: false })
 
 export const dynamic = 'force-dynamic'
 

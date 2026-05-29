@@ -1,11 +1,13 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin-client'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import type { MembershipTier } from '@/types'
 
-// ─── Auth guard ────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Auth guard ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function requireAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -21,10 +23,30 @@ async function requireAdmin() {
   return { supabase, user, error: null }
 }
 
-// ─── Member Management ─────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Activity Logging ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+async function logActivity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  action: string,
+  entityType: string,
+  entityId?: string,
+  metadata?: Record<string, unknown>,
+) {
+  try {
+    await supabase.from('activity_logs').insert({
+      user_id: userId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId ?? null,
+      metadata: metadata ?? null,
+    })
+  } catch { /* non-fatal */ }
+}
+
+// ΓöÇΓöÇΓöÇ Member Management ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function updateMemberStatus(profileId: string, status: 'approved' | 'rejected' | 'pending') {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
 
   const { error: dbError } = await supabase
     .from('profiles')
@@ -32,13 +54,14 @@ export async function updateMemberStatus(profileId: string, status: 'approved' |
     .eq('id', profileId)
 
   if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, status === 'approved' ? 'approve' : status === 'rejected' ? 'reject' : 'update', 'profiles', profileId, { new_status: status })
   revalidatePath('/admin/members')
   return { success: true }
 }
 
 export async function updateMemberTier(profileId: string, tier: 'basic' | 'active' | 'champion') {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
 
   const { error: dbError } = await supabase
     .from('profiles')
@@ -46,6 +69,7 @@ export async function updateMemberTier(profileId: string, tier: 'basic' | 'activ
     .eq('id', profileId)
 
   if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'update', 'profiles', profileId, { field: 'tier', new_value: tier })
   revalidatePath('/admin/members')
   return { success: true }
 }
@@ -64,7 +88,41 @@ export async function updateMemberRole(profileId: string, role: 'member' | 'volu
   return { success: true }
 }
 
-// ─── Blog Post CRUD ────────────────────────────────────────────────────────────
+export async function createMember(formData: FormData) {
+  const { error: adminError } = await requireAdmin()
+  if (adminError) return { error: adminError }
+
+  const email    = (formData.get('email') as string)?.trim()
+  const fullName = (formData.get('full_name') as string)?.trim()
+  const phone    = (formData.get('phone') as string)?.trim() || null
+  const tier     = (formData.get('tier') as string) || 'basic'
+  const password = (formData.get('password') as string)?.trim()
+
+  if (!email || !fullName || !password) return { error: 'Email, full name, and password are required' }
+
+  // Use service-role client to create auth user
+  const admin = createAdminClient()
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: fullName },
+  })
+  if (createError) return { error: createError.message }
+
+  // Profile is auto-created by trigger, but update with extra fields
+  if (created.user) {
+    await admin
+      .from('profiles')
+      .update({ full_name: fullName, phone, tier })
+      .eq('id', created.user.id)
+  }
+
+  revalidatePath('/admin/members')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Blog Post CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const blogSchema = z.object({
   title:       z.string().min(3, 'Title is required'),
   slug:        z.string().min(2, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers and hyphens'),
@@ -166,7 +224,7 @@ export async function togglePostStatus(postId: string, currentStatus: string) {
   return { success: true }
 }
 
-// ─── Announcements CRUD ────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Announcements CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function saveAnnouncement(formData: FormData, announcementId?: string) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }
@@ -213,7 +271,7 @@ export async function deleteAnnouncement(announcementId: string) {
   return { success: true }
 }
 
-// ─── Events CRUD ───────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Events CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function saveEvent(formData: FormData, eventId?: string) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }
@@ -274,16 +332,62 @@ export async function deleteEvent(eventId: string) {
   return { success: true }
 }
 
-// ─── Site Settings ─────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Site Settings ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function saveSiteSettings(formData: FormData) {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
 
   const keys = [
-    'site_name', 'tagline', 'contact_email', 'contact_phone', 'address',
+    // Site Info
+    'site_name', 'tagline', 'about_mission', 'about_vision', 'logo_url', 'logo_size',
+    // Contact & Socials (including new TikTok + WhatsApp)
+    'contact_email', 'contact_phone', 'address',
     'facebook_url', 'twitter_url', 'instagram_url', 'youtube_url', 'linkedin_url',
+    'tiktok_url', 'whatsapp_url',
+    // Payments
     'mpesa_paybill', 'mpesa_account', 'bank_name', 'bank_account',
-    'about_mission', 'about_vision',
+    'donation_currency', 'min_donation_amount', 'mpesa_shortcode_type',
+    'donation_thank_you_message', 'donation_receipts_email',
+    // SEO & Metadata
+    'meta_description', 'og_image_url',
+    'google_analytics_id', 'google_tag_manager_id', 'facebook_pixel_id',
+    // Membership (including duration years)
+    'membership_fee_basic', 'membership_fee_active', 'membership_fee_champion',
+    'membership_currency', 'new_signups_enabled', 'auto_approve_members',
+    'membership_duration_basic', 'membership_duration_active', 'membership_duration_champion',
+    // Email / Notifications
+    'from_email', 'from_name', 'admin_notify_email',
+    'welcome_email_enabled', 'welcome_email_body',
+    'admin_notify_new_member', 'admin_notify_new_donation',
+    // Homepage (including partners)
+    'show_events_preview', 'show_impact_stats', 'show_partners_section',
+    'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
+    'hero_image_url', 'hero_badge_text',
+    'partners_section_title',
+    // Awareness Calendar
+    'show_awareness_banner', 'awareness_min_priority',
+    // Events & RSVP
+    'rsvp_enabled', 'rsvp_require_login', 'event_reminder_days',
+    // Legal / Footer
+    'privacy_policy_url', 'terms_url', 'registration_number', 'footer_tagline',
+    // About Page
+    'about_hero_subtitle', 'about_story_p1', 'about_story_p2', 'about_story_p3',
+    'about_established', 'about_city',
+    // Core Values (6 editable pairs)
+    'core_value_1_title', 'core_value_1_body',
+    'core_value_2_title', 'core_value_2_body',
+    'core_value_3_title', 'core_value_3_body',
+    'core_value_4_title', 'core_value_4_body',
+    'core_value_5_title', 'core_value_5_body',
+    'core_value_6_title', 'core_value_6_body',
+    // Donate Page
+    'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
+    // Volunteer section photos
+    'volunteer_photo_1', 'volunteer_photo_2', 'volunteer_photo_3',
+    // About page story image
+    'about_story_image',
+    // FAQ page
+    'faq_hero_title', 'faq_hero_subtitle',
   ]
 
   const upserts = keys.map((key) => ({
@@ -297,14 +401,32 @@ export async function saveSiteSettings(formData: FormData) {
     .upsert(upserts, { onConflict: 'key' })
 
   if (dbError) return { error: dbError.message }
+
+  // Log admin settings change
+  await logActivity(supabase, user.id, 'settings', 'site_settings', undefined, {
+    keys_updated: keys.length,
+    timestamp: new Date().toISOString(),
+  })
+
+  // Revalidate all public-facing pages so changes appear immediately on every device
+  revalidatePath('/', 'layout')
+  revalidatePath('/')
+  revalidatePath('/about')
+  revalidatePath('/blog')
+  revalidatePath('/events')
+  revalidatePath('/programs')
+  revalidatePath('/contact')
+  revalidatePath('/donate')
+  revalidatePath('/gallery')
+  revalidatePath('/faq')
   revalidatePath('/admin/settings')
   return { success: true }
 }
 
-// ─── Image Upload ──────────────────────────────────────────────────────────────
-export async function uploadImage(formData: FormData, folder: string = 'uploads') {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+// ΓöÇΓöÇΓöÇ Image Upload ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function uploadImage(formData: FormData, folder: string = 'general') {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
 
   const file = formData.get('file') as File
   if (!file || file.size === 0) return { error: 'No file provided' }
@@ -313,20 +435,74 @@ export async function uploadImage(formData: FormData, folder: string = 'uploads'
   if (!allowedTypes.includes(file.type)) return { error: 'Only JPEG, PNG, WebP and GIF images are allowed' }
   if (file.size > 5 * 1024 * 1024) return { error: 'Image must be under 5MB' }
 
+  const validFolders = ['team', 'programs', 'events', 'gallery', 'blog', 'documents', 'general']
+  const safeFolder = validFolders.includes(folder) ? folder : 'general'
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-  const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const storagePath = `${safeFolder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const { error: uploadError } = await supabase.storage
     .from('uploads')
-    .upload(filename, file, { contentType: file.type, upsert: false })
+    .upload(storagePath, file, { contentType: file.type, upsert: false })
 
   if (uploadError) return { error: uploadError.message }
 
-  const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(filename)
+  const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+
+  // Register in media library (non-blocking)
+  await supabase.from('media_assets').insert({
+    url:          publicUrl,
+    storage_path: storagePath,
+    file_name:    file.name,
+    file_size:    file.size,
+    mime_type:    file.type,
+    folder:       safeFolder,
+    uploaded_by:  user.id,
+  }).then(() => { /* fire-and-forget */ })
+
   return { url: publicUrl }
 }
 
-// ─── Impact Metrics ────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Site Image Upload (logo, hero, etc.) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// Uploads an image to storage and saves the URL to site_settings under `settingKey`.
+export async function uploadSiteImage(
+  formData: FormData,
+  settingKey: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3',
+) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const file = formData.get('file') as File
+  if (!file || file.size === 0) return { error: 'No file provided' }
+
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(file.type)) return { error: 'Only JPEG, PNG, WebP and GIF images are allowed' }
+  if (file.size > 5 * 1024 * 1024) return { error: 'Image must be under 5 MB' }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'png'
+  const storagePath = `site/${settingKey}-${Date.now()}.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('uploads')
+    .upload(storagePath, file, { contentType: file.type, upsert: true })
+
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+
+  // Persist to site_settings
+  const { error: dbError } = await supabase
+    .from('site_settings')
+    .upsert({ key: settingKey, value: publicUrl, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+
+  if (dbError) return { error: dbError.message }
+
+  // Revalidate everywhere the image appears
+  revalidatePath('/', 'layout')
+  revalidatePath('/admin/settings')
+  return { url: publicUrl }
+}
+
+// ΓöÇΓöÇΓöÇ Impact Metrics ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function saveImpactMetric(formData: FormData, metricId?: string) {
   const { supabase, error } = await requireAdmin()
   if (error || !supabase) return { error }
@@ -356,7 +532,7 @@ export async function saveImpactMetric(formData: FormData, metricId?: string) {
   return { success: true }
 }
 
-// ─── Programs ─────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Programs ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const ProgramSchema = z.object({
   title: z.string().min(2, 'Title is required'),
   slug: z.string().min(2, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens'),
@@ -384,10 +560,28 @@ export async function saveProgram(formData: FormData, programId?: string) {
   const parsed = ProgramSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
+  // Parse array fields: goals and activities (one per line), tags (comma-separated)
+  const goalsRaw      = (formData.get('goals')      as string) || ''
+  const activitiesRaw = (formData.get('activities') as string) || ''
+  const tagsRaw       = (formData.get('tags')       as string) || ''
+  const contentRaw    = (formData.get('content')    as string) || ''
+
+  const goals      = goalsRaw.split('\n').map((s) => s.trim()).filter(Boolean)
+  const activities = activitiesRaw.split('\n').map((s) => s.trim()).filter(Boolean)
+  const tags       = tagsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+
   const payload = {
-    ...parsed.data,
-    image_url: parsed.data.image_url || null,
-    icon: parsed.data.icon || null,
+    title:             parsed.data.title,
+    slug:              parsed.data.slug,
+    description:       parsed.data.description,
+    icon:              parsed.data.icon || null,
+    image_url:         parsed.data.image_url || null,
+    beneficiaries:     parsed.data.beneficiary_count ?? 0,
+    is_active:         parsed.data.is_active ?? true,
+    content:           contentRaw || null,
+    goals:             goals.length > 0 ? goals : null,
+    activities:        activities.length > 0 ? activities : null,
+    tags,
   }
 
   if (programId) {
@@ -398,9 +592,23 @@ export async function saveProgram(formData: FormData, programId?: string) {
     if (dbError) return { error: dbError.message }
   }
 
+  // Track image usage
+  if (payload.image_url) {
+    await supabase.from('image_usages').upsert({
+      image_url: payload.image_url,
+      usage_type: 'program',
+      entity_label: payload.title,
+    }, { onConflict: 'image_url,usage_type,entity_id' }).then(() => {})
+  }
+
   revalidatePath('/admin/content')
   revalidatePath('/programs')
+  revalidatePath(`/programs/${payload.slug}`)
   return { success: true }
+}
+
+export async function uploadProgramImage(formData: FormData) {
+  return uploadImage(formData, 'programs')
 }
 
 export async function deleteProgram(programId: string) {
@@ -430,7 +638,36 @@ export async function toggleProgramStatus(programId: string, isActive: boolean) 
   return { success: true }
 }
 
-// ─── Donation Status Management ───────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Contact Messages ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function markContactMessageRead(messageId: string, isRead: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('contact_messages')
+    .update({ is_read: isRead })
+    .eq('id', messageId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/messages')
+  return { success: true }
+}
+
+export async function deleteContactMessage(messageId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('contact_messages')
+    .delete()
+    .eq('id', messageId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/messages')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Donation Status Management ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function updateDonationStatus(
   donationId: string,
   status: 'completed' | 'failed' | 'refunded'
@@ -448,7 +685,7 @@ export async function updateDonationStatus(
   return { success: true }
 }
 
-// ─── Bulk Member Actions ───────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Bulk Member Actions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function bulkUpdateMemberStatus(
   profileIds: string[],
   status: 'approved' | 'rejected' | 'pending'
@@ -467,7 +704,7 @@ export async function bulkUpdateMemberStatus(
   return { success: true, count: profileIds.length }
 }
 
-// ─── Document Management ──────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Document Management ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function saveDocument(formData: FormData, documentId?: string) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }
@@ -524,12 +761,17 @@ export async function uploadDocument(formData: FormData) {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    // Some browsers/OS send empty or octet-stream MIME for PDFs ΓÇö fallback by extension
+    'application/octet-stream',
+    '',
   ]
-  if (!allowedTypes.includes(file.type)) return { error: 'Only PDF, Word, and Excel files are allowed' }
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const allowedExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx']
+  const typeOk = allowedTypes.includes(file.type) || allowedExts.includes(ext)
+  if (!typeOk) return { error: 'Only PDF, Word, and Excel files are allowed' }
   if (file.size > 20 * 1024 * 1024) return { error: 'File must be under 20MB' }
 
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'pdf'
-  const filename = `documents/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const filename = `documents/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext || 'pdf'}`
 
   const { error: uploadError } = await supabase.storage
     .from('uploads')
@@ -541,3 +783,725 @@ export async function uploadDocument(formData: FormData) {
   return { url: publicUrl, name: file.name, size: file.size }
 }
 
+// ΓöÇΓöÇΓöÇ Donation Campaigns CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function saveCampaign(formData: FormData, campaignId?: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const title       = (formData.get('title') as string)?.trim()
+  const description = (formData.get('description') as string)?.trim() || null
+  const goal        = parseFloat(formData.get('goal') as string)
+  const image_url   = (formData.get('image_url') as string)?.trim() || null
+  const deadline    = (formData.get('deadline') as string) || null
+  const is_active   = formData.get('is_active') !== 'false'
+  const slug        = title
+    ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    : ''
+
+  if (!title) return { error: 'Title is required' }
+  if (isNaN(goal) || goal <= 0) return { error: 'Goal must be a positive number' }
+
+  const payload = { title, description, goal, image_url, deadline: deadline || null, is_active, slug }
+
+  if (campaignId) {
+    const { slug: _s, ...updatePayload } = payload
+    const { error: dbError } = await supabase
+      .from('donation_campaigns')
+      .update(updatePayload)
+      .eq('id', campaignId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('donation_campaigns')
+      .insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/admin/campaigns')
+  revalidatePath('/donate')
+  return { success: true }
+}
+
+export async function toggleCampaignStatus(campaignId: string, isActive: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('donation_campaigns')
+    .update({ is_active: isActive })
+    .eq('id', campaignId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/campaigns')
+  revalidatePath('/donate')
+  return { success: true }
+}
+
+export async function deleteCampaign(campaignId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('donation_campaigns')
+    .delete()
+    .eq('id', campaignId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/campaigns')
+  revalidatePath('/donate')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Attendance Check-in ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function checkInAttendee(rsvpId: string, checkedIn: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('rsvps')
+    .update({
+      checked_in: checkedIn,
+      checked_in_at: checkedIn ? new Date().toISOString() : null,
+    })
+    .eq('id', rsvpId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/events')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Blog Comment Moderation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function approveComment(commentId: string, approved: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('blog_comments')
+    .update({ is_approved: approved })
+    .eq('id', commentId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/comments')
+  revalidatePath('/blog')
+  return { success: true }
+}
+
+export async function deleteComment(commentId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('blog_comments')
+    .delete()
+    .eq('id', commentId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/comments')
+  revalidatePath('/blog')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Program Applications ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function updateApplicationStatus(
+  applicationId: string,
+  status: 'accepted' | 'rejected' | 'pending',
+  adminNote?: string
+) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('program_applications')
+    .update({ status, admin_note: adminNote ?? null })
+    .eq('id', applicationId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/applications')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Volunteer Tasks ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function saveVolunteerTask(formData: FormData, taskId?: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const title           = (formData.get('title') as string)?.trim()
+  const description     = (formData.get('description') as string)?.trim() || null
+  const skills_raw      = (formData.get('skills_required') as string)?.trim() || ''
+  const skills_required = skills_raw ? skills_raw.split(',').map((s) => s.trim()).filter(Boolean) : []
+  const deadline        = (formData.get('deadline') as string) || null
+
+  if (!title) return { error: 'Title is required' }
+
+  const payload = { title, description, skills_required, deadline: deadline || null, created_by: user.id }
+
+  if (taskId) {
+    const { created_by: _cb, ...updatePayload } = payload
+    const { error: dbError } = await supabase
+      .from('volunteer_tasks')
+      .update(updatePayload)
+      .eq('id', taskId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('volunteer_tasks')
+      .insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/admin/volunteers')
+  revalidatePath('/dashboard/tasks')
+  return { success: true }
+}
+
+export async function deleteVolunteerTask(taskId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('volunteer_tasks')
+    .delete()
+    .eq('id', taskId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/volunteers')
+  revalidatePath('/dashboard/tasks')
+  return { success: true }
+}
+
+export async function markTaskComplete(taskId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('volunteer_tasks')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('id', taskId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/admin/volunteers')
+  revalidatePath('/dashboard/tasks')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ MEMBERSHIP IDENTITY ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+export async function issueMembership(
+  userId: string,
+  tier: MembershipTier,
+  months: number,
+  notes?: string,
+) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  // Check payment confirmation before approving
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('payment_confirmed, full_name')
+    .eq('id', userId)
+    .single()
+
+  // Deactivate any current active terms
+  await supabase
+    .from('membership_terms')
+    .update({ is_active: false })
+    .eq('user_id', userId)
+    .eq('is_active', true)
+
+  const now = new Date()
+  const validUntil = new Date(now)
+  validUntil.setMonth(validUntil.getMonth() + months)
+  const durationYears = Math.max(1, Math.round(months / 12))
+
+  const { data: term, error: termErr } = await supabase
+    .from('membership_terms')
+    .insert({
+      user_id: userId,
+      tier,
+      issued_by: user.id,
+      notes: notes ?? null,
+      valid_from: now.toISOString().split('T')[0],
+      valid_until: validUntil.toISOString().split('T')[0],
+      is_active: true,
+      duration_years: durationYears,
+      approved_by: user.id,
+    })
+    .select('id')
+    .single()
+
+  if (termErr || !term) return { error: termErr?.message ?? 'Failed to create term' }
+
+  const { error: tokenErr } = await supabase
+    .from('membership_tokens')
+    .insert({ term_id: term.id, user_id: userId })
+
+  if (tokenErr) return { error: tokenErr.message }
+
+  await supabase
+    .from('profiles')
+    .update({ tier, membership_status: 'approved' })
+    .eq('id', userId)
+
+  await logActivity(supabase, user.id, 'issue', 'membership_terms', term.id, {
+    user_id: userId,
+    member_name: profile?.full_name,
+    tier,
+    duration_months: months,
+    duration_years: durationYears,
+    valid_until: validUntil.toISOString().split('T')[0],
+  })
+
+  revalidatePath('/admin/members')
+  revalidatePath('/dashboard/membership-card')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Leadership Team CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function saveLeadershipMember(formData: FormData, memberId?: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const name       = (formData.get('name') as string)?.trim()
+  const role       = (formData.get('role') as string)?.trim()
+  const bio        = (formData.get('bio') as string)?.trim() || null
+  const image_url  = (formData.get('image_url') as string)?.trim() || null
+  const sort_order = parseInt(formData.get('sort_order') as string) || 0
+  const is_active  = formData.get('is_active') !== 'false'
+
+  if (!name || !role) return { error: 'Name and role are required' }
+
+  const payload = { name, role, bio, image_url, sort_order, is_active }
+
+  if (memberId) {
+    const { error: dbError } = await supabase
+      .from('leadership_team')
+      .update(payload)
+      .eq('id', memberId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('leadership_team')
+      .insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/about')
+  revalidatePath('/admin/settings')
+  return { success: true }
+}
+
+export async function deleteLeadershipMember(memberId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('leadership_team')
+    .delete()
+    .eq('id', memberId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/about')
+  revalidatePath('/admin/settings')
+  return { success: true }
+}
+
+export async function renewMembership(termId: string, months: number) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { data: term, error: fetchErr } = await supabase
+    .from('membership_terms')
+    .select('user_id, tier, valid_until')
+    .eq('id', termId)
+    .single()
+
+  if (fetchErr || !term) return { error: 'Term not found' }
+
+  await supabase
+    .from('membership_terms')
+    .update({ is_active: false })
+    .eq('id', termId)
+
+  const newFrom = new Date(term.valid_until)
+  const newUntil = new Date(newFrom)
+  newUntil.setMonth(newUntil.getMonth() + months)
+
+  const { data: newTerm, error: termErr } = await supabase
+    .from('membership_terms')
+    .insert({
+      user_id: term.user_id,
+      tier: term.tier,
+      issued_by: user.id,
+      valid_from: newFrom.toISOString().split('T')[0],
+      valid_until: newUntil.toISOString().split('T')[0],
+      is_active: true,
+    })
+    .select('id')
+    .single()
+
+  if (termErr || !newTerm) return { error: termErr?.message ?? 'Failed to renew' }
+
+  await supabase
+    .from('membership_tokens')
+    .insert({ term_id: newTerm.id, user_id: term.user_id })
+
+  revalidatePath('/admin/members')
+  revalidatePath('/dashboard/membership-card')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Gallery CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function saveGalleryItem(formData: FormData, itemId?: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const title       = (formData.get('title') as string)?.trim()
+  const description = (formData.get('description') as string)?.trim() || null
+  const image_url   = (formData.get('image_url') as string)?.trim()
+  const category    = (formData.get('category') as string)?.trim() || null
+  const event_name  = (formData.get('event_name') as string)?.trim() || null
+  const taken_at    = (formData.get('taken_at') as string) || null
+  const sort_order  = parseInt(formData.get('sort_order') as string) || 0
+  const is_active   = formData.get('is_active') !== 'false'
+  const focal_x     = parseFloat(formData.get('focal_x') as string)
+  const focal_y     = parseFloat(formData.get('focal_y') as string)
+
+  if (!title) return { error: 'Title is required' }
+  if (!image_url) return { error: 'Image is required' }
+
+  const payload = {
+    title, description, image_url, category, event_name,
+    taken_at: taken_at || null, sort_order, is_active,
+    focal_x: isNaN(focal_x) ? 50 : focal_x,
+    focal_y: isNaN(focal_y) ? 50 : focal_y,
+  }
+
+  if (itemId) {
+    const { error: dbError } = await supabase
+      .from('gallery_items')
+      .update(payload)
+      .eq('id', itemId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('gallery_items')
+      .insert({ ...payload, created_by: user.id })
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/gallery')
+  revalidatePath('/admin/gallery')
+  return { success: true }
+}
+
+export async function deleteGalleryItem(itemId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('gallery_items')
+    .delete()
+    .eq('id', itemId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/gallery')
+  revalidatePath('/admin/gallery')
+  return { success: true }
+}
+
+export async function toggleGalleryItem(itemId: string, isActive: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('gallery_items')
+    .update({ is_active: isActive })
+    .eq('id', itemId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/gallery')
+  revalidatePath('/admin/gallery')
+  return { success: true }
+}
+
+/** Bulk-update sort_order for gallery items (drag-drop reorder) */
+export async function reorderGalleryItems(orderedIds: string[]) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  // Run updates in parallel
+  await Promise.all(
+    orderedIds.map((id, idx) =>
+      supabase.from('gallery_items').update({ sort_order: idx }).eq('id', id)
+    )
+  )
+
+  revalidatePath('/gallery')
+  revalidatePath('/admin/gallery')
+  return { success: true }
+}
+
+/** Bulk delete gallery items */
+export async function bulkDeleteGalleryItems(ids: string[]) {
+  if (!ids.length) return { success: true }
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbErr } = await supabase
+    .from('gallery_items')
+    .delete()
+    .in('id', ids)
+
+  if (dbErr) return { error: dbErr.message }
+  revalidatePath('/gallery')
+  revalidatePath('/admin/gallery')
+  return { success: true, deleted: ids.length }
+}
+
+// ΓöÇΓöÇΓöÇ FAQs ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function saveFaq(formData: FormData, faqId?: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const question   = (formData.get('question') as string)?.trim()
+  const answer     = (formData.get('answer') as string)?.trim()
+  const category   = (formData.get('category') as string)?.trim() || 'general'
+  const sort_order = Number(formData.get('sort_order')) || 0
+  const is_active  = formData.get('is_active') !== 'false'
+
+  if (!question || !answer) return { error: 'Question and answer are required' }
+
+  if (faqId) {
+    const { error: dbError } = await supabase
+      .from('faqs')
+      .update({ question, answer, category, sort_order, is_active })
+      .eq('id', faqId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('faqs')
+      .insert({ question, answer, category, sort_order, is_active })
+    if (dbError) return { error: dbError.message }
+  }
+
+  revalidatePath('/faq')
+  revalidatePath('/admin/faq')
+  return { success: true }
+}
+
+export async function deleteFaq(faqId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase.from('faqs').delete().eq('id', faqId)
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/faq')
+  revalidatePath('/admin/faq')
+  return { success: true }
+}
+
+export async function toggleFaqStatus(faqId: string, isActive: boolean) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('faqs')
+    .update({ is_active: isActive })
+    .eq('id', faqId)
+
+  if (dbError) return { error: dbError.message }
+  revalidatePath('/faq')
+  revalidatePath('/admin/faq')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Awareness Days CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function saveAwarenessDay(formData: FormData, dayId?: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const name           = (formData.get('name') as string)?.trim()
+  const description    = (formData.get('description') as string)?.trim() || null
+  const dateType       = formData.get('date_type') as string   // 'annual' | 'once'
+  const month          = dateType === 'annual' ? parseInt(formData.get('month') as string) || null : null
+  const day            = dateType === 'annual' ? parseInt(formData.get('day') as string)   || null : null
+  const specific_date  = dateType === 'once'   ? (formData.get('specific_date') as string)?.trim() || null : null
+  const category       = (formData.get('category') as string) || 'international'
+  const priority       = (formData.get('priority') as string) || 'medium'
+  const icon_emoji     = (formData.get('icon_emoji') as string)?.trim() || '≡ƒôà'
+  const theme_color    = (formData.get('theme_color') as string)?.trim() || '#1E3A8A'
+  const banner_message = (formData.get('banner_message') as string)?.trim() || null
+  const link_url       = (formData.get('link_url') as string)?.trim() || null
+  const link_label     = (formData.get('link_label') as string)?.trim() || null
+  const is_active      = formData.get('is_active') !== 'false'
+
+  if (!name) return { error: 'Name is required' }
+
+  const payload = { name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active }
+
+  if (dayId) {
+    const { error: dbError } = await supabase.from('awareness_days').update(payload).eq('id', dayId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase.from('awareness_days').insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  await logActivity(supabase, user.id, dayId ? 'update' : 'create', 'awareness_days', dayId, { name })
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  revalidatePath('/dashboard')
+  revalidatePath('/admin')
+  return { success: true }
+}
+
+export async function deleteAwarenessDay(dayId: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase.from('awareness_days').delete().eq('id', dayId)
+  if (dbError) return { error: dbError.message }
+
+  await logActivity(supabase, user.id, 'delete', 'awareness_days', dayId)
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  revalidatePath('/dashboard')
+  revalidatePath('/admin')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Partners / Sponsors CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function savePartner(formData: FormData, partnerId?: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const name       = (formData.get('name') as string)?.trim()
+  const logo_url   = (formData.get('logo_url') as string)?.trim() || null
+  const website_url = (formData.get('website_url') as string)?.trim() || null
+  const sort_order = parseInt(formData.get('sort_order') as string) || 0
+  const is_active  = formData.get('is_active') !== 'false'
+
+  if (!name) return { error: 'Partner name is required' }
+
+  const payload = { name, logo_url, website_url, sort_order, is_active }
+
+  if (partnerId) {
+    const { error: dbError } = await supabase
+      .from('partners')
+      .update(payload)
+      .eq('id', partnerId)
+    if (dbError) return { error: dbError.message }
+  } else {
+    const { error: dbError } = await supabase
+      .from('partners')
+      .insert(payload)
+    if (dbError) return { error: dbError.message }
+  }
+
+  await logActivity(supabase, user.id, partnerId ? 'update' : 'create', 'partners', partnerId, { name })
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function deletePartner(partnerId: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from('partners')
+    .delete()
+    .eq('id', partnerId)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'delete', 'partners', partnerId)
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function reorderPartners(orderedIds: string[]) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from('partners').update({ sort_order: index }).eq('id', id)
+    )
+  )
+
+  revalidatePath('/admin/settings')
+  revalidatePath('/')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Archive / Unarchive ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+type ArchivableTable = 'blog_posts' | 'announcements' | 'events' | 'programs' | 'documents'
+
+export async function archiveItem(id: string, table: ArchivableTable) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from(table)
+    .update({ is_archived: true } as never)
+    .eq('id', id)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'archive', table, id)
+
+  revalidatePath('/admin')
+  revalidatePath(`/admin/${table === 'blog_posts' ? 'content' : table}`)
+  return { success: true }
+}
+
+export async function unarchiveItem(id: string, table: ArchivableTable) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from(table)
+    .update({ is_archived: false } as never)
+    .eq('id', id)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'unarchive', table, id)
+
+  revalidatePath('/admin')
+  revalidatePath(`/admin/${table === 'blog_posts' ? 'content' : table}`)
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Payment Confirmation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function confirmMemberPayment(profileId: string, paymentRef: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  if (!paymentRef.trim()) return { error: 'Payment reference is required' }
+
+  const { error: dbError } = await supabase
+    .from('profiles')
+    .update({ payment_confirmed: true, payment_reference: paymentRef.trim() })
+    .eq('id', profileId)
+
+  if (dbError) return { error: dbError.message }
+  await logActivity(supabase, user.id, 'payment_confirmed', 'profiles', profileId, { payment_ref: paymentRef.trim() })
+  revalidatePath('/admin/members')
+  return { success: true }
+}
+
+// ΓöÇΓöÇΓöÇ Mark Admin Notifications Read ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export async function markAdminNotificationsRead() {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  await supabase
+    .from('admin_notifications')
+    .update({ is_read: true })
+    .eq('is_read', false)
+
+  revalidatePath('/admin')
+  return { success: true }
+}

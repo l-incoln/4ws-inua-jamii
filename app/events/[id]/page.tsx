@@ -57,7 +57,7 @@ export default async function EventDetailPage({ params }: Props) {
     const { data: rsvp } = await supabase
       .from('rsvps')
       .select('status')
-      .eq('event_id', params.id)
+      .eq('event_id', id)
       .eq('user_id', user.id)
       .maybeSingle()
     if (rsvp) rsvpStatus = rsvp.status as typeof rsvpStatus
@@ -172,7 +172,7 @@ export default async function EventDetailPage({ params }: Props) {
                       : "Secure your spot — it's completely free."}
                   </p>
                   <RsvpButton
-                    eventId={params.id}
+                    eventId={id}
                     isLoggedIn={!!user}
                     initialStatus={rsvpStatus}
                     isFull={isFull}
