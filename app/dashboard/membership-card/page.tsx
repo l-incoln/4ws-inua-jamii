@@ -23,7 +23,7 @@ export default async function MembershipCardPage() {
 
   const { data: activeTerm } = await supabase
     .from('membership_terms')
-    .select('id, tier, valid_from, valid_until, issued_at, is_active, membership_tokens(id, token)')
+    .select('id, tier, valid_from, valid_until, issued_at, is_active')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
@@ -36,14 +36,23 @@ export default async function MembershipCardPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  const token =
-    activeTerm &&
-    Array.isArray(activeTerm.membership_tokens) &&
-    activeTerm.membership_tokens[0]?.token
-      ? activeTerm.membership_tokens[0].token
-      : null
-
-  const verifyUrl = token ? getSignedVerifyUrl(token) : null
+  // Query token directly to avoid PostgREST nested-join shape ambiguity
+  let verifyUrl: string | null = null
+  if (activeTerm) {
+    const { data: tokenRow } = await supabase
+      .from('membership_tokens')
+      .select('token')
+      .eq('user_id', user.id)
+      .eq('term_id', activeTerm.id)
+      .maybeSingle()
+    if (tokenRow?.token) {
+      try {
+        verifyUrl = getSignedVerifyUrl(tokenRow.token)
+      } catch {
+        // MEMBERSHIP_HMAC_SECRET not configured
+      }
+    }
+  }
 
   const [eventsRes, badgesRes, settingsRes] = await Promise.all([
     supabase
