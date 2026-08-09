@@ -14,7 +14,6 @@ const config: Config = {
           50:  '#EEF4FF',
           100: '#D9E5FF',
           200: '#B3CBFF',
-          300: '#86ACFA',
           400: '#4D7FF0',
           500: '#2D5CC8',
           600: '#1E3A8A',   // ← brand core
