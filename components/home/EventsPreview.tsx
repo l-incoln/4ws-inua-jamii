@@ -17,42 +17,6 @@ type Event = {
   status: string
 }
 
-const fallbackEvents: Event[] = [
-  {
-    id: 'preview-1',
-    title: 'Community Health Fair 2026',
-    description: 'Free medical checkups, health education, and wellness screenings for all community members.',
-    event_date: '2026-04-25',
-    location: 'Nairobi Community Center',
-    image_url: 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg',
-    category: 'Health',
-    max_attendees: 350,
-    status: 'upcoming',
-  },
-  {
-    id: 'preview-2',
-    title: 'Youth Entrepreneurship Summit',
-    description: 'A one-day summit connecting young entrepreneurs with mentors, investors, and opportunities.',
-    event_date: '2026-05-10',
-    location: 'Westlands Conference Hall, Nairobi',
-    image_url: 'https://images.pexels.com/photos/325718/pexels-photo-325718.jpeg',
-    category: 'Economic',
-    max_attendees: 200,
-    status: 'upcoming',
-  },
-  {
-    id: 'preview-3',
-    title: 'Tree Planting Day',
-    description: 'Join us as we plant 5,000 trees across Nairobi County in partnership with local schools.',
-    event_date: '2026-06-05',
-    location: 'Multiple Locations, Nairobi',
-    image_url: 'https://images.pexels.com/photos/3185488/pexels-photo-3185488.jpeg',
-    category: 'Environment',
-    max_attendees: 500,
-    status: 'upcoming',
-  },
-]
-
 const categoryColors: Record<string, string> = {
   Health: 'badge-red',
   Economic: 'badge-gold',
@@ -67,8 +31,7 @@ export default function EventsPreview({
   events?: Event[]
   rsvpCounts?: Record<string, number>
 }) {
-  const displayEvents = events.length > 0 ? events : fallbackEvents
-  const isFallback = events.length === 0
+  const displayEvents = events.slice(0, 3)
 
   return (
     <section className="py-16 md:py-24 bg-white section-accent-bar relative overflow-hidden">
@@ -100,12 +63,12 @@ export default function EventsPreview({
         </motion.div>
 
         {/* Events */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {displayEvents.map((event, i) => {
-            const date = event.event_date
-            const rsvpCount = rsvpCounts[event.id] ?? 0
-            const isReal = !isFallback
-            return (
+        {displayEvents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {displayEvents.map((event, i) => {
+              const date = event.event_date
+              const rsvpCount = rsvpCounts[event.id] ?? 0
+              return (
               <motion.article
                 key={event.id}
                 initial={{ opacity: 0, y: 30 }}
@@ -163,30 +126,24 @@ export default function EventsPreview({
                       <MapPin className="w-3.5 h-3.5 text-primary-500" />
                       {event.location}
                     </div>
-                    {isReal && event.max_attendees && (
+                    {event.max_attendees && (
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <Users className="w-3.5 h-3.5 text-primary-500" />
                         {rsvpCount} / {event.max_attendees} RSVPs
-                      </div>
-                    )}
-                    {!isReal && (
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Users className="w-3.5 h-3.5 text-primary-500" />
-                        Up to {event.max_attendees} attendees
                       </div>
                     )}
                   </div>
 
                   <div className="mt-5 flex items-center justify-between">
                     <Link
-                      href={isReal ? `/events/${event.id}` : '/events'}
+                      href={`/events/${event.id}`}
                       className="text-sm font-semibold text-primary-600 hover:text-primary-800 flex items-center gap-1.5 group/link transition-colors"
                     >
                       View Details
                       <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
                     </Link>
                     <Link
-                      href={isReal ? `/events/${event.id}` : '/events'}
+                      href={`/events/${event.id}`}
                       className="px-4 py-2 rounded-full bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-all hover:shadow-md hover:-translate-y-0.5"
                     >
                       RSVP
@@ -196,7 +153,12 @@ export default function EventsPreview({
               </motion.article>
             )
           })}
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-600">
+            No upcoming events are available right now. New events added in the CMS will appear here automatically.
+          </div>
+        )}
       </div>
     </section>
   )
