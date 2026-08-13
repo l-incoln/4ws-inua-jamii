@@ -42,10 +42,15 @@ const securityHeaders = [
   },
 ]
 
+const inlinedSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const inlinedAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 console.log(
-  '[env-check] target=%s public vars present: %s',
+  '[env-check] target=%s url(len=%d, scheme=%s) anon(len=%d) service(len=%d)',
   process.env.VERCEL_ENV ?? 'local',
-  Object.keys(process.env).filter((k) => k.startsWith('NEXT_PUBLIC_')).sort().join(', ') || '(none)',
+  (inlinedSupabaseUrl ?? '').length,
+  (inlinedSupabaseUrl ?? '').slice(0, 8),
+  (inlinedAnonKey ?? '').length,
+  (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').length,
 )
 
 const nextConfig = {
