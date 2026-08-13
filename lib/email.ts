@@ -10,9 +10,13 @@
  * Design principles enforced here:
  *  - Single sender identity: 4W'S INUA JAMII FOUNDATION across every template
  *  - Member emails vs admin emails are clearly separated
- *  - Email failure never breaks membership/auth operations (fire-and-forget pattern)
+ *  - Email failure never breaks membership/auth operations (callers inspect the
+ *    returned SendEmailResult; sendEmail itself never throws)
+ *  - Every value interpolated into a template is HTML-escaped
  *  - All templates are centralised in this one file
  */
+
+import { TIER_LABELS, type MembershipTier } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Constants – single source of truth for branding
@@ -23,6 +27,52 @@ const ORG_COUNTRY = 'Kenya'
 const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.4wsinuajamii.org'
 
 // ---------------------------------------------------------------------------
+// Escaping helpers – member-supplied values reach both member and admin inboxes
+// ---------------------------------------------------------------------------
+const HTML_ENTITIES: Record<string, string> = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}
+
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => HTML_ENTITIES[c])
+}
+
+/** Escapes and converts newlines to <br/> for multi-line free text. */
+function escapeMultiline(value: string): string {
+  return escapeHtml(value).replace(/\r?\n/g, '<br/>')
+}
+
+/** Header injection guard – subjects must be a single line. */
+function sanitiseSubject(subject: string): string {
+  return subject.replace(/[\r\n]+/g, ' ').trim()
+}
+
+function tierLabel(tier: string): string {
+  return TIER_LABELS[tier as MembershipTier] ?? tier
+}
+
+/** Crude but adequate plain-text alternative — improves deliverability. */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '$2 ($1)')
+    .replace(/<\/(p|div|tr|h1|h2|h3|li|ol|ul|table)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&middot;/g, '·')
+    .replace(/&rsquo;/g, '’')
+    .replace(/\n{3,}/g, '\n\n')
+    .split('\n').map((l) => l.trim()).join('\n')
+    .trim()
+}
+
+// ---------------------------------------------------------------------------
 // Core send function
 // ---------------------------------------------------------------------------
 export interface SendEmailOptions {
@@ -30,6 +80,8 @@ export interface SendEmailOptions {
   subject: string
   html: string
   replyTo?: string
+  /** Overrides EMAIL_FROM, e.g. the sender identity configured in the CMS. */
+  from?: string
 }
 
 export interface SendEmailResult {
@@ -40,7 +92,7 @@ export interface SendEmailResult {
 
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
   const apiKey  = process.env.RESEND_API_KEY
-  const from    = process.env.EMAIL_FROM    ?? `${ORG_NAME} <noreply@4wsinuajamii.org>`
+  const from    = opts.from ?? process.env.EMAIL_FROM ?? `${ORG_NAME} <noreply@4wsinuajamii.org>`
   const replyTo = opts.replyTo ?? process.env.EMAIL_REPLY_TO ?? undefined
 
   if (!apiKey) {
@@ -58,8 +110,9 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
       body: JSON.stringify({
         from,
         to:       Array.isArray(opts.to) ? opts.to : [opts.to],
-        subject:  opts.subject,
+        subject:  sanitiseSubject(opts.subject),
         html:     opts.html,
+        text:     htmlToText(opts.html),
         reply_to: replyTo,
       }),
     })
@@ -77,6 +130,61 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
     console.error('[email]', msg)
     return { success: false, error: msg }
   }
+}
+
+/**
+ * Sends up to 100 messages per Resend batch request — used by bulk admin
+ * actions so they stay inside Resend's request rate limit.
+ */
+export async function sendEmailBatch(messages: SendEmailOptions[]): Promise<SendEmailResult[]> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!messages.length) return []
+
+  if (!apiKey) {
+    console.warn('[email] RESEND_API_KEY not set — batch skipped')
+    return messages.map(() => ({ success: false, error: 'Email not configured' }))
+  }
+
+  const results: SendEmailResult[] = []
+
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100)
+    try {
+      const res = await fetch('https://api.resend.com/emails/batch', {
+        method:  'POST',
+        headers: {
+          Authorization:  `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(chunk.map((m) => ({
+          from:     m.from ?? process.env.EMAIL_FROM ?? `${ORG_NAME} <noreply@4wsinuajamii.org>`,
+          to:       Array.isArray(m.to) ? m.to : [m.to],
+          subject:  sanitiseSubject(m.subject),
+          html:     m.html,
+          text:     htmlToText(m.html),
+          reply_to: m.replyTo ?? process.env.EMAIL_REPLY_TO ?? undefined,
+        }))),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        console.error('[email] Resend batch error', data)
+        const error = data.message ?? 'Batch send failed'
+        results.push(...chunk.map(() => ({ success: false, error })))
+        continue
+      }
+
+      const sent: Array<{ id?: string }> = data.data ?? []
+      results.push(...chunk.map((_, idx) => ({ success: true, id: sent[idx]?.id })))
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'Unknown error'
+      console.error('[email] batch', error)
+      results.push(...chunk.map(() => ({ success: false, error })))
+    }
+  }
+
+  return results
 }
 
 // ---------------------------------------------------------------------------
@@ -145,27 +253,40 @@ function infoRow(label: string, value: string) {
 //    Purpose: confirm we received their membership application.
 //    Separate from Supabase's own "confirm your email" message.
 // ---------------------------------------------------------------------------
-export function applicationReceivedHtml({ name, tier }: { name: string; tier: string }) {
-  const tierLabel: Record<string, string> = { basic: 'Classic', active: 'Premium', champion: 'Gold' }
-  const body = `
-    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${name}</strong>,</p>
-    <p style="color:#334155;font-size:15px;line-height:1.6;">
+export function applicationReceivedHtml({
+  name,
+  tier,
+  customMessage,
+  requiresEmailConfirmation = true,
+}: {
+  name: string
+  tier: string
+  /** Optional CMS-authored intro (site_settings.welcome_email_body). */
+  customMessage?: string
+  requiresEmailConfirmation?: boolean
+}) {
+  const intro = customMessage
+    ? `<p style="color:#334155;font-size:15px;line-height:1.6;">${escapeMultiline(customMessage)}</p>`
+    : `<p style="color:#334155;font-size:15px;line-height:1.6;">
       Thank you for registering with <strong>${ORG_NAME}</strong>.
       We have received your membership application and it is now under review by our team.
-    </p>
+    </p>`
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
+    ${intro}
 
     <div style="background:#f0f9ff;border-left:4px solid #1E3A8A;border-radius:6px;padding:16px 20px;margin:24px 0;">
       <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#1E3A8A;text-transform:uppercase;letter-spacing:0.08em;">Your Application Summary</p>
       <table style="width:100%;border-collapse:collapse;">
-        ${infoRow('Name', name)}
-        ${infoRow('Membership Tier', tierLabel[tier] ?? tier)}
+        ${infoRow('Name', escapeHtml(name))}
+        ${infoRow('Membership Tier', escapeHtml(tierLabel(tier)))}
         ${infoRow('Status', 'Pending Review')}
       </table>
     </div>
 
     <p style="color:#334155;font-size:15px;line-height:1.6;"><strong>What happens next?</strong></p>
     <ol style="color:#475569;font-size:14px;line-height:1.8;padding-left:20px;">
-      <li>Please confirm your email address using the separate confirmation link sent by our system.</li>
+      ${requiresEmailConfirmation ? '<li>Please confirm your email address using the separate confirmation link sent by our system.</li>' : ''}
       <li>Our team will review your application and verify your details.</li>
       <li>Once approved, you will receive a membership approval email with access to your digital membership card.</li>
     </ol>
@@ -193,12 +314,13 @@ export function membershipApprovedHtml({
 }: {
   name: string
   tier: string
-  memberId: string
-  validUntil: string
+  /** Verification ID printed on the membership card, when a term exists. */
+  memberId?: string | null
+  /** Formatted expiry date, when a term exists. */
+  validUntil?: string | null
 }) {
-  const tierLabel: Record<string, string> = { basic: 'Classic', active: 'Premium', champion: 'Gold' }
   const body = `
-    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${name}</strong>,</p>
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       We are pleased to inform you that your membership application to
       <strong>${ORG_NAME}</strong> has been <strong style="color:#16a34a;">approved</strong>.
@@ -208,10 +330,10 @@ export function membershipApprovedHtml({
     <div style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:6px;padding:16px 20px;margin:24px 0;">
       <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:0.08em;">Membership Details</p>
       <table style="width:100%;border-collapse:collapse;">
-        ${infoRow('Member Name', name)}
-        ${infoRow('Membership Tier', tierLabel[tier] ?? tier)}
-        ${infoRow('Member ID', memberId)}
-        ${infoRow('Valid Until', validUntil)}
+        ${infoRow('Member Name', escapeHtml(name))}
+        ${infoRow('Membership Tier', escapeHtml(tierLabel(tier)))}
+        ${memberId ? infoRow('Member ID', escapeHtml(memberId)) : ''}
+        ${validUntil ? infoRow('Valid Until', escapeHtml(validUntil)) : ''}
         ${infoRow('Status', 'Active ✓')}
       </table>
     </div>
@@ -219,8 +341,7 @@ export function membershipApprovedHtml({
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       You now have full access to your member dashboard, digital membership card, events, and programs.
     </p>
-    ${emailButton('Go to My Dashboard', `${SITE_URL}/dashboard`, '#16a34a')}
-    ${emailButton('View My Membership Card', `${SITE_URL}/dashboard/membership-card`, '#1E3A8A')}
+    ${emailButton('View My Membership Card', `${SITE_URL}/dashboard/membership-card`, '#16a34a')}
 
     <p style="color:#64748b;font-size:13px;margin-top:28px;">
       Your digital membership card includes a QR code that can be used for verification at all
@@ -236,11 +357,55 @@ export function membershipApprovedHtml({
 }
 
 // ---------------------------------------------------------------------------
+// 2b. MEMBERSHIP RENEWED  (sent to member when an admin renews their term)
+// ---------------------------------------------------------------------------
+export function membershipRenewedHtml({
+  name,
+  tier,
+  memberId,
+  validUntil,
+}: {
+  name: string
+  tier: string
+  memberId?: string | null
+  validUntil?: string | null
+}) {
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      Your membership with <strong>${ORG_NAME}</strong> has been renewed. Thank you for
+      continuing to walk this journey with us.
+    </p>
+
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:6px;padding:16px 20px;margin:24px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:0.08em;">Renewed Membership</p>
+      <table style="width:100%;border-collapse:collapse;">
+        ${infoRow('Member Name', escapeHtml(name))}
+        ${infoRow('Membership Tier', escapeHtml(tierLabel(tier)))}
+        ${memberId ? infoRow('Member ID', escapeHtml(memberId)) : ''}
+        ${validUntil ? infoRow('Valid Until', escapeHtml(validUntil)) : ''}
+      </table>
+    </div>
+
+    <p style="color:#64748b;font-size:13px;">
+      Your membership card has been updated with the new dates and QR code.
+    </p>
+    ${emailButton('View My Membership Card', `${SITE_URL}/dashboard/membership-card`, '#16a34a')}
+  `
+  return emailLayout({
+    headerTitle:    'Membership Renewed',
+    headerSubtitle: `Your ${ORG_NAME} membership has been extended.`,
+    headerColor:    '#16a34a',
+    body,
+  })
+}
+
+// ---------------------------------------------------------------------------
 // 3. MEMBERSHIP REJECTED  (sent to member when admin rejects their application)
 // ---------------------------------------------------------------------------
 export function membershipRejectedHtml({ name, reason }: { name: string; reason?: string }) {
   const body = `
-    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${name}</strong>,</p>
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       Thank you for your interest in joining <strong>${ORG_NAME}</strong>.
       After reviewing your application, we are unfortunately unable to approve your membership at this time.
@@ -248,7 +413,7 @@ export function membershipRejectedHtml({ name, reason }: { name: string; reason?
     ${reason ? `
     <div style="background:#fff7ed;border-left:4px solid #f97316;border-radius:6px;padding:16px 20px;margin:24px 0;">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#ea580c;">Reason</p>
-      <p style="margin:0;color:#334155;font-size:14px;">${reason}</p>
+      <p style="margin:0;color:#334155;font-size:14px;">${escapeMultiline(reason)}</p>
     </div>` : ''}
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       If you believe this decision was made in error, or if you would like more information,
@@ -273,7 +438,7 @@ export function membershipRejectedHtml({ name, reason }: { name: string; reason?
 // ---------------------------------------------------------------------------
 export function membershipPendingHtml({ name, note }: { name: string; note?: string }) {
   const body = `
-    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${name}</strong>,</p>
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       We are following up regarding your membership application with <strong>${ORG_NAME}</strong>.
       Your application is currently on hold pending further review.
@@ -281,7 +446,7 @@ export function membershipPendingHtml({ name, note }: { name: string; note?: str
     ${note ? `
     <div style="background:#fefce8;border-left:4px solid #eab308;border-radius:6px;padding:16px 20px;margin:24px 0;">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#ca8a04;">Additional Information Required</p>
-      <p style="margin:0;color:#334155;font-size:14px;">${note}</p>
+      <p style="margin:0;color:#334155;font-size:14px;">${escapeMultiline(note)}</p>
     </div>` : ''}
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       Please contact us so we can complete the review of your application.
@@ -311,16 +476,15 @@ export function adminNewMemberHtml({
   tier: string
   phone?: string | null
 }) {
-  const tierLabel: Record<string, string> = { basic: 'Classic', active: 'Premium', champion: 'Gold' }
   const body = `
     <p style="color:#334155;font-size:15px;margin-top:0;">A new member has registered and is awaiting approval.</p>
 
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:20px 0;">
       <table style="width:100%;border-collapse:collapse;">
-        ${infoRow('Name', memberName)}
-        ${infoRow('Email', memberEmail)}
-        ${infoRow('Phone', phone ?? 'Not provided')}
-        ${infoRow('Applied Tier', tierLabel[tier] ?? tier)}
+        ${infoRow('Name', escapeHtml(memberName))}
+        ${infoRow('Email', escapeHtml(memberEmail))}
+        ${infoRow('Phone', escapeHtml(phone ?? 'Not provided'))}
+        ${infoRow('Applied Tier', escapeHtml(tierLabel(tier)))}
         ${infoRow('Status', 'Pending Approval')}
       </table>
     </div>
@@ -333,7 +497,7 @@ export function adminNewMemberHtml({
   `
   return emailLayout({
     headerTitle:    'New Member Application',
-    headerSubtitle: `${memberName} has registered and is awaiting your approval.`,
+    headerSubtitle: `${escapeHtml(memberName)} has registered and is awaiting your approval.`,
     headerColor:    '#1E3A8A',
     body,
   })
@@ -354,7 +518,7 @@ export function donationReceiptHtml({
   date: string
 }) {
   const body = `
-    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${name}</strong>,</p>
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       Thank you for your generous donation to <strong>${ORG_NAME}</strong>.
       Your contribution directly supports our programs and makes a real difference in our community.
@@ -364,8 +528,8 @@ export function donationReceiptHtml({
       <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:0.08em;">Donation Receipt</p>
       <table style="width:100%;border-collapse:collapse;">
         ${infoRow('Amount', `KES ${amount.toLocaleString()}`)}
-        ${infoRow('Reference', reference)}
-        ${infoRow('Date', date)}
+        ${infoRow('Reference', escapeHtml(reference))}
+        ${infoRow('Date', escapeHtml(date))}
         ${infoRow('Organisation', ORG_NAME)}
       </table>
     </div>
@@ -389,7 +553,7 @@ export function donationReceiptHtml({
 // ---------------------------------------------------------------------------
 export function welcomeEmailHtml({ name }: { name: string }) {
   const body = `
-    <p style="color:#334155;font-size:15px;margin-top:0;">Hi <strong>${name}</strong>,</p>
+    <p style="color:#334155;font-size:15px;margin-top:0;">Hi <strong>${escapeHtml(name)}</strong>,</p>
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       Welcome to <strong>${ORG_NAME}</strong>! We are thrilled to have you join our community
       of change-makers across Kenya.

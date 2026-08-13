@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, escapeHtml } from '@/lib/email'
+import { getEmailSettings } from '@/lib/email-settings'
 import { z } from 'zod'
 
 const contactSchema = z.object({
@@ -48,25 +49,19 @@ export async function submitContactMessage(
   if (error) return { error: 'Failed to send message. Please try again.' }
 
   // Notify admin by email (best-effort, don't block response)
-  const { data: settings } = await supabase
-    .from('site_settings')
-    .select('value')
-    .eq('key', 'admin_notify_email')
-    .maybeSingle()
-
-  const adminEmail = settings?.value as string | undefined
-  if (adminEmail) {
-    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const settings = await getEmailSettings(supabase)
+  if (settings.adminEmails.length) {
     await sendEmail({
-      to: adminEmail,
+      to: settings.adminEmails,
       subject: `[Inua Jamii] New contact message: ${parsed.data.subject}`,
       replyTo: parsed.data.email,
+      from: settings.fromHeader,
       html: `
         <h2>New Contact Message</h2>
-        <p><strong>From:</strong> ${esc(parsed.data.name)} &lt;${esc(parsed.data.email)}&gt;</p>
-        <p><strong>Subject:</strong> ${esc(parsed.data.subject)}</p>
+        <p><strong>From:</strong> ${escapeHtml(parsed.data.name)} &lt;${escapeHtml(parsed.data.email)}&gt;</p>
+        <p><strong>Subject:</strong> ${escapeHtml(parsed.data.subject)}</p>
         <hr />
-        <p style="white-space: pre-wrap;">${esc(parsed.data.message)}</p>
+        <p style="white-space: pre-wrap;">${escapeHtml(parsed.data.message)}</p>
         <hr />
         <p style="color:#888;font-size:12px;">Sent via Inua Jamii contact form</p>
       `,

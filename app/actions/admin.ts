@@ -7,12 +7,10 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import type { MembershipTier } from '@/types'
 import {
-  sendEmail,
-  membershipApprovedHtml,
-  membershipRejectedHtml,
-  membershipPendingHtml,
-} from '@/lib/email'
-import { createAdminClient as createServiceClient } from '@/lib/supabase/admin-client'
+  sendMembershipStatusEmail,
+  sendMembershipStatusEmails,
+  sendMembershipRenewedEmail,
+} from '@/lib/notifications/membership'
 
 // ΓöÇΓöÇΓöÇ Auth guard ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function requireAdmin() {
@@ -59,19 +57,12 @@ export async function updateMemberStatus(
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }
 
-  // Fetch member profile (name, tier) and auth email before updating
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, tier')
+    .select('membership_status')
     .eq('id', profileId)
     .single()
 
-  // Retrieve email from Supabase Auth (profiles table may not store email)
-  const serviceClient = createServiceClient()
-  const { data: authUser } = await serviceClient.auth.admin.getUserById(profileId)
-  const memberEmail = authUser?.user?.email
-
-  // Update membership status in DB
   const { error: dbError } = await supabase
     .from('profiles')
     .update({ membership_status: status })
@@ -88,35 +79,9 @@ export async function updateMemberStatus(
     { new_status: status },
   )
 
-  // Send status-specific email to member (fire-and-forget; never breaks the DB operation)
-  if (memberEmail && profile?.full_name) {
-    const name = profile.full_name
-    const tier = profile.tier ?? 'basic'
-
-    if (status === 'approved') {
-      sendEmail({
-        to:      memberEmail,
-        subject: `Your Membership Has Been Approved — 4W'S Inua Jamii Foundation`,
-        html:    membershipApprovedHtml({
-          name,
-          tier,
-          memberId:   `4WS-${profileId.slice(0, 8).toUpperCase()}`,
-          validUntil: 'See your membership card for full details.',
-        }),
-      }).catch((err) => console.error('[email] approval email failed:', err))
-    } else if (status === 'rejected') {
-      sendEmail({
-        to:      memberEmail,
-        subject: `Membership Application Update — 4W'S Inua Jamii Foundation`,
-        html:    membershipRejectedHtml({ name, reason: adminNote }),
-      }).catch((err) => console.error('[email] rejection email failed:', err))
-    } else if (status === 'pending') {
-      sendEmail({
-        to:      memberEmail,
-        subject: `Action Required: Membership Application — 4W'S Inua Jamii Foundation`,
-        html:    membershipPendingHtml({ name, note: adminNote }),
-      }).catch((err) => console.error('[email] pending email failed:', err))
-    }
+  // Only email on an actual transition, so re-applying a status does not resend.
+  if (profile?.membership_status !== status) {
+    await sendMembershipStatusEmail({ profileId, status, note: adminNote })
   }
 
   revalidatePath('/admin/members')
@@ -753,10 +718,21 @@ export async function updateDonationStatus(
 export async function bulkUpdateMemberStatus(
   profileIds: string[],
   status: 'approved' | 'rejected' | 'pending',
+  adminNote?: string,
 ) {
   const { supabase, error } = await requireAdmin()
   if (error || !supabase) return { error }
   if (!profileIds.length) return { error: 'No members selected' }
+
+  // Members already in the target status must not be emailed again.
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id, membership_status')
+    .in('id', profileIds)
+
+  const transitioning = (existing ?? [])
+    .filter((p) => p.membership_status !== status)
+    .map((p) => p.id as string)
 
   // Update DB first — this must succeed regardless of email outcome
   const { error: dbError } = await supabase
@@ -766,53 +742,7 @@ export async function bulkUpdateMemberStatus(
 
   if (dbError) return { error: dbError.message }
 
-  // Send individual emails to each affected member (fire-and-forget)
-  // Fetch profiles and auth emails for all affected members
-  const serviceClient = createServiceClient()
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, full_name, tier')
-    .in('id', profileIds)
-
-  if (profiles?.length) {
-    for (const p of profiles) {
-      try {
-        const { data: authUser } = await serviceClient.auth.admin.getUserById(p.id)
-        const memberEmail = authUser?.user?.email
-        if (!memberEmail || !p.full_name) continue
-
-        const name = p.full_name
-        const tier = p.tier ?? 'basic'
-
-        if (status === 'approved') {
-          sendEmail({
-            to:      memberEmail,
-            subject: `Your Membership Has Been Approved — 4W'S Inua Jamii Foundation`,
-            html:    membershipApprovedHtml({
-              name,
-              tier,
-              memberId:   `4WS-${p.id.slice(0, 8).toUpperCase()}`,
-              validUntil: 'See your membership card for full details.',
-            }),
-          }).catch((err) => console.error(`[email] bulk approval email failed for ${p.id}:`, err))
-        } else if (status === 'rejected') {
-          sendEmail({
-            to:      memberEmail,
-            subject: `Membership Application Update — 4W'S Inua Jamii Foundation`,
-            html:    membershipRejectedHtml({ name }),
-          }).catch((err) => console.error(`[email] bulk rejection email failed for ${p.id}:`, err))
-        } else if (status === 'pending') {
-          sendEmail({
-            to:      memberEmail,
-            subject: `Action Required: Membership Application — 4W'S Inua Jamii Foundation`,
-            html:    membershipPendingHtml({ name }),
-          }).catch((err) => console.error(`[email] bulk pending email failed for ${p.id}:`, err))
-        }
-      } catch (emailErr) {
-        console.error(`[email] bulk status email error for member ${p.id}:`, emailErr)
-      }
-    }
-  }
+  await sendMembershipStatusEmails({ profileIds: transitioning, status, note: adminNote })
 
   revalidatePath('/admin/members')
   return { success: true, count: profileIds.length }
@@ -1157,6 +1087,9 @@ export async function issueMembership(
     .update({ tier, membership_status: 'approved' })
     .eq('id', userId)
 
+  // Issuing a term is an approval in its own right — the member gets the same email.
+  await sendMembershipStatusEmail({ profileId: userId, status: 'approved' })
+
   await logActivity(supabase, user.id, 'issue', 'membership_terms', term.id, {
     user_id: userId,
     member_name: profile?.full_name,
@@ -1259,6 +1192,8 @@ export async function renewMembership(termId: string, months: number) {
   await supabase
     .from('membership_tokens')
     .insert({ term_id: newTerm.id, user_id: term.user_id })
+
+  await sendMembershipRenewedEmail(term.user_id)
 
   revalidatePath('/admin/members')
   revalidatePath('/dashboard/membership-card')
