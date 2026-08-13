@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff, QrCode, ChevronRight, AlertTriangle } from 'lucide-react'
+import BirthdaySettingsCard from '@/components/dashboard/BirthdaySettingsCard'
 
 const DEFAULT_PREFS = {
   event_reminders: true,
@@ -308,6 +309,9 @@ export default function DashboardSettingsPage() {
           {notifLoading ? 'Saving…' : notifSaved ? 'Saved!' : 'Save Preferences'}
         </button>
       </div>
+
+      {/* Birthday */}
+      <BirthdaySettingsCard />
 
       {/* Verification & Privacy */}
       <div className="card p-6">

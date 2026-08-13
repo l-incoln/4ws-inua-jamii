@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { CalendarCheck, Bell, ArrowRight, Users, Heart, Star } from 'lucide-react'
 import { getTierStyle } from '@/lib/tier-colors'
 import AwarenessGreeting from '@/components/awareness/AwarenessGreeting'
+import BirthdayCelebration from '@/components/dashboard/BirthdayCelebration'
 import { getAwarenessDaysForDate, getUpcomingAwarenessDays } from '@/lib/awareness'
+import { isBirthdayOn, todayInZone } from '@/lib/birthdays'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -15,8 +17,11 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
+  const todayIso = todayInZone()
+  const [todayMonth, todayDay] = todayIso.split('-').slice(1).map(Number)
+
   // Fetch real stats and announcements in parallel
-  const [rsvpRes, donationRes, profileRes, announcementsRes, awarenessRes] = await Promise.all([
+  const [rsvpRes, donationRes, profileRes, announcementsRes, awarenessRes, myBirthdayRes, communityBirthdaysRes] = await Promise.all([
     supabase
       .from('rsvps')
       .select('id', { count: 'exact', head: true })
@@ -41,6 +46,18 @@ export default async function DashboardPage() {
       .from('awareness_days')
       .select('id, name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active')
       .eq('is_active', true),
+    // RLS restricts this to the member's own row
+    supabase
+      .from('member_birthdays')
+      .select('birth_date, receive_greetings')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    // Opted-in members only; the view exposes day + month, never the year
+    supabase
+      .from('public_birthdays')
+      .select('user_id, full_name, avatar_url')
+      .eq('birth_month', todayMonth)
+      .eq('birth_day', todayDay),
   ])
 
   const eventsAttended = rsvpRes.count ?? 0
@@ -54,6 +71,10 @@ export default async function DashboardPage() {
   const isApproved = profileRes.data?.membership_status === 'approved'
 
   const announcements = announcementsRes.data ?? []
+
+  const myBirthday = myBirthdayRes.data
+  const isMyBirthday = !!myBirthday?.receive_greetings && isBirthdayOn(myBirthday.birth_date as string, todayIso)
+  const communityBirthdays = (communityBirthdaysRes.data ?? []).filter((m) => m.user_id !== user.id)
 
   const today = new Date()
   const todayAwarenessDays    = getAwarenessDaysForDate(awarenessRes.data ?? [], today)
@@ -98,6 +119,13 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Birthdays */}
+      <BirthdayCelebration
+        isMyBirthday={isMyBirthday}
+        memberName={displayName}
+        others={communityBirthdays}
+      />
 
       {/* Awareness greeting */}
       <AwarenessGreeting

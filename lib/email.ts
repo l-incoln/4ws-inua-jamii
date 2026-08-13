@@ -47,6 +47,14 @@ function sanitiseSubject(subject: string): string {
   return subject.replace(/[\r\n]+/g, ' ').trim()
 }
 
+/**
+ * Subject lines are not HTML, so escaping would show entities to the reader.
+ * Drop any markup instead, keeping a member-supplied name readable.
+ */
+export function plainSubjectText(value: string): string {
+  return value.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim()
+}
+
 function tierLabel(tier: string): string {
   return TIER_LABELS[tier as MembershipTier] ?? tier
 }
@@ -543,6 +551,92 @@ export function donationReceiptHtml({
     headerTitle:    'Thank You for Your Donation',
     headerSubtitle: 'Your generosity changes lives.',
     headerColor:    '#16a34a',
+    body,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// 6b. BIRTHDAY — TEAM REMINDER (sent one day before, to the membership desk)
+//     Internal only: contains the day/month so a poster can be prepared, and
+//     flags whether the member consented to a public celebration.
+// ---------------------------------------------------------------------------
+export function birthdayTeamReminderHtml({
+  celebrationDate,
+  members,
+}: {
+  /** Formatted date of the birthday itself (i.e. tomorrow). */
+  celebrationDate: string
+  members: Array<{ name: string; tier: string; isPublic: boolean }>
+}) {
+  const rows = members.map((m) => `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600;">${escapeHtml(m.name)}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;text-align:center;">${escapeHtml(tierLabel(m.tier))}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:13px;text-align:right;color:${m.isPublic ? '#16a34a' : '#b45309'};font-weight:600;">
+        ${m.isPublic ? 'Public celebration OK' : 'Private — do not post'}
+      </td>
+    </tr>`).join('')
+
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">
+      ${members.length === 1 ? 'One member celebrates' : `${members.length} members celebrate`} a birthday
+      <strong>tomorrow, ${escapeHtml(celebrationDate)}</strong>. Time to prepare the poster and message.
+    </p>
+
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:20px 0;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <th style="text-align:left;padding-bottom:8px;color:#64748b;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Member</th>
+          <th style="text-align:center;padding-bottom:8px;color:#64748b;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Tier</th>
+          <th style="text-align:right;padding-bottom:8px;color:#64748b;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Privacy</th>
+        </tr>
+        ${rows}
+      </table>
+    </div>
+
+    <p style="color:#334155;font-size:14px;line-height:1.6;">
+      Members marked <strong>Private</strong> have not consented to a public celebration — greet them
+      directly, but do not post them on social media or the community feed.
+    </p>
+
+    ${emailButton('Open Admin Panel', `${SITE_URL}/admin/members`, '#1E3A8A')}
+
+    <p style="color:#64748b;font-size:13px;margin-top:24px;">
+      This is an automated reminder from the ${ORG_NAME} membership system.
+    </p>
+  `
+  return emailLayout({
+    headerTitle:    'Birthday Tomorrow',
+    headerSubtitle: `Prepare a celebration for ${escapeHtml(celebrationDate)}.`,
+    headerColor:    '#b45309',
+    body,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// 6c. BIRTHDAY — MEMBER GREETING (sent to the member on the day)
+// ---------------------------------------------------------------------------
+export function birthdayGreetingHtml({ name }: { name: string }) {
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      Happy birthday from everyone at <strong>${ORG_NAME}</strong>! 🎉
+    </p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      Thank you for the wisdom, wellness, wealth, and worth you bring to this community.
+      We hope your day is full of joy, and we look forward to another year of building together.
+    </p>
+    ${emailButton('See Your Birthday Dashboard', `${SITE_URL}/dashboard`, '#db2777')}
+
+    <p style="color:#64748b;font-size:13px;margin-top:28px;">
+      You can change your birthday and celebration preferences any time under
+      Dashboard &rsaquo; Settings.
+    </p>
+  `
+  return emailLayout({
+    headerTitle:    `Happy Birthday, ${escapeHtml(name)}! 🎂`,
+    headerSubtitle: 'With warm wishes from the whole 4W’S family.',
+    headerColor:    '#db2777',
     body,
   })
 }
