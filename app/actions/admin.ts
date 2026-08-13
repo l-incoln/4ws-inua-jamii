@@ -6,6 +6,13 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import type { MembershipTier } from '@/types'
+import {
+  sendEmail,
+  membershipApprovedHtml,
+  membershipRejectedHtml,
+  membershipPendingHtml,
+} from '@/lib/email'
+import { createAdminClient as createServiceClient } from '@/lib/supabase/admin-client'
 
 // ΓöÇΓöÇΓöÇ Auth guard ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function requireAdmin() {
@@ -44,17 +51,74 @@ async function logActivity(
 }
 
 // ΓöÇΓöÇΓöÇ Member Management ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-export async function updateMemberStatus(profileId: string, status: 'approved' | 'rejected' | 'pending') {
+export async function updateMemberStatus(
+  profileId: string,
+  status: 'approved' | 'rejected' | 'pending',
+  adminNote?: string,
+) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }
 
+  // Fetch member profile (name, tier) and auth email before updating
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, tier')
+    .eq('id', profileId)
+    .single()
+
+  // Retrieve email from Supabase Auth (profiles table may not store email)
+  const serviceClient = createServiceClient()
+  const { data: authUser } = await serviceClient.auth.admin.getUserById(profileId)
+  const memberEmail = authUser?.user?.email
+
+  // Update membership status in DB
   const { error: dbError } = await supabase
     .from('profiles')
     .update({ membership_status: status })
     .eq('id', profileId)
 
   if (dbError) return { error: dbError.message }
-  await logActivity(supabase, user.id, status === 'approved' ? 'approve' : status === 'rejected' ? 'reject' : 'update', 'profiles', profileId, { new_status: status })
+
+  await logActivity(
+    supabase,
+    user.id,
+    status === 'approved' ? 'approve' : status === 'rejected' ? 'reject' : 'update',
+    'profiles',
+    profileId,
+    { new_status: status },
+  )
+
+  // Send status-specific email to member (fire-and-forget; never breaks the DB operation)
+  if (memberEmail && profile?.full_name) {
+    const name = profile.full_name
+    const tier = profile.tier ?? 'basic'
+
+    if (status === 'approved') {
+      sendEmail({
+        to:      memberEmail,
+        subject: `Your Membership Has Been Approved — 4W'S Inua Jamii Foundation`,
+        html:    membershipApprovedHtml({
+          name,
+          tier,
+          memberId:   `4WS-${profileId.slice(0, 8).toUpperCase()}`,
+          validUntil: 'See your membership card for full details.',
+        }),
+      }).catch((err) => console.error('[email] approval email failed:', err))
+    } else if (status === 'rejected') {
+      sendEmail({
+        to:      memberEmail,
+        subject: `Membership Application Update — 4W'S Inua Jamii Foundation`,
+        html:    membershipRejectedHtml({ name, reason: adminNote }),
+      }).catch((err) => console.error('[email] rejection email failed:', err))
+    } else if (status === 'pending') {
+      sendEmail({
+        to:      memberEmail,
+        subject: `Action Required: Membership Application — 4W'S Inua Jamii Foundation`,
+        html:    membershipPendingHtml({ name, note: adminNote }),
+      }).catch((err) => console.error('[email] pending email failed:', err))
+    }
+  }
+
   revalidatePath('/admin/members')
   return { success: true }
 }
@@ -688,18 +752,68 @@ export async function updateDonationStatus(
 // ΓöÇΓöÇΓöÇ Bulk Member Actions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export async function bulkUpdateMemberStatus(
   profileIds: string[],
-  status: 'approved' | 'rejected' | 'pending'
+  status: 'approved' | 'rejected' | 'pending',
 ) {
   const { supabase, error } = await requireAdmin()
   if (error || !supabase) return { error }
   if (!profileIds.length) return { error: 'No members selected' }
 
+  // Update DB first — this must succeed regardless of email outcome
   const { error: dbError } = await supabase
     .from('profiles')
     .update({ membership_status: status })
     .in('id', profileIds)
 
   if (dbError) return { error: dbError.message }
+
+  // Send individual emails to each affected member (fire-and-forget)
+  // Fetch profiles and auth emails for all affected members
+  const serviceClient = createServiceClient()
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, tier')
+    .in('id', profileIds)
+
+  if (profiles?.length) {
+    for (const p of profiles) {
+      try {
+        const { data: authUser } = await serviceClient.auth.admin.getUserById(p.id)
+        const memberEmail = authUser?.user?.email
+        if (!memberEmail || !p.full_name) continue
+
+        const name = p.full_name
+        const tier = p.tier ?? 'basic'
+
+        if (status === 'approved') {
+          sendEmail({
+            to:      memberEmail,
+            subject: `Your Membership Has Been Approved — 4W'S Inua Jamii Foundation`,
+            html:    membershipApprovedHtml({
+              name,
+              tier,
+              memberId:   `4WS-${p.id.slice(0, 8).toUpperCase()}`,
+              validUntil: 'See your membership card for full details.',
+            }),
+          }).catch((err) => console.error(`[email] bulk approval email failed for ${p.id}:`, err))
+        } else if (status === 'rejected') {
+          sendEmail({
+            to:      memberEmail,
+            subject: `Membership Application Update — 4W'S Inua Jamii Foundation`,
+            html:    membershipRejectedHtml({ name }),
+          }).catch((err) => console.error(`[email] bulk rejection email failed for ${p.id}:`, err))
+        } else if (status === 'pending') {
+          sendEmail({
+            to:      memberEmail,
+            subject: `Action Required: Membership Application — 4W'S Inua Jamii Foundation`,
+            html:    membershipPendingHtml({ name }),
+          }).catch((err) => console.error(`[email] bulk pending email failed for ${p.id}:`, err))
+        }
+      } catch (emailErr) {
+        console.error(`[email] bulk status email error for member ${p.id}:`, emailErr)
+      }
+    }
+  }
+
   revalidatePath('/admin/members')
   return { success: true, count: profileIds.length }
 }

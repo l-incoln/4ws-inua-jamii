@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { sendEmail, welcomeEmailHtml } from '@/lib/email'
+import { sendEmail, applicationReceivedHtml, adminNewMemberHtml } from '@/lib/email'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -104,26 +104,53 @@ export async function signup(formData: FormData) {
     return { error: error.message }
   }
 
-  if (data?.user && !data?.session) {
-    return { success: true, message: 'Check your email to confirm your account.' }
-  }
-
-  // Send welcome email if enabled in CMS
+    // At this point, data.user exists.
+  // Supabase handles account email confirmation separately.
+  // We send our own "Application Received" email to the member,
+  // and a "New Member" notification to the admin — regardless of session state.
   if (data?.user) {
+    // Fetch email-related settings from CMS (non-blocking; don't let failure break signup)
     const { data: emailSettings } = await supabase
       .from('site_settings')
       .select('key, value')
-      .in('key', ['welcome_email_enabled', 'welcome_email_body', 'from_email', 'from_name'])
+      .in('key', ['welcome_email_enabled', 'admin_notify_new_member', 'admin_notify_email'])
 
     const es = Object.fromEntries((emailSettings ?? []).map((r) => [r.key, r.value ?? '']))
+
+    // Send "Application Received" email to the new member
     if (es.welcome_email_enabled !== 'false') {
-      await sendEmail({
+      sendEmail({
         to:      parsed.data.email,
-        subject: 'Welcome to ' + (es.from_name || '4W\'S Inua Jamii'),
-        html:    es.welcome_email_body
-          ? `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px">${es.welcome_email_body.replace(/\n/g, '<br/>')}</div>`
-          : welcomeEmailHtml({ name: parsed.data.full_name }),
-      })
+        subject: `Application Received — 4W'S Inua Jamii Foundation`,
+        html:    applicationReceivedHtml({
+          name: parsed.data.full_name,
+          tier: parsed.data.tier,
+        }),
+      }).catch((err) => console.error('[email] application received email failed:', err))
+    }
+
+    // Notify admin(s) of the new member application
+    const adminEmail = es.admin_notify_email
+    if (es.admin_notify_new_member !== 'false' && adminEmail) {
+      sendEmail({
+        to:      adminEmail,
+        subject: `New Member Application — ${parsed.data.full_name}`,
+        html:    adminNewMemberHtml({
+          memberName:  parsed.data.full_name,
+          memberEmail: parsed.data.email,
+          tier:        parsed.data.tier,
+          phone:       parsed.data.phone ?? null,
+        }),
+      }).catch((err) => console.error('[email] admin new member notification failed:', err))
+    }
+  }
+
+  // If email confirmation is required (no session yet), tell the user to check their email.
+  // This is Supabase's confirmation email — distinct from our application-received email above.
+  if (data?.user && !data?.session) {
+    return {
+      success: true,
+      message: 'Your application has been received! Please check your email to confirm your account. Once confirmed, our team will review and approve your membership.',
     }
   }
 
