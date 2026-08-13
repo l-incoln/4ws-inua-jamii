@@ -42,6 +42,12 @@ const securityHeaders = [
   },
 ]
 
+console.log(
+  '[env-check] target=%s public vars present: %s',
+  process.env.VERCEL_ENV ?? 'local',
+  Object.keys(process.env).filter((k) => k.startsWith('NEXT_PUBLIC_')).sort().join(', ') || '(none)',
+)
+
 const nextConfig = {
   async headers() {
     return [
