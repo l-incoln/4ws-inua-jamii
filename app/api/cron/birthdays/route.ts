@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { runBirthdayNotifications } from '@/lib/notifications/birthdays'
 
 export const dynamic = 'force-dynamic'
+// `dynamic` alone does not bypass the fetch Data Cache; without this a rerun
+// can be served stale rows and repeat work the ledger already recorded.
+export const fetchCache = 'force-no-store'
 export const maxDuration = 60
 
 /**

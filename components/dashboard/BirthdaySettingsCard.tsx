@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Cake, CheckCircle2, Loader2, Trash2 } from 'lucide-react'
 import { getMyBirthdaySettings, saveMyBirthday, deleteMyBirthday } from '@/app/actions/birthday'
+import { todayInZone } from '@/lib/birthdays'
 
 export default function BirthdaySettingsCard() {
   const [loading, setLoading] = useState(true)
@@ -59,7 +60,8 @@ export default function BirthdaySettingsCard() {
     setHasStored(false)
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  // Same zone the server validates and matches in, so the boundary day is selectable
+  const today = todayInZone()
 
   return (
     <div className="card p-6">

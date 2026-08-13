@@ -47,6 +47,14 @@ function sanitiseSubject(subject: string): string {
   return subject.replace(/[\r\n]+/g, ' ').trim()
 }
 
+/**
+ * Subject lines are not HTML, so escaping would show entities to the reader.
+ * Drop any markup instead, keeping a member-supplied name readable.
+ */
+export function plainSubjectText(value: string): string {
+  return value.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim()
+}
+
 function tierLabel(tier: string): string {
   return TIER_LABELS[tier as MembershipTier] ?? tier
 }

@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin-client'
-import { sendEmail, birthdayTeamReminderHtml, birthdayGreetingHtml } from '@/lib/email'
+import { sendEmail, birthdayTeamReminderHtml, birthdayGreetingHtml, plainSubjectText } from '@/lib/email'
 import { getEmailSettings } from '@/lib/email-settings'
 import { getMemberEmails } from '@/lib/notifications/member-emails'
 import {
@@ -128,7 +128,7 @@ async function sendTeamReminder(
 
   const sent = await sendEmail({
     to:      recipients,
-    subject: `Birthday tomorrow: ${pending.map((m) => m.name).join(', ')} — 4W'S Inua Jamii Foundation`,
+    subject: `Birthday tomorrow: ${plainSubjectText(pending.map((m) => m.name).join(', '))} — 4W'S Inua Jamii Foundation`,
     from:    settings.fromHeader,
     html:    birthdayTeamReminderHtml({
       celebrationDate: formatBirthdayDayMonth(occasionDate),
@@ -174,7 +174,7 @@ async function sendMemberGreetings(
     }
     const sent = await sendEmail({
       to,
-      subject: `Happy Birthday, ${member.name}! — 4W'S Inua Jamii Foundation`,
+      subject: `Happy Birthday, ${plainSubjectText(member.name)}! — 4W'S Inua Jamii Foundation`,
       from:    settings.fromHeader,
       html:    birthdayGreetingHtml({ name: member.name }),
     })
