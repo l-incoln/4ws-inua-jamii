@@ -636,7 +636,7 @@ export default function AdminSettingsClient({
               <div className="space-y-3">
                 <ToggleField
                   label="Notify admin on new member registration"
-                  description="Sends an in-app notification when a new member registers and is pending approval."
+                  description="Emails the admin notification address when a new member registers and is pending approval."
                   value={s.admin_notify_new_member !== 'false'}
                   onToggle={() => toggle('admin_notify_new_member')}
                   name="admin_notify_new_member"
@@ -666,21 +666,21 @@ export default function AdminSettingsClient({
                   <input name="from_name" className="input" value={s.from_name ?? ''} onChange={(e) => set('from_name', e.target.value)} placeholder="4W'S Inua Jamii Foundation" />
                 </Field>
                 <Field label="Admin Notification Email" icon={<Bell className="w-3.5 h-3.5" />} className="md:col-span-2">
-                  <input name="admin_notify_email" type="email" className="input" value={s.admin_notify_email ?? ''} onChange={(e) => set('admin_notify_email', e.target.value)} placeholder="admin@example.org" />
-                  <p className="text-xs text-slate-400 mt-1">Receives alerts for new member signups, donations, and contact messages.</p>
+                  <input name="admin_notify_email" className="input" value={s.admin_notify_email ?? ''} onChange={(e) => set('admin_notify_email', e.target.value)} placeholder="admin@example.org, chair@example.org" />
+                  <p className="text-xs text-slate-400 mt-1">Receives alerts for new member signups, donations, and contact messages. Separate multiple addresses with commas.</p>
                 </Field>
               </div>
             </Section>
-            <Section icon={<Bell />} title="Welcome Email">
+            <Section icon={<Bell />} title="Application Received Email">
               <div className="space-y-4">
                 <ToggleField
-                  label="Send Welcome Email on Signup"
-                  description="Automatically emails new members after they create an account."
+                  label="Send Application Received Email on Signup"
+                  description="Confirms to new members that their application was received and is under review."
                   value={s.welcome_email_enabled !== 'false'}
                   onToggle={() => toggle('welcome_email_enabled')}
                   name="welcome_email_enabled"
                 />
-                <Field label="Welcome Email Body">
+                <Field label="Opening Message">
                   <textarea
                     name="welcome_email_body"
                     rows={5}
@@ -690,6 +690,7 @@ export default function AdminSettingsClient({
                     placeholder="Welcome to the 4W'S Inua Jamii community…"
                     disabled={s.welcome_email_enabled === 'false'}
                   />
+                  <p className="text-xs text-slate-400 mt-1">Replaces the default opening paragraph. The application summary and next steps are always included.</p>
                 </Field>
               </div>
             </Section>

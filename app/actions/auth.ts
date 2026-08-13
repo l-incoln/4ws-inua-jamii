@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { sendEmail, applicationReceivedHtml, adminNewMemberHtml } from '@/lib/email'
+import { sendEmail, applicationReceivedHtml, adminNewMemberHtml, membershipApprovedHtml } from '@/lib/email'
+import { getEmailSettings } from '@/lib/email-settings'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -104,44 +105,56 @@ export async function signup(formData: FormData) {
     return { error: error.message }
   }
 
-    // At this point, data.user exists.
-  // Supabase handles account email confirmation separately.
-  // We send our own "Application Received" email to the member,
-  // and a "New Member" notification to the admin — regardless of session state.
-  if (data?.user) {
-    // Fetch email-related settings from CMS (non-blocking; don't let failure break signup)
-    const { data: emailSettings } = await supabase
-      .from('site_settings')
-      .select('key, value')
-      .in('key', ['welcome_email_enabled', 'admin_notify_new_member', 'admin_notify_email'])
+  // Supabase returns an obfuscated user with no identities when the email is
+  // already registered — emailing then would spam the existing account holder.
+  const isNewAccount = (data?.user?.identities?.length ?? 0) > 0
 
-    const es = Object.fromEntries((emailSettings ?? []).map((r) => [r.key, r.value ?? '']))
+  // Sends are awaited: an unawaited promise can be discarded when the
+  // serverless invocation ends. Failures are logged, never surfaced.
+  if (data?.user && isNewAccount) {
+    const settings = await getEmailSettings(supabase)
+    const sends: Array<Promise<unknown>> = []
 
-    // Send "Application Received" email to the new member
-    if (es.welcome_email_enabled !== 'false') {
-      sendEmail({
+    if (autoApprove) {
+      // Auto-approved members skip review entirely, so the approval email is the
+      // right one to send. The membership term (and card ID) is issued later.
+      sends.push(sendEmail({
+        to:      parsed.data.email,
+        subject: `Your Membership Has Been Approved — 4W'S Inua Jamii Foundation`,
+        from:    settings.fromHeader,
+        html:    membershipApprovedHtml({ name: parsed.data.full_name, tier: parsed.data.tier }),
+      }))
+    } else if (settings.applicationEmailEnabled) {
+      sends.push(sendEmail({
         to:      parsed.data.email,
         subject: `Application Received — 4W'S Inua Jamii Foundation`,
+        from:    settings.fromHeader,
         html:    applicationReceivedHtml({
-          name: parsed.data.full_name,
-          tier: parsed.data.tier,
+          name:          parsed.data.full_name,
+          tier:          parsed.data.tier,
+          customMessage: settings.applicationEmailBody,
+          requiresEmailConfirmation: !data.session,
         }),
-      }).catch((err) => console.error('[email] application received email failed:', err))
+      }))
     }
 
-    // Notify admin(s) of the new member application
-    const adminEmail = es.admin_notify_email
-    if (es.admin_notify_new_member !== 'false' && adminEmail) {
-      sendEmail({
-        to:      adminEmail,
+    if (settings.notifyAdminOnNewMember && settings.adminEmails.length) {
+      sends.push(sendEmail({
+        to:      settings.adminEmails,
         subject: `New Member Application — ${parsed.data.full_name}`,
+        from:    settings.fromHeader,
+        replyTo: parsed.data.email,
         html:    adminNewMemberHtml({
           memberName:  parsed.data.full_name,
           memberEmail: parsed.data.email,
           tier:        parsed.data.tier,
           phone:       parsed.data.phone ?? null,
         }),
-      }).catch((err) => console.error('[email] admin new member notification failed:', err))
+      }))
+    }
+
+    for (const result of await Promise.allSettled(sends)) {
+      if (result.status === 'rejected') console.error('[email] signup notification failed:', result.reason)
     }
   }
 

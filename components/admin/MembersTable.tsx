@@ -64,10 +64,25 @@ export default function MembersTable({ members }: { members: Member[] }) {
     setSelected(next)
   }
 
+  /** Rejections may carry a reason, which is included in the member's email. */
+  function askForReason(status: 'approved' | 'rejected' | 'pending', count = 1) {
+    if (status === 'approved') return { cancelled: false, note: undefined }
+    const subject = count > 1 ? `${count} members` : 'this member'
+    const note = window.prompt(
+      status === 'rejected'
+        ? `Reason for rejecting ${subject}? This is included in the email they receive (optional).`
+        : `What information is needed from ${subject}? This is included in the email they receive (optional).`,
+      '',
+    )
+    return { cancelled: note === null, note: note?.trim() || undefined }
+  }
+
   function handleStatus(id: string, status: 'approved' | 'rejected') {
+    const { cancelled, note } = askForReason(status)
+    if (cancelled) return
     setActionId(id)
     startTransition(async () => {
-      await updateMemberStatus(id, status)
+      await updateMemberStatus(id, status, note)
       setActionId(null)
     })
   }
@@ -84,8 +99,10 @@ export default function MembersTable({ members }: { members: Member[] }) {
   function handleBulkAction() {
     if (!bulkAction || selected.size === 0) return
     const ids = Array.from(selected)
+    const { cancelled, note } = askForReason(bulkAction, ids.length)
+    if (cancelled) return
     startTransition(async () => {
-      await bulkUpdateMemberStatus(ids, bulkAction)
+      await bulkUpdateMemberStatus(ids, bulkAction, note)
       setSelected(new Set())
       setBulkAction('')
     })
