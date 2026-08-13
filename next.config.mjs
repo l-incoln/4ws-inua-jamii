@@ -21,7 +21,8 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       // Next.js hydration, analytics inline scripts, framer-motion inline styles need unsafe-inline
-      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com",
+      // 'unsafe-eval' is required by the dev bundler's eval source maps only
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"} https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       // Images from Supabase storage + whitelisted CDNs
@@ -29,7 +30,7 @@ const securityHeaders = [
       // Media (gallery videos/audio stored in Supabase)
       "media-src 'self' https://*.supabase.co",
       // Supabase REST + Realtime WebSocket, Google Analytics beacons
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://analytics.google.com",
+      `connect-src 'self'${process.env.NODE_ENV === 'production' ? '' : ' ws: http://localhost:*'} https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://analytics.google.com`,
       // Prevent any plugins (Flash, etc.)
       "object-src 'none'",
       // Prevent base-tag injection
