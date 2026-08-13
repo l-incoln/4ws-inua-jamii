@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
-import QRCode from 'qrcode'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const QRCode = require('qrcode') as { toDataURL: (text: string, options?: Record<string, unknown>) => Promise<string> }
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
