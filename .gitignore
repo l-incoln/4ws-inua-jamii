@@ -33,3 +33,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Secret/sensitive files
+MEMBERSHIP_HMAC_SECRET*
+*.txt
+
+# Large video files
+*.mp4
+*.mov
+*.avi
+
+# Large/misc media & docs
+*.jfif
+*.HEIC
+build.log
+git-check.txt
