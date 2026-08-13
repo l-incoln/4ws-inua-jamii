@@ -30,7 +30,7 @@ const securityHeaders = [
       // Media (gallery videos/audio stored in Supabase)
       "media-src 'self' https://*.supabase.co",
       // Supabase REST + Realtime WebSocket, Google Analytics beacons
-      `connect-src 'self'${process.env.NODE_ENV === 'production' ? '' : ' ws: http://localhost:*'} https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://analytics.google.com`,
+      `connect-src 'self'${process.env.NODE_ENV === 'production' ? '' : ' ws: http://localhost:* http://127.0.0.1:*'} https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://analytics.google.com`,
       // Prevent any plugins (Flash, etc.)
       "object-src 'none'",
       // Prevent base-tag injection
