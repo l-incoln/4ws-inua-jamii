@@ -85,6 +85,8 @@ export async function updateMemberStatus(
   }
 
   revalidatePath('/admin/members')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/layout', 'layout')
   return { success: true }
 }
 
@@ -282,6 +284,7 @@ export async function saveAnnouncement(formData: FormData, announcementId?: stri
 
   revalidatePath('/admin/announcements')
   revalidatePath('/dashboard/feed')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -297,6 +300,7 @@ export async function deleteAnnouncement(announcementId: string) {
   if (dbError) return { error: dbError.message }
   revalidatePath('/admin/announcements')
   revalidatePath('/dashboard/feed')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -1418,6 +1422,56 @@ export async function deleteAwarenessDay(dayId: string) {
   revalidatePath('/')
   revalidatePath('/dashboard')
   revalidatePath('/admin')
+  return { success: true }
+}
+
+// ─── Birthdays: Admin Management ─────────────────────────────────────────────
+// Admins can update a member's birth date and privacy flags (for corrections
+// or support), and delete a birthday row entirely. The member's own actions
+// in app/actions/birthday.ts remain the primary entry point.
+
+export async function adminUpdateBirthday(
+  userId: string,
+  birthDate: string,
+  isPublic: boolean,
+  receiveGreetings: boolean,
+) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from('member_birthdays')
+    .upsert({
+      user_id: userId,
+      birth_date: birthDate,
+      is_public: isPublic,
+      receive_greetings: receiveGreetings,
+    }, { onConflict: 'user_id' })
+
+  if (dbError) return { error: dbError.message }
+
+  await logActivity(supabase, user.id, 'update', 'member_birthdays', userId, {
+    birth_date: birthDate, is_public: isPublic, receive_greetings: receiveGreetings,
+  })
+  revalidatePath('/admin/settings')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function adminDeleteBirthday(userId: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from('member_birthdays')
+    .delete()
+    .eq('user_id', userId)
+
+  if (dbError) return { error: dbError.message }
+
+  await logActivity(supabase, user.id, 'delete', 'member_birthdays', userId)
+  revalidatePath('/admin/settings')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 

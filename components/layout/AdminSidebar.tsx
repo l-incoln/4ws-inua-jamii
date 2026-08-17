@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, CalendarDays, FileText, Heart,
   Settings, LogOut, BarChart3, ShieldCheck, Megaphone,
   FolderOpen, Mail, Target, MessageSquare, ClipboardList,
-  CheckSquare, ImageIcon, GalleryHorizontal, Activity, Menu, X, HelpCircle,
+  CheckSquare, ImageIcon, GalleryHorizontal, Activity, Menu, X, HelpCircle, Bell, Cake,
 } from 'lucide-react'
 import SiteLogoClient from '@/components/layout/SiteLogoClient'
 import GlobalSearch from '@/components/ui/GlobalSearch'
@@ -22,6 +22,8 @@ const mainNavItems = [
   { href: '/admin/media',         label: 'Media Library', icon: ImageIcon },
   { href: '/admin/documents',     label: 'Documents',     icon: FolderOpen },
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+  { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { href: '/admin/birthdays',     label: 'Birthdays',     icon: Cake },
   { href: '/admin/donations',     label: 'Donations',     icon: Heart },
   { href: '/admin/analytics',     label: 'Analytics',     icon: BarChart3 },
   { href: '/admin/activity',      label: 'Activity Log',  icon: Activity },
