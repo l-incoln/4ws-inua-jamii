@@ -166,10 +166,17 @@ function SignupForm() {
     setError(null)
     setGoogleLoading(true)
     const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
+    // Pass tier and consent through the redirect URL so the callback can
+    // persist them into the user's metadata (Google OAuth doesn't return
+    // arbitrary queryParams).
+    const params = new URLSearchParams()
+    if (next) params.set('next', next)
+    params.set('tier', selectedTier)
+    params.set('consent', 'true')
+    const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo, queryParams: { tier: selectedTier } },
+      options: { redirectTo },
     })
     if (error) {
       setError(error.message)

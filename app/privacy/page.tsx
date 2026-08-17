@@ -146,8 +146,25 @@ export default function PrivacyPage() {
                 </p>
               </div>
 
+              <div id="terms">
+                <h2 className="text-xl font-bold text-slate-900 mb-3">11. Terms &amp; Conditions</h2>
+                <p className="mb-3">
+                  By registering as a member of 4W&apos;S Inua Jamii Foundation, you agree to the following terms:
+                </p>
+                <ul className="list-disc pl-6 space-y-2 text-sm text-slate-600">
+                  <li>You will provide accurate and truthful information during registration.</li>
+                  <li>Your membership is annual and must be renewed upon expiry to maintain active status.</li>
+                  <li>Membership fees are non-refundable except in cases of administrative error.</li>
+                  <li>You will not use the platform for unlawful, harmful, or fraudulent activities.</li>
+                  <li>You consent to receiving transactional emails (receipts, status updates) and may opt out of marketing emails at any time.</li>
+                  <li>The Foundation reserves the right to suspend or revoke membership for violations of these terms.</li>
+                  <li>Content you post (comments, stories) must be respectful and may be moderated by administrators.</li>
+                  <li>Your membership card and QR code are for personal use only and must not be shared or duplicated.</li>
+                </ul>
+              </div>
+
               <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-3">11. Contact Us</h2>
+                <h2 className="text-xl font-bold text-slate-900 mb-3">12. Contact Us</h2>
                 <p>
                   If you have questions or concerns about this Privacy Policy, please contact us:
                 </p>

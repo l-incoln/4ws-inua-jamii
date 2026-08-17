@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { initiateStkPush } from '@/lib/mpesa'
+import { normaliseKePhone } from '@/lib/phone'
 import { revalidatePath } from 'next/cache'
 
 /**
@@ -52,21 +53,14 @@ export async function initiateMembershipPayment(
   }
 
   // Resolve phone: override > profile.phone
-  const rawPhone = (phoneOverride || profile.phone || '').replace(/\s+/g, '')
+  const rawPhone = (phoneOverride || profile.phone || '').trim()
   if (!rawPhone) {
     return { error: 'Please provide a phone number to receive the M-Pesa prompt.' }
   }
 
-  // Normalise to 2547XXXXXXXX
-  let phone: string
-  if (rawPhone.startsWith('254')) {
-    phone = rawPhone
-  } else if (rawPhone.startsWith('0')) {
-    phone = `254${rawPhone.slice(1)}`
-  } else if (rawPhone.startsWith('+')) {
-    phone = rawPhone.slice(1)
-  } else {
-    phone = `254${rawPhone}`
+  const phone = normaliseKePhone(rawPhone)
+  if (!phone) {
+    return { error: 'Please provide a valid Safaricom phone number (e.g. 07XX XXX XXX).' }
   }
 
   // Generate a membership payment reference (max 12 chars for AccountReference)

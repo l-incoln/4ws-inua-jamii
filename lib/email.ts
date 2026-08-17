@@ -97,6 +97,8 @@ export interface SendEmailOptions {
   replyTo?: string
   /** Overrides EMAIL_FROM, e.g. the sender identity configured in the CMS. */
   from?: string
+  /** Optional template name for audit logging (e.g. "donation_receipt"). */
+  template?: string
 }
 
 export interface SendEmailResult {
@@ -136,14 +138,38 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
 
     if (!res.ok) {
       console.error('[email] Resend error', data)
+      logEmail(opts, 'failed', data.message ?? 'Send failed')
       return { success: false, error: data.message ?? 'Send failed' }
     }
 
+    logEmail(opts, 'sent')
     return { success: true, id: data.id }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[email]', msg)
+    logEmail(opts, 'failed', msg)
     return { success: false, error: msg }
+  }
+}
+
+/**
+ * Best-effort email logging — never throws, never blocks.
+ * Stores a record in the email_logs table for audit/admin review.
+ */
+async function logEmail(opts: SendEmailOptions, status: string, error?: string) {
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin-client')
+    const supabase = createAdminClient()
+    const recipients = Array.isArray(opts.to) ? opts.to.join(', ') : opts.to
+    await supabase.from('email_logs').insert({
+      recipient: recipients,
+      subject:   opts.subject,
+      template:  opts.template ?? null,
+      status,
+      error:     error ?? null,
+    })
+  } catch {
+    // Logging is best-effort — never let it break email sending
   }
 }
 
@@ -243,6 +269,11 @@ function emailLayout({
       <p style="margin:0 0 4px;color:#64748b;font-size:12px;font-weight:600;">${ORG_NAME} &middot; ${ORG_COUNTRY}</p>
       <p style="margin:0;color:#94a3b8;font-size:11px;">${ORG_TAGLINE}</p>
       <p style="margin:8px 0 0;color:#94a3b8;font-size:11px;">This email was sent by ${ORG_NAME}. Please do not reply directly to this message.</p>
+      <p style="margin:6px 0 0;color:#94a3b8;font-size:11px;">
+        <a href="${SITE_URL}/unsubscribe" style="color:#64748b;text-decoration:underline;">Unsubscribe</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${SITE_URL}/privacy" style="color:#64748b;text-decoration:underline;">Privacy Policy</a>
+      </p>
     </div>
 
   </div>
@@ -563,6 +594,60 @@ export function donationReceiptHtml({
 }
 
 // ---------------------------------------------------------------------------
+// 5b. MEMBERSHIP PAYMENT RECEIPT — sent when M-Pesa confirms a membership fee
+// ---------------------------------------------------------------------------
+export function membershipReceiptHtml({
+  name,
+  tier,
+  amount,
+  reference,
+  date,
+}: {
+  name: string
+  tier: string
+  amount: number
+  reference: string
+  date: string
+}) {
+  const tierLabel =
+    tier === 'champion' ? 'Gold Member'
+    : tier === 'active' ? 'Premium Member'
+    : 'Classic Member'
+
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      We have received your membership fee payment for the <strong>${escapeHtml(tierLabel)}</strong> tier.
+      Your payment has been confirmed and an administrator will activate your membership shortly.
+    </p>
+
+    <div style="background:#eff6ff;border-left:4px solid #1E3A8A;border-radius:6px;padding:16px 20px;margin:24px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#1E3A8A;text-transform:uppercase;letter-spacing:0.08em;">Payment Receipt</p>
+      <table style="width:100%;border-collapse:collapse;">
+        ${infoRow('Membership Tier', escapeHtml(tierLabel))}
+        ${infoRow('Amount', `KES ${amount.toLocaleString()}`)}
+        ${infoRow('M-Pesa Reference', escapeHtml(reference))}
+        ${infoRow('Date', escapeHtml(date))}
+        ${infoRow('Organisation', ORG_NAME)}
+      </table>
+    </div>
+
+    <p style="color:#64748b;font-size:13px;margin-top:24px;">
+      This email serves as your payment receipt. Please retain it for your records.
+      Once your membership is activated, you will receive a confirmation email and
+      can access your digital membership card from your dashboard.
+    </p>
+    ${emailButton('Go to My Dashboard', `${SITE_URL}/dashboard`, '#1E3A8A')}
+  `
+  return emailLayout({
+    headerTitle:    'Membership Payment Confirmed',
+    headerSubtitle: 'Thank you for joining our community.',
+    headerColor:    '#1E3A8A',
+    body,
+  })
+}
+
+// ---------------------------------------------------------------------------
 // 6b. BIRTHDAY — TEAM REMINDER (sent one day before, to the membership desk)
 //     Internal only: contains the day/month so a poster can be prepared, and
 //     flags whether the member consented to a public celebration.
@@ -672,6 +757,89 @@ export function welcomeEmailHtml({ name }: { name: string }) {
   return emailLayout({
     headerTitle:    `Welcome to ${ORG_NAME}`,
     headerSubtitle: ORG_TAGLINE,
+    body,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// 8. MEMBERSHIP EXPIRY REMINDER — sent 7 days before membership expires
+// ---------------------------------------------------------------------------
+export function membershipExpiryReminderHtml({
+  name,
+  expiryDate,
+  tier,
+}: {
+  name: string
+  expiryDate: string
+  tier: string
+}) {
+  const tierLabel =
+    tier === 'champion' ? 'Gold'
+    : tier === 'active' ? 'Premium'
+    : 'Classic'
+
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Dear <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      This is a friendly reminder that your <strong>${escapeHtml(tierLabel)}</strong> membership with
+      <strong>${ORG_NAME}</strong> will expire on <strong>${escapeHtml(expiryDate)}</strong>.
+    </p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      To continue enjoying all the benefits of membership — including event access, your digital
+      membership card, and our community programs — please renew before the expiry date.
+    </p>
+    <div style="background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:16px 20px;margin:24px 0;">
+      <p style="margin:0;font-size:14px;color:#92400e;">
+        <strong>Expiry Date:</strong> ${escapeHtml(expiryDate)}
+      </p>
+    </div>
+    ${emailButton('View My Membership Card', `${SITE_URL}/dashboard/membership-card`, '#1E3A8A')}
+    <p style="color:#64748b;font-size:13px;margin-top:28px;">
+      If you have any questions about renewal, please contact us at
+      <a href="mailto:info@4wsinuajamii.org" style="color:#1E3A8A;">info@4wsinuajamii.org</a>.
+    </p>
+  `
+  return emailLayout({
+    headerTitle:    'Membership Expiring Soon',
+    headerSubtitle: 'Renew to keep your benefits active.',
+    headerColor:    '#f59e0b',
+    body,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// 9. COMMENT APPROVAL NOTIFICATION — sent to commenter when their comment is approved
+// ---------------------------------------------------------------------------
+export function commentApprovedHtml({
+  name,
+  postTitle,
+  commentBody,
+  postUrl,
+}: {
+  name: string
+  postTitle: string
+  commentBody: string
+  postUrl: string
+}) {
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Hi <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      Great news! Your comment on the blog post <strong>&ldquo;${escapeHtml(postTitle)}&rdquo;</strong> has been
+      approved and is now visible to all readers.
+    </p>
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:6px;padding:16px 20px;margin:24px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:0.08em;">Your Comment</p>
+      <p style="margin:0;color:#334155;font-size:14px;line-height:1.6;">${escapeHtml(commentBody.slice(0, 200))}${commentBody.length > 200 ? '&hellip;' : ''}</p>
+    </div>
+    ${emailButton('Read the Blog Post', postUrl, '#16a34a')}
+    <p style="color:#64748b;font-size:13px;margin-top:28px;">
+      Thank you for contributing to the conversation!
+    </p>
+  `
+  return emailLayout({
+    headerTitle:    'Your Comment Was Approved',
+    headerSubtitle: 'Your voice matters to our community.',
+    headerColor:    '#16a34a',
     body,
   })
 }

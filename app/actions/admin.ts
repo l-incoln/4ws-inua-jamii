@@ -11,6 +11,7 @@ import {
   sendMembershipStatusEmails,
   sendMembershipRenewedEmail,
 } from '@/lib/notifications/membership'
+import { sendEmail, commentApprovedHtml, donationReceiptHtml } from '@/lib/email'
 import { insertNotification } from '@/app/actions/notifications'
 
 // ΓöÇΓöÇΓöÇ Auth guard ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
@@ -706,8 +707,15 @@ export async function updateDonationStatus(
   donationId: string,
   status: 'completed' | 'failed' | 'refunded'
 ) {
-  const { supabase, error } = await requireAdmin()
-  if (error || !supabase) return { error }
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  // Fetch donation details before updating (for receipt email)
+  const { data: donation } = await supabase
+    .from('donations')
+    .select('donor_name, donor_email, amount, reference, status')
+    .eq('id', donationId)
+    .single()
 
   const { error: dbError } = await supabase
     .from('donations')
@@ -715,6 +723,24 @@ export async function updateDonationStatus(
     .eq('id', donationId)
 
   if (dbError) return { error: dbError.message }
+
+  // If admin manually marks as completed, send a receipt email
+  // (covers the case where the M-Pesa callback failed but payment was received)
+  if (status === 'completed' && donation && donation.status !== 'completed' && donation.donor_email) {
+    await sendEmail({
+      to: donation.donor_email,
+      subject: 'Your Inua Jamii Donation Receipt',
+      html: donationReceiptHtml({
+        name:      donation.donor_name ?? 'Donor',
+        amount:    donation.amount,
+        reference: donation.reference,
+        date:      new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' }),
+      }),
+      template: 'donation_receipt',
+    }).catch(() => {})
+  }
+
+  await logActivity(supabase, user.id, 'update_donation_status', 'donations', donationId, { status })
   revalidatePath('/admin/donations')
   return { success: true }
 }
@@ -927,7 +953,7 @@ export async function approveComment(commentId: string, approved: boolean) {
   // Fetch the comment first so we can notify the author after approval
   const { data: comment } = await supabase
     .from('blog_comments')
-    .select('author_id, post_id, blog_posts ( title, slug )')
+    .select('author_id, post_id, body, blog_posts ( title, slug )')
     .eq('id', commentId)
     .single()
 
@@ -938,11 +964,13 @@ export async function approveComment(commentId: string, approved: boolean) {
 
   if (dbError) return { error: dbError.message }
 
-  // Notify the commenter in-app (only if they're a registered member and approved)
+  // Notify the commenter in-app and via email (only if approved and author is a registered member)
   if (approved && comment?.author_id) {
     const post = Array.isArray(comment.blog_posts) ? comment.blog_posts[0] : comment.blog_posts
     const postTitle = (post as any)?.title ?? 'a blog post'
     const postSlug  = (post as any)?.slug ?? ''
+    const postUrl   = postSlug ? `${process.env.NEXT_PUBLIC_SITE_URL || ''}/blog/${postSlug}` : `${process.env.NEXT_PUBLIC_SITE_URL || ''}/blog`
+
     await insertNotification({
       supabase,
       userId: comment.author_id,
@@ -951,6 +979,26 @@ export async function approveComment(commentId: string, approved: boolean) {
       body:   `Your comment on "${postTitle}" is now visible on the blog.`,
       link:   postSlug ? `/blog/${postSlug}` : '/blog',
     })
+
+    // Fetch the commenter's profile to send an email
+    const { data: authorProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', comment.author_id)
+      .single()
+
+    if (authorProfile?.email) {
+      await sendEmail({
+        to: authorProfile.email,
+        subject: `Your comment on "${postTitle}" was approved`,
+        html: commentApprovedHtml({
+          name:        authorProfile.full_name ?? 'Member',
+          postTitle,
+          commentBody: comment.body ?? '',
+          postUrl,
+        }),
+      }).catch(() => {})
+    }
   }
 
   revalidatePath('/admin/comments')
@@ -1628,12 +1676,28 @@ export async function confirmMemberPayment(profileId: string, paymentRef: string
 
   const { error: dbError } = await supabase
     .from('profiles')
-    .update({ payment_confirmed: true, payment_reference: paymentRef.trim() })
+    .update({
+      payment_confirmed: true,
+      payment_reference: paymentRef.trim(),
+      payment_confirmed_at: new Date().toISOString(),
+    })
     .eq('id', profileId)
 
   if (dbError) return { error: dbError.message }
   await logActivity(supabase, user.id, 'payment_confirmed', 'profiles', profileId, { payment_ref: paymentRef.trim() })
+
+  // Notify the member in-app
+  await insertNotification({
+    supabase,
+    userId: profileId,
+    type:   'general',
+    title:  'Payment Confirmed',
+    body:   'Your membership fee payment has been manually confirmed by an admin. Your membership will be activated shortly.',
+    link:   '/dashboard',
+  })
+
   revalidatePath('/admin/members')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 

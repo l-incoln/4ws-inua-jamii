@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { initiateStkPush } from '@/lib/mpesa'
+import { normaliseKePhone } from '@/lib/phone'
 import { z } from 'zod'
 
 const donationSchema = z.object({
@@ -25,6 +26,28 @@ export async function submitDonation(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Idempotency: check for an existing pending M-Pesa donation from the same
+  // user with the same amount in the last 5 minutes. If found, return it
+  // instead of creating a duplicate.
+  if (parsed.data.payment_method === 'mpesa' && user) {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: existing } = await supabase
+      .from('donations')
+      .select('reference')
+      .eq('donor_id', user.id)
+      .eq('amount', parsed.data.amount)
+      .eq('status', 'pending')
+      .eq('payment_method', 'mpesa')
+      .gte('created_at', fiveMinAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      return { success: true, reference: existing.reference, stkPushed: true }
+    }
+  }
+
   const reference = `DON-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
 
   const { error } = await supabase.from('donations').insert({
@@ -46,9 +69,10 @@ export async function submitDonation(
   // Attempt M-Pesa STK push if credentials are configured
   let stkPushed = false
   if (parsed.data.payment_method === 'mpesa' && parsed.data.phone) {
-    // Normalise phone: strip leading 0, prefix 254
-    const raw = parsed.data.phone.replace(/\s+/g, '')
-    const phone = raw.startsWith('0') ? `254${raw.slice(1)}` : raw.startsWith('+') ? raw.slice(1) : raw
+    const phone = normaliseKePhone(parsed.data.phone)
+    if (!phone) {
+      return { error: 'Please enter a valid Safaricom phone number (e.g. 07XX XXX XXX).' }
+    }
 
     const stkResult = await initiateStkPush({
       phone,
@@ -64,6 +88,8 @@ export async function submitDonation(
         .update({ reference: stkResult.checkoutRequestId })
         .eq('reference', reference)
       stkPushed = true
+    } else if (stkResult.error) {
+      return { error: stkResult.error }
     }
   }
 

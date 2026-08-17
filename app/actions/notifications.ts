@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendEmail, membershipExpiryReminderHtml } from '@/lib/email'
 import type { NotificationType } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -129,7 +130,18 @@ export async function sendExpiryReminders() {
 
   if (!expiringTerms) return { sent: 0 }
 
+  // Fetch profile details (name, email) for all expiring members in one query
+  const userIds = expiringTerms.map((t) => t.user_id)
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds)
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]))
+
+  let sent = 0
   for (const term of expiringTerms) {
+    // Insert in-app notification
     await supabase.from('notifications').upsert({
       user_id: term.user_id,
       type: 'membership_expiry' as NotificationType,
@@ -137,7 +149,24 @@ export async function sendExpiryReminders() {
       body: `Your membership expires on ${new Date(term.valid_until).toLocaleDateString('en-KE')}. Contact the foundation to renew.`,
       link: '/dashboard/membership-card',
     })
+
+    // Send email reminder
+    const profile = profileMap.get(term.user_id)
+    if (profile?.email) {
+      await sendEmail({
+        to: profile.email,
+        subject: 'Your 4W\'S Inua Jamii membership is expiring soon',
+        html: membershipExpiryReminderHtml({
+          name: profile.full_name ?? 'Member',
+          expiryDate: new Date(term.valid_until).toLocaleDateString('en-KE', {
+            year: 'numeric', month: 'long', day: 'numeric',
+          }),
+          tier: term.tier ?? 'basic',
+        }),
+      }).catch(() => {})
+      sent++
+    }
   }
 
-  return { sent: expiringTerms.length }
+  return { sent }
 }

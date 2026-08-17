@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin-client'
-import { sendEmail, donationReceiptHtml } from '@/lib/email'
+import { sendEmail, donationReceiptHtml, membershipReceiptHtml } from '@/lib/email'
 
 /**
  * M-Pesa Daraja STK Push Callback
@@ -13,9 +13,20 @@ import { sendEmail, donationReceiptHtml } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
-    // Validate callback secret header set in Daraja app dashboard
+    // Validate callback secret header set in Daraja app dashboard.
+    // The secret is MANDATORY in production — without it anyone could
+    // forge a callback and mark payments as complete.
     const callbackSecret = process.env.MPESA_CALLBACK_SECRET
-    if (callbackSecret) {
+    const isDev = process.env.NODE_ENV !== 'production'
+
+    if (!callbackSecret) {
+      if (!isDev) {
+        console.error('[mpesa/callback] MPESA_CALLBACK_SECRET is not set — rejecting callback in production')
+        return NextResponse.json({ ResultCode: 1, ResultDesc: 'Server not configured' }, { status: 500 })
+      }
+      // In development, allow through with a warning so local testing works
+      console.warn('[mpesa/callback] MPESA_CALLBACK_SECRET is not set — allowing in development only')
+    } else {
       const incoming = req.headers.get('x-mpesa-signature') ?? req.headers.get('authorization') ?? ''
       if (incoming !== callbackSecret) {
         return NextResponse.json({ ResultCode: 1, ResultDesc: 'Forbidden' }, { status: 403 })
@@ -78,7 +89,7 @@ export async function POST(req: NextRequest) {
           payment_confirmed_at: new Date().toISOString(),
         })
         .eq('payment_reference', checkoutRequestId)
-        .select('id, full_name, email')
+        .select('id, full_name, email, selected_tier, tier')
         .single()
 
       if (member) {
@@ -100,6 +111,21 @@ export async function POST(req: NextRequest) {
           body: 'Your membership fee payment has been received. An admin will activate your membership shortly.',
           link: '/dashboard',
         }).then(() => {})
+
+        // Send receipt email to the member
+        if (member.email) {
+          await sendEmail({
+            to: member.email,
+            subject: 'Your 4W\'S Inua Jamii Membership Payment Receipt',
+            html: membershipReceiptHtml({
+              name:      member.full_name ?? 'Member',
+              tier:      member.selected_tier || member.tier || 'basic',
+              amount,
+              reference: mpesaReceiptNumber || checkoutRequestId,
+              date:      new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' }),
+            }),
+          }).catch(() => {})
+        }
 
         return NextResponse.json({ ResultCode: 0, ResultDesc: 'Accepted' })
       }

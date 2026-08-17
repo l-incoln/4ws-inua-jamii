@@ -228,6 +228,37 @@ export default async function AboutPage() {
           </div>
         </section>
 
+        {/* Impact Report */}
+        <section id="impact" className="py-16 md:py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <span className="badge bg-primary-50 text-primary-700 border border-primary-200 mb-3 inline-block text-xs uppercase tracking-widest">
+                Our Impact
+              </span>
+              <h2 className="section-title">Making a Measurable Difference</h2>
+              <p className="section-subtitle mx-auto">
+                Real numbers, real lives. See how your support transforms communities across Kenya.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { icon: Users,      value: '1,200+',  label: 'Active Members' },
+                { icon: HandHeart,  value: '5,000+',  label: 'Beneficiaries Reached' },
+                { icon: BookOpen,   value: '15',      label: 'Programs Running' },
+                { icon: Globe,      value: '12',      label: 'Counties Served' },
+              ].map(({ icon: Icon, value, label }) => (
+                <div key={label} className="text-center p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-shadow">
+                  <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Icon className="w-6 h-6 text-primary-600" />
+                  </div>
+                  <div className="text-3xl font-extrabold text-slate-900">{value}</div>
+                  <div className="text-sm text-slate-500 mt-1">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Leadership */}
         <section id="leadership" className="py-16 md:py-24 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

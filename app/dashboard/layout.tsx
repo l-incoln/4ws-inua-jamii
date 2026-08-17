@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import MembershipPaymentButton from '@/components/dashboard/MembershipPaymentButton'
 import { createClient } from '@/lib/supabase/server'
-import { AlertTriangle, Clock, CheckCircle } from 'lucide-react'
+import { AlertTriangle, Clock, CheckCircle, Settings, Bell, LogOut } from 'lucide-react'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +46,12 @@ export default async function DashboardLayout({
   const paymentConfirmed  = profile?.payment_confirmed ?? false
   const isPending         = membershipStatus === 'pending'
   const isRejected        = membershipStatus === 'rejected'
+
+  // Rejected members can only access settings (to delete account) and notifications
+  const headersList = await headers()
+  const currentPath = headersList.get('x-path') ?? ''
+  const rejectedAllowedPaths = ['/dashboard/settings', '/dashboard/notifications']
+  const isRejectedAndBlocked = isRejected && !rejectedAllowedPaths.some((p) => currentPath.startsWith(p))
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -89,7 +97,45 @@ export default async function DashboardLayout({
               </div>
             </div>
           )}
-          {children}
+          {/* Rejected members: block access to dashboard content except settings & notifications */}
+          {isRejectedAndBlocked ? (
+            <div className="max-w-lg mx-auto mt-12 text-center space-y-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Access Restricted</h1>
+                <p className="text-slate-500 mt-2 text-sm">
+                  Your membership application was not approved. You can still access your settings to update your
+                  information or delete your account, or view your notifications.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/dashboard/settings"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  Account Settings
+                </Link>
+                <Link
+                  href="/dashboard/notifications"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition-colors"
+                >
+                  <Bell className="w-4 h-4" />
+                  Notifications
+                </Link>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
+                >
+                  Contact Support
+                </Link>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </div>
       </main>
     </div>

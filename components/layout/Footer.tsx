@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Leaf, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Linkedin } from 'lucide-react'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import NewsletterForm from '@/components/layout/NewsletterForm'
 
 // TikTok SVG icon (not in Lucide)
 function TikTokIcon({ className }: { className?: string }) {
@@ -29,15 +30,11 @@ const footerLinks = {
     { label: 'Leadership', href: '/about#leadership' },
     { label: 'Impact Report', href: '/about#impact' },
   ],
-  Programs: [
-    { label: 'Community Health', href: '/programs/community-health' },
-    { label: 'Education', href: '/programs/education' },
-    { label: 'Economic Empowerment', href: '/programs/economic-empowerment' },
-    { label: 'Environment', href: '/programs/environment' },
-  ],
   Community: [
     { label: 'Events', href: '/events' },
     { label: 'Blog & Stories', href: '/blog' },
+    { label: 'Gallery', href: '/gallery' },
+    { label: 'FAQs', href: '/faq' },
     { label: 'Become a Member', href: '/auth/signup' },
     { label: 'Volunteer', href: '/auth/signup' },
   ],
@@ -81,6 +78,21 @@ export default async function Footer() {
   const email        = s.contact_email || 'info@4wsinuajamii.org'
   const phone        = s.contact_phone || '+254 700 000 000'
   const address      = s.address       || 'Nairobi, Kenya'
+
+  // Fetch active programs dynamically so footer links never 404
+  const { data: programs } = await supabase
+    .from('programs')
+    .select('slug, title')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+    .limit(5)
+
+  const programLinks = (programs ?? []).map((p) => ({
+    label: p.title,
+    href: `/programs/${p.slug}`,
+  }))
+  // Always include a "View All" link
+  programLinks.push({ label: 'View All Programs', href: '/programs' })
 
   return (
     <footer className="bg-slate-900 text-slate-300">
@@ -177,6 +189,23 @@ export default async function Footer() {
               </ul>
             </div>
           ))}
+
+          {/* Programs — dynamic from DB */}
+          <div>
+            <h3 className="text-white font-semibold text-sm mb-4">Programs</h3>
+            <ul className="space-y-2.5">
+              {programLinks.map(({ label, href }) => (
+                <li key={label}>
+                  <Link
+                    href={href}
+                    className="text-sm text-slate-400 hover:text-primary-400 transition-colors"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -190,20 +219,7 @@ export default async function Footer() {
                 Get the latest impact stories, events, and updates from the foundation.
               </p>
             </div>
-            <form className="flex gap-2 w-full md:w-auto">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="flex-1 md:w-72 rounded-xl bg-slate-700/70 border border-slate-600 px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-              />
-              <button
-                type="submit"
-                className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all hover:scale-[1.03] active:scale-95"
-                style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', boxShadow: '0 4px 16px rgba(245,158,11,0.35)' }}
-              >
-                Subscribe
-              </button>
-            </form>
+            <NewsletterForm />
           </div>
         </div>
       </div>

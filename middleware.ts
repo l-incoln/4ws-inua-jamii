@@ -55,6 +55,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Expose the current pathname to server components (for role-based gating in layouts)
+  supabaseResponse.headers.set('x-path', pathname)
+
   return supabaseResponse
 }
 
