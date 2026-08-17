@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin-client'
-import { sendEmail, donationReceiptHtml, membershipReceiptHtml } from '@/lib/email'
+import { sendEmail, donationReceiptHtml, membershipReceiptHtml, escapeHtml, emailLayout, emailButton, ORG_NAME } from '@/lib/email'
+import { getEmailSettings } from '@/lib/email-settings'
 
 /**
  * M-Pesa Daraja STK Push Callback
@@ -48,10 +49,40 @@ export async function POST(req: NextRequest) {
 
     if (resultCode !== 0) {
       // Payment failed or cancelled – mark donation as failed
-      await supabase
+      const { data: failedDonation } = await supabase
         .from('donations')
         .update({ status: 'failed' })
         .eq('reference', checkoutRequestId)
+        .select('donor_name, donor_email, amount, campaign_title')
+        .single()
+
+      // Also check if it was a membership payment
+      const { data: failedMember } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, selected_tier')
+        .eq('payment_reference', checkoutRequestId)
+        .single()
+
+      // Notify admins about the failed payment
+      const settings = await getEmailSettings(supabase)
+      if (settings.adminEmails.length) {
+        const isDonation = !!failedDonation
+        const name = failedDonation?.donor_name ?? failedMember?.full_name ?? 'Unknown'
+        const amount = failedDonation?.amount ?? 'Unknown'
+        await sendEmail({
+          to: settings.adminEmails,
+          subject: `[Payment Alert] Failed M-Pesa payment — ${checkoutRequestId}`,
+          html: adminPaymentAlertHtml({
+            type: 'Payment Failed',
+            name,
+            amount: String(amount),
+            reference: checkoutRequestId,
+            context: isDonation ? 'Donation' : 'Membership Payment',
+            status: 'failed',
+            resultCode: String(resultCode),
+          }),
+        }).catch(() => {})
+      }
 
       return NextResponse.json({ ResultCode: 0, ResultDesc: 'Accepted' })
     }
@@ -127,6 +158,24 @@ export async function POST(req: NextRequest) {
           }).catch(() => {})
         }
 
+        // Notify admins about the membership payment
+        const memberSettings = await getEmailSettings(supabase)
+        if (memberSettings.adminEmails.length) {
+          await sendEmail({
+            to: memberSettings.adminEmails,
+            subject: `[Membership Payment] ${member.full_name ?? 'Member'} — KES ${amount}`,
+            html: adminPaymentAlertHtml({
+              type: 'Membership Payment Confirmed',
+              name: member.full_name ?? 'Member',
+              amount: String(amount),
+              reference: mpesaReceiptNumber || checkoutRequestId,
+              context: 'Membership Payment',
+              status: 'completed',
+              extra: `Tier: ${member.selected_tier || member.tier || 'basic'}`,
+            }),
+          }).catch(() => {})
+        }
+
         return NextResponse.json({ ResultCode: 0, ResultDesc: 'Accepted' })
       }
     }
@@ -155,9 +204,70 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // Notify admins about the donation
+    if (donation) {
+      const donationSettings = await getEmailSettings(supabase)
+      if (donationSettings.adminEmails.length) {
+        await sendEmail({
+          to: donationSettings.adminEmails,
+          subject: `[Donation] ${donation.donor_name ?? 'Anonymous'} — KES ${donation.amount}`,
+          html: adminPaymentAlertHtml({
+            type: 'New Donation Received',
+            name: donation.donor_name ?? 'Anonymous',
+            amount: String(donation.amount),
+            reference: mpesaReceiptNumber || checkoutRequestId,
+            context: 'Donation',
+            status: 'completed',
+          }),
+        }).catch(() => {})
+      }
+    }
+
     return NextResponse.json({ ResultCode: 0, ResultDesc: 'Accepted' })
   } catch (err) {
     console.error('[mpesa/callback]', err)
     return NextResponse.json({ ResultCode: 0, ResultDesc: 'Accepted' })
   }
+}
+
+// ---------------------------------------------------------------------------
+// Admin payment alert email template
+// ---------------------------------------------------------------------------
+function adminPaymentAlertHtml(opts: {
+  type: string
+  name: string
+  amount: string
+  reference: string
+  context: string
+  status: string
+  resultCode?: string
+  extra?: string
+}) {
+  const statusColor = opts.status === 'completed' ? '#16a34a' : '#dc2626'
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Hello Admin,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      A ${opts.context.toLowerCase()} transaction has been updated:
+    </p>
+    <div style="background:#f8fafc;border-left:4px solid ${statusColor};border-radius:6px;padding:16px 20px;margin:24px 0;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Type:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.type)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Name:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.name)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Amount:</td><td style="padding:4px 0;font-size:14px;color:#334155;">KES ${escapeHtml(opts.amount)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Reference:</td><td style="padding:4px 0;font-size:14px;color:#334155;font-family:monospace;">${escapeHtml(opts.reference)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Status:</td><td style="padding:4px 0;font-size:14px;color:${statusColor};font-weight:700;">${escapeHtml(opts.status)}</td></tr>
+        ${opts.resultCode ? `<tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Result Code:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.resultCode)}</td></tr>` : ''}
+        ${opts.extra ? `<tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Details:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.extra)}</td></tr>` : ''}
+      </table>
+    </div>
+    <p style="color:#64748b;font-size:13px;margin-top:20px;">
+      This is an automated notification from the ${ORG_NAME} payment system.
+    </p>
+  `
+  return emailLayout({
+    headerTitle:    opts.type,
+    headerSubtitle: 'Admin Notification',
+    headerColor:    statusColor,
+    body,
+  })
 }

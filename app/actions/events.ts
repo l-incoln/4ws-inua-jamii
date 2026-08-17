@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail, escapeHtml, emailLayout, emailButton, SITE_URL, ORG_NAME } from '@/lib/email'
+import { getEmailSettings } from '@/lib/email-settings'
 import { revalidatePath } from 'next/cache'
 
 export async function rsvpForEvent(eventId: string): Promise<{ error?: string; success?: boolean }> {
@@ -45,6 +46,28 @@ export async function rsvpForEvent(eventId: string): Promise<{ error?: string; s
   )
 
   if (error) return { error: error.message }
+
+  // Notify admins about the new event registration
+  try {
+    const [{ data: event }, { data: profile }, settings] = await Promise.all([
+      supabase.from('events').select('title, start_date').eq('id', eventId).single(),
+      supabase.from('profiles').select('full_name').eq('id', user.id).single(),
+      getEmailSettings(supabase),
+    ])
+    if (settings.adminEmails.length && event) {
+      await sendEmail({
+        to: settings.adminEmails,
+        subject: `[Event RSVP] ${profile?.full_name ?? 'Member'} registered for "${event.title}"`,
+        html: adminEventAlertHtml({
+          type: 'New Event Registration',
+          name: profile?.full_name ?? 'Member',
+          eventTitle: event.title,
+          date: event.start_date ? new Date(event.start_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD',
+          eventId,
+        }),
+      }).catch(() => {})
+    }
+  } catch {}
 
   revalidatePath(`/events/${eventId}`)
   revalidatePath('/dashboard/events')
@@ -272,6 +295,36 @@ function eventReminderHtml(name: string, eventTitle: string, dateStr: string, lo
   return emailLayout({
     headerTitle:    'Event Reminder',
     headerSubtitle: `Upcoming: ${eventTitle}`,
+    headerColor:    '#1E3A8A',
+    body,
+  })
+}
+
+// Admin event alert template
+function adminEventAlertHtml(opts: {
+  type: string
+  name: string
+  eventTitle: string
+  date: string
+  eventId: string
+}) {
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Hello Admin,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      <strong>${escapeHtml(opts.name)}</strong> has registered for an event:
+    </p>
+    <div style="background:#f8fafc;border-left:4px solid #1E3A8A;border-radius:6px;padding:16px 20px;margin:24px 0;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Event:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.eventTitle)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Date:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.date)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Member:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.name)}</td></tr>
+      </table>
+    </div>
+    ${emailButton('View Event', `${SITE_URL}/events/${opts.eventId}`, '#1E3A8A')}
+  `
+  return emailLayout({
+    headerTitle:    opts.type,
+    headerSubtitle: 'Admin Notification',
     headerColor:    '#1E3A8A',
     body,
   })

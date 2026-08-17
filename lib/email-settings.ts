@@ -49,7 +49,9 @@ export async function getEmailSettings(supabase: SupabaseClient): Promise<EmailS
     adminEmails: (values.admin_notify_email ?? '')
       .split(',')
       .map((e) => e.trim())
-      .filter(Boolean),
+      .filter(Boolean)
+      .concat('admin@4wsinuajamii.org') // always include the default admin inbox
+      .filter((e, i, arr) => arr.indexOf(e) === i), // dedupe
     applicationEmailEnabled: values.welcome_email_enabled !== 'false',
     notifyAdminOnNewMember:  values.admin_notify_new_member !== 'false',
     applicationEmailBody:    values.welcome_email_body?.trim() || undefined,

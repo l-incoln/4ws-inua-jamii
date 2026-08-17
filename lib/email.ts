@@ -110,7 +110,7 @@ export interface SendEmailResult {
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
   const apiKey  = process.env.RESEND_API_KEY
   const from    = opts.from ?? process.env.EMAIL_FROM ?? `${ORG_NAME} <noreply@4wsinuajamii.org>`
-  const replyTo = opts.replyTo ?? process.env.EMAIL_REPLY_TO ?? undefined
+  const replyTo = opts.replyTo ?? process.env.EMAIL_REPLY_TO ?? 'admin@4wsinuajamii.org'
 
   if (!apiKey) {
     console.warn('[email] RESEND_API_KEY not set — email skipped')

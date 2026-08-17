@@ -7,6 +7,11 @@ import {
   membershipRejectedHtml,
   membershipPendingHtml,
   membershipRenewedHtml,
+  escapeHtml,
+  emailLayout,
+  emailButton,
+  SITE_URL,
+  ORG_NAME,
   type SendEmailOptions,
   type SendEmailResult,
 } from '@/lib/email'
@@ -100,6 +105,24 @@ export async function sendMembershipStatusEmail({
 
     const result = await sendEmail(message)
     if (!result.success) console.error(`[email] ${status} email failed for ${profileId}:`, result.error)
+
+    // Notify admins about the membership status change
+    const { data: profile } = await admin.from('profiles').select('full_name, email').eq('id', profileId).single()
+    const settings = await getEmailSettings(admin)
+    if (settings.adminEmails.length && profile) {
+      await sendEmail({
+        to: settings.adminEmails,
+        subject: `[Admin] Membership ${status}: ${profile.full_name ?? 'Member'}`,
+        html: adminMembershipAlertHtml({
+          type: `Membership ${status}`,
+          name: profile.full_name ?? 'Member',
+          status,
+          note,
+          profileId,
+        }),
+      }).catch(() => {})
+    }
+
     return result
   } catch (err) {
     const error = err instanceof Error ? err.message : 'Unknown error'
@@ -141,6 +164,22 @@ export async function sendMembershipRenewedEmail(profileId: string): Promise<Sen
     })
 
     if (!result.success) console.error(`[email] renewal email failed for ${profileId}:`, result.error)
+
+    // Notify admins about the renewal
+    if (settings.adminEmails.length && profile) {
+      await sendEmail({
+        to: settings.adminEmails,
+        subject: `[Admin] Membership Renewed: ${profile.full_name ?? 'Member'}`,
+        html: adminMembershipAlertHtml({
+          type: 'Membership Renewed',
+          name: profile.full_name ?? 'Member',
+          status: 'approved',
+          note: `Membership renewed. Valid until: ${term?.valid_until ? formatDate(term.valid_until) : 'N/A'}`,
+          profileId,
+        }),
+      }).catch(() => {})
+    }
+
     return result
   } catch (err) {
     const error = err instanceof Error ? err.message : 'Unknown error'
@@ -171,4 +210,41 @@ export async function sendMembershipStatusEmails({
     console.error(`[email] bulk ${status} email error:`, err instanceof Error ? err.message : err)
     return { sent: 0, failed: profileIds.length }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Admin membership alert email template
+// ---------------------------------------------------------------------------
+function adminMembershipAlertHtml(opts: {
+  type: string
+  name: string
+  status: string
+  note?: string
+  profileId: string
+}) {
+  const statusColor = opts.status === 'approved' ? '#16a34a' : opts.status === 'rejected' ? '#dc2626' : '#f59e0b'
+  const body = `
+    <p style="color:#334155;font-size:15px;margin-top:0;">Hello Admin,</p>
+    <p style="color:#334155;font-size:15px;line-height:1.6;">
+      A membership status update has been processed:
+    </p>
+    <div style="background:#f8fafc;border-left:4px solid ${statusColor};border-radius:6px;padding:16px 20px;margin:24px 0;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Action:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.type)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Member:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.name)}</td></tr>
+        <tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Status:</td><td style="padding:4px 0;font-size:14px;color:${statusColor};font-weight:700;">${escapeHtml(opts.status)}</td></tr>
+        ${opts.note ? `<tr><td style="padding:4px 0;font-size:14px;color:#64748b;font-weight:600;">Note:</td><td style="padding:4px 0;font-size:14px;color:#334155;">${escapeHtml(opts.note)}</td></tr>` : ''}
+      </table>
+    </div>
+    ${emailButton('View Member', `${SITE_URL}/members/${opts.profileId}`, '#1E3A8A')}
+    <p style="color:#64748b;font-size:13px;margin-top:20px;">
+      This is an automated notification from the ${ORG_NAME} membership system.
+    </p>
+  `
+  return emailLayout({
+    headerTitle:    opts.type,
+    headerSubtitle: 'Admin Notification',
+    headerColor:    statusColor,
+    body,
+  })
 }
