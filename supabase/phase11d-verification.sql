@@ -12,8 +12,8 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT FALSE;
 
 -- Add site settings for verification toggles
-INSERT INTO public.site_settings (key, value, description, category, is_public)
+INSERT INTO public.site_settings (key, value)
 VALUES
-  ('require_id_verification', 'false', 'Require ID document upload before membership approval', 'membership', false),
-  ('require_phone_verification', 'false', 'Require phone number verification before membership approval', 'membership', false)
+  ('require_id_verification', 'false'),
+  ('require_phone_verification', 'false')
 ON CONFLICT (key) DO NOTHING;
