@@ -82,42 +82,45 @@ export default async function ResourcesPage() {
 
             <div className="space-y-2">
               {grouped[cat].map((doc) => (
-                <div key={doc.id} className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${meta.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-slate-800 text-sm">{doc.title}</h3>
-                      {doc.version && (
-                        <span className="badge-gray text-xs">{doc.version}</span>
-                      )}
+                <div key={doc.id} className="card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-4 w-full sm:w-auto min-w-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${meta.color}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
-                    {doc.description && (
-                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{doc.description}</p>
-                    )}
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {formatBytes(doc.file_size)}
-                      {doc.file_size ? ' · ' : ''}
-                      {new Date(doc.created_at).toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })}
-                    </p>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-slate-800 text-sm">{doc.title}</h3>
+                        {doc.version && (
+                          <span className="badge-gray text-xs">{doc.version}</span>
+                        )}
+                      </div>
+                      {doc.description && (
+                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{doc.description}</p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {formatBytes(doc.file_size)}
+                        {doc.file_size ? ' · ' : ''}
+                        {new Date(doc.created_at).toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto justify-end">
                     <a
                       href={doc.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-gray-100 text-slate-500 hover:bg-gray-200 transition-colors"
+                      className="p-2 rounded-lg bg-gray-100 text-slate-500 hover:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                       title="View"
+                      aria-label="View document"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </a>
                     <a
                       href={doc.file_url}
                       download={doc.file_name ?? doc.title}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors min-h-[44px]"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Download

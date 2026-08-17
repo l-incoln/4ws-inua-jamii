@@ -22,12 +22,20 @@ const navItems = [
   { href: '/dashboard/resources',      label: 'Resources',      icon: FolderOpen },
 ]
 
+const RESTRICTED_HREFS = ['/dashboard/membership-card', '/dashboard/achievements', '/dashboard/tasks']
+
 const mobileNavItems = [
-  { href: '/dashboard',                    label: 'Home',    icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/events',             label: 'Events',  icon: CalendarCheck },
-  { href: '/dashboard/membership-card',    label: 'Card',    icon: CreditCard },
-  { href: '/dashboard/feed',               label: 'Feed',    icon: Rss },
-  { href: '/dashboard/profile',            label: 'Profile', icon: User },
+  { href: '/dashboard',                label: 'Home',         icon: LayoutDashboard, exact: true },
+  { href: '/dashboard/profile',        label: 'Profile',      icon: User },
+  { href: '/dashboard/events',         label: 'Events',       icon: CalendarCheck },
+  { href: '/dashboard/feed',           label: 'Feed',         icon: Rss },
+  { href: '/dashboard/donations',      label: 'Donations',    icon: Heart },
+  { href: '/dashboard/tasks',          label: 'Tasks',        icon: CheckSquare },
+  { href: '/dashboard/membership-card',label: 'Card',         icon: CreditCard },
+  { href: '/dashboard/achievements',   label: 'Awards',       icon: Trophy },
+  { href: '/dashboard/resources',      label: 'Resources',    icon: FolderOpen },
+  { href: '/dashboard/notifications',  label: 'Alerts',       icon: Bell, badge: true },
+  { href: '/dashboard/settings',       label: 'Settings',     icon: Settings },
 ]
 
 interface Props {
@@ -64,21 +72,61 @@ function NavItem({ href, label, icon: Icon, exact = false, badge }: {
   )
 }
 
-function MobileNavItem({ href, label, icon: Icon, exact = false }: {
-  href: string; label: string; icon: React.ElementType; exact?: boolean
+function MobileNavItem({
+  href,
+  label,
+  icon: Icon,
+  exact = false,
+  unread = 0,
+  disabled = false,
+}: {
+  href: string
+  label: string
+  icon: React.ElementType
+  exact?: boolean
+  unread?: number
+  disabled?: boolean
 }) {
   const pathname = usePathname()
   const isActive = exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
 
+  const labelEl = (
+    <span className="text-[10px] leading-tight text-center w-full px-0.5 truncate">{label}</span>
+  )
+
+  const iconEl = (
+    <div className="relative">
+      <Icon className="w-5 h-5" />
+      {unread > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[1.1rem] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+    </div>
+  )
+
+  if (disabled) {
+    return (
+      <span
+        title="Available after membership is approved"
+        className="min-w-[4.5rem] flex-1 flex flex-col items-center gap-0.5 py-3 text-slate-300 cursor-not-allowed select-none"
+      >
+        {iconEl}
+        {labelEl}
+      </span>
+    )
+  }
+
   return (
     <Link
       href={href}
-      className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
+      aria-current={isActive ? 'page' : undefined}
+      className={`min-w-[4.5rem] flex-1 flex flex-col items-center gap-0.5 py-3 transition-colors ${
         isActive ? 'text-primary-600' : 'text-slate-500 hover:text-primary-600'
       }`}
     >
-      <Icon className="w-5 h-5" />
-      <span className="text-xs">{label}</span>
+      {iconEl}
+      {labelEl}
     </Link>
   )
 }
@@ -142,8 +190,8 @@ export default function DashboardSidebar({ displayName, email, initials, unread,
         </div>
       </aside>
 
-      {/* Mobile top bar — locked to h-16 so layout pt-16 always matches */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 bg-white border-b border-gray-100 px-4 flex items-center justify-between">
+      {/* Mobile top bar — matches pt-[calc(4rem+env(safe-area-inset-top))] */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 min-h-16 pt-[env(safe-area-inset-top)] bg-white border-b border-gray-100 px-4 flex items-center justify-between">
         <SiteLogoClient subLabel="Member Portal" maxSize={36} />
         <div className="flex items-center gap-3">
           <Link href="/dashboard/notifications" className="relative p-1.5 rounded-lg text-slate-500 hover:bg-gray-100 transition-colors">
@@ -161,10 +209,21 @@ export default function DashboardSidebar({ displayName, email, initials, unread,
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex">
-        {mobileNavItems.map(({ href, label, icon, exact }) => (
-          <MobileNavItem key={href} href={href} label={label} icon={icon} exact={exact} />
-        ))}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex overflow-x-auto scrollbar-hide min-h-16 pb-[env(safe-area-inset-bottom)]">
+        {mobileNavItems.map(({ href, label, icon, exact, badge }) => {
+          const disabled = isPending && RESTRICTED_HREFS.includes(href)
+          return (
+            <MobileNavItem
+              key={href}
+              href={href}
+              label={label}
+              icon={icon}
+              exact={exact}
+              unread={badge ? unread : 0}
+              disabled={disabled}
+            />
+          )
+        })}
       </nav>
     </>
   )

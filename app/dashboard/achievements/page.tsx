@@ -113,7 +113,7 @@ export default async function AchievementsPage() {
         <div className="card p-6 flex flex-col justify-between gap-4">
           <div>
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Current Rank</p>
-            <div className={`mt-2 inline-flex items-center gap-2 bg-gradient-to-r ${rankColors[rank]} text-white px-4 py-1.5 rounded-full font-bold text-lg shadow-md`}>
+            <div className={`mt-2 inline-flex items-center gap-2 bg-gradient-to-r ${rankColors[rank]} text-white px-4 py-1.5 rounded-full font-bold text-lg shadow-md max-w-full truncate`}>
               <Trophy className="w-5 h-5" />
               {rank}
             </div>

@@ -568,7 +568,9 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                   key={label}
                   onClick={onClick}
                   disabled={disabled}
-                  className={`flex flex-col items-center gap-1.5 p-3 sm:p-4 rounded-2xl bg-white border border-gray-100 transition-all group shadow-sm disabled:opacity-40 ${hoverCls}`}
+                  aria-label={label}
+                  title={label}
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3 sm:p-4 rounded-2xl bg-white border border-gray-100 transition-all group shadow-sm disabled:opacity-40 min-h-[44px] ${hoverCls}`}
                 >
                   <Icon className={`w-5 h-5 text-slate-500 transition-colors ${iconCls} ${label === 'Saving…' ? 'animate-spin' : ''}`} />
                   <span className={`text-xs font-semibold text-slate-600 transition-colors ${labelCls} hidden sm:block`}>{label}</span>
@@ -752,7 +754,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
                     <span className="text-xs text-slate-400 font-medium w-28 flex-shrink-0">{label}</span>
-                    <span className="text-sm text-slate-800 font-medium text-right truncate max-w-[220px]">{value}</span>
+                    <span className="text-sm text-slate-800 font-medium text-right truncate max-w-[min(58vw,220px)]">{value}</span>
                   </div>
                 ))}
               </div>

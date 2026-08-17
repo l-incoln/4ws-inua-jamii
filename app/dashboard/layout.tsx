@@ -55,8 +55,8 @@ export default async function DashboardLayout({
       />
 
       {/* Main content */}
-      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0 pb-20 lg:pb-0">
-        <div className="max-w-5xl mx-auto p-6 lg:p-8 space-y-4">
+      <main className="flex-1 lg:ml-64 pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4">
           {/* Pending member banner */}
           {isPending && !paymentConfirmed && (
             <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">

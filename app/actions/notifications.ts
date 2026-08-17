@@ -4,6 +4,40 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { NotificationType } from '@/types'
 
+// ---------------------------------------------------------------------------
+// Internal helper – insert a notification for a single user.
+// Used by auth.ts and admin.ts so dashboard notifications always stay in sync
+// with email sends. Never throws — failures are logged only.
+// ---------------------------------------------------------------------------
+export async function insertNotification({
+  supabase,
+  userId,
+  type,
+  title,
+  body,
+  link,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>
+  userId: string
+  type: NotificationType
+  title: string
+  body?: string
+  link?: string
+}): Promise<void> {
+  try {
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type,
+      title,
+      body:  body  ?? null,
+      link:  link  ?? null,
+      read:  false,
+    })
+  } catch (err) {
+    console.error('[notifications] insertNotification failed:', err)
+  }
+}
+
 export async function markNotificationRead(notificationId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

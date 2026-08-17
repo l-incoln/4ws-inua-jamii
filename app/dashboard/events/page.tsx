@@ -83,14 +83,14 @@ export default async function MyEventsPage() {
                 event_date: string; start_time: string | null; image_url: string | null; category: string | null
               }
               return (
-                <div key={rsvp.id} className="card flex items-center gap-4 p-4">
+                <div key={rsvp.id} className="card flex items-start sm:items-center gap-4 p-4">
                   <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                     {event.image_url && (
                       <Image src={event.image_url} alt={event.title} fill className="object-cover" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
                       {event.category && <span className="badge-green text-xs">{event.category}</span>}
                       <span className={`badge text-xs ${statusBadge[rsvp.status] ?? ''}`}>
                         {statusLabel[rsvp.status] ?? rsvp.status}
@@ -115,7 +115,7 @@ export default async function MyEventsPage() {
                   </div>
                   <Link
                     href={`/events/${event.id}`}
-                    className="text-xs font-semibold text-primary-600 flex items-center gap-1 hover:gap-1.5 transition-all flex-shrink-0"
+                    className="text-xs font-semibold text-primary-600 flex items-center gap-1 hover:gap-1.5 transition-all flex-shrink-0 min-h-[44px]"
                   >
                     View <ArrowRight className="w-3 h-3" />
                   </Link>
@@ -137,7 +137,7 @@ export default async function MyEventsPage() {
                 event_date: string; image_url: string | null; category: string | null
               }
               return (
-                <div key={rsvp.id} className="card flex items-center gap-4 p-4 opacity-75">
+                <div key={rsvp.id} className="card flex items-start sm:items-center gap-4 p-4 opacity-75">
                   <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 grayscale bg-gray-100">
                     {event.image_url && (
                       <Image src={event.image_url} alt={event.title} fill className="object-cover" />
@@ -156,7 +156,7 @@ export default async function MyEventsPage() {
                   </div>
                   <Link
                     href={`/events/${event.id}`}
-                    className="text-xs font-semibold text-primary-600 flex items-center gap-1 hover:gap-1.5 transition-all flex-shrink-0"
+                    className="text-xs font-semibold text-primary-600 flex items-center gap-1 hover:gap-1.5 transition-all flex-shrink-0 min-h-[44px]"
                   >
                     View <ArrowRight className="w-3 h-3" />
                   </Link>

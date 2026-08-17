@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import AnalyticsInjector from '@/components/layout/AnalyticsInjector'
 
+export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }
+
 export const metadata: Metadata = {
   title: {
     default: '4W\'S Inua Jamii Foundation',

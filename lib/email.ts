@@ -19,12 +19,19 @@
 import { TIER_LABELS, type MembershipTier } from '@/types'
 
 // ---------------------------------------------------------------------------
-// Constants – single source of truth for branding
+// Constants – single source of truth for branding across every email
 // ---------------------------------------------------------------------------
-const ORG_NAME    = "4W'S Inua Jamii Foundation"
-const ORG_TAGLINE = 'Wisdom · Wellness · Wealth · Worth'
+export const ORG_NAME    = "4W'S Inua Jamii Foundation"
+export const ORG_TAGLINE = 'Wisdom · Wellness · Wealth · Worth'
 const ORG_COUNTRY = 'Kenya'
 const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.4wsinuajamii.org'
+
+// Tier display labels – keep in sync with types/index.ts
+export const TIER_DISPLAY: Record<string, string> = {
+  basic:    'Classic',
+  active:   'Premium',
+  champion: 'Gold',
+}
 
 // ---------------------------------------------------------------------------
 // Escaping helpers – member-supplied values reach both member and admin inboxes

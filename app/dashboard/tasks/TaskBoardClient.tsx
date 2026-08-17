@@ -121,10 +121,10 @@ export default function TaskBoardClient({ tasks: initial, currentUserId, userRol
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-fit overflow-x-auto scrollbar-hide">
         {tabs.map(({ key, label, count }) => (
           <button key={key} onClick={() => setActiveTab(key)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === key ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -179,7 +179,7 @@ export default function TaskBoardClient({ tasks: initial, currentUserId, userRol
                 ))}
               </div>
 
-              <div className="flex items-center gap-3 text-xs text-slate-400">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
                 {t.deadline && (
                   <span className={`flex items-center gap-1 ${deadlinePassed && t.status !== 'completed' ? 'text-red-500' : ''}`}>
                     <Calendar className="w-3.5 h-3.5" />
@@ -205,17 +205,17 @@ export default function TaskBoardClient({ tasks: initial, currentUserId, userRol
                 <button
                   onClick={() => handleClaim(t.id)}
                   disabled={isLoading}
-                  className="w-full py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                  className="w-full py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
                 >
                   {isLoading ? 'Claiming…' : 'Claim This Task'}
                 </button>
               )}
               {t.status === 'claimed' && isMine && (
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => handleComplete(t.id)}
                     disabled={isLoading}
-                    className="flex-1 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 min-h-[44px]"
                   >
                     <CheckSquare className="w-4 h-4" />
                     {isLoading ? 'Saving…' : 'Mark Done'}
@@ -223,7 +223,7 @@ export default function TaskBoardClient({ tasks: initial, currentUserId, userRol
                   <button
                     onClick={() => handleUnclaim(t.id)}
                     disabled={isLoading}
-                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium transition-colors"
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium transition-colors min-h-[44px]"
                   >
                     Unclaim
                   </button>

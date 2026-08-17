@@ -3,8 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { sendEmail, applicationReceivedHtml, adminNewMemberHtml, membershipApprovedHtml } from '@/lib/email'
+import { sendEmail, applicationReceivedHtml, adminNewMemberHtml, membershipApprovedHtml, ORG_NAME } from '@/lib/email'
 import { getEmailSettings } from '@/lib/email-settings'
+import { insertNotification } from '@/app/actions/notifications'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -112,6 +113,20 @@ export async function signup(formData: FormData) {
   // Sends are awaited: an unawaited promise can be discarded when the
   // serverless invocation ends. Failures are logged, never surfaced.
   if (data?.user && isNewAccount) {
+    const userId = data.user.id
+
+    // 1️⃣ Insert in-app notification for the new member (visible in /dashboard/notifications)
+    //    This is separate from the email — both channels should fire.
+    void insertNotification({
+      supabase,
+      userId,
+      type:  'system',
+      title: '🏠 Application received — welcome!',
+      body:  `Thank you for applying to ${ORG_NAME}. Your application is under review. You will be notified once approved.`,
+      link:  '/dashboard',
+    })
+
+    // 2️⃣ Send emails (awaited via Promise.allSettled so they survive serverless lifecycle)
     const settings = await getEmailSettings(supabase)
     const sends: Array<Promise<unknown>> = []
 
@@ -158,18 +173,22 @@ export async function signup(formData: FormData) {
     }
   }
 
-  // If email confirmation is required (no session yet), tell the user to check their email.
-  // This is Supabase's confirmation email — distinct from our application-received email above.
+  // If email confirmation is required (no session yet), tell the user to check
+  // their email. This is Supabase's confirmation email — distinct from the
+  // application-received email above.
   if (data?.user && !data?.session) {
     return {
       success: true,
-      message: 'Your application has been received! Please check your email to confirm your account. Once confirmed, our team will review and approve your membership.',
+      message:
+        'Your membership application has been received! ✅\n\n' +
+        'Please check your email for a confirmation link to verify your account. ' +
+        'Once confirmed, our team will review your application and notify you of the outcome.',
     }
   }
 
-  const next = (formData.get('next') as string) || '/dashboard'
-  const safePath = next.startsWith('/') ? next : '/dashboard'
-  redirect(safePath)
+    const next = (formData.get('next') as string) || '/dashboard'
+    const safePath = next.startsWith('/') ? next : '/dashboard'
+    redirect(safePath)
 }
 
 export async function signOut() {

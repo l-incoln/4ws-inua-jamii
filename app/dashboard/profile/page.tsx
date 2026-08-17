@@ -131,16 +131,18 @@ export default function ProfilePage() {
       .update({ full_name: form.full_name, phone: form.phone, bio: form.bio, location: form.location })
       .eq('id', user.id)
 
+    if (dbErr) {
+      setSaving(false)
+      setError(dbErr.message)
+      return
+    }
+
     // Keep auth metadata in sync too
     await supabase.auth.updateUser({ data: { full_name: form.full_name, phone: form.phone } })
 
     setSaving(false)
-    if (dbErr) {
-      setError(dbErr.message)
-    } else {
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
-    }
+    setSuccess(true)
+    setTimeout(() => setSuccess(false), 3000)
   }
 
   const initials = form.full_name

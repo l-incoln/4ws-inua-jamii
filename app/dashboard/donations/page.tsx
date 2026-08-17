@@ -43,15 +43,17 @@ export default async function DashboardDonationsPage() {
       </div>
 
       {/* Summary card */}
-      <div className="card p-5 flex items-center gap-4">
-        <div className="p-3 bg-rose-50 rounded-xl">
-          <Heart className="w-6 h-6 text-rose-500" fill="currentColor" />
+      <div className="card p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-rose-50 rounded-xl">
+            <Heart className="w-6 h-6 text-rose-500" fill="currentColor" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-slate-900">KES {total.toLocaleString()}</p>
+            <p className="text-sm text-slate-500">Total confirmed donations</p>
+          </div>
         </div>
-        <div>
-          <p className="text-2xl font-bold text-slate-900">KES {total.toLocaleString()}</p>
-          <p className="text-sm text-slate-500">Total confirmed donations</p>
-        </div>
-        <Link href="/donate" className="ml-auto btn-primary text-sm flex items-center gap-2">
+        <Link href="/donate" className="sm:ml-auto btn-primary text-sm flex items-center gap-2 min-h-[44px]">
           <Heart className="w-4 h-4" /> Donate Again
         </Link>
       </div>
@@ -65,7 +67,7 @@ export default async function DashboardDonationsPage() {
           <Link href="/donate" className="btn-primary text-sm mt-4 inline-flex">Make a Donation</Link>
         </div>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-xs text-slate-500 uppercase tracking-wide">
