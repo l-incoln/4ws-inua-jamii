@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff, QrCode, ChevronRight, AlertTriangle } from 'lucide-react'
 import BirthdaySettingsCard from '@/components/dashboard/BirthdaySettingsCard'
+import BackLink from '@/components/dashboard/BackLink'
 
 const DEFAULT_PREFS = {
   event_reminders: true,
@@ -182,6 +183,7 @@ export default function DashboardSettingsPage() {
 
   return (
     <div className="space-y-8 max-w-2xl">
+      <BackLink />
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Account Settings</h1>
         <p className="text-slate-500 text-sm mt-1">Manage your account security and preferences.</p>

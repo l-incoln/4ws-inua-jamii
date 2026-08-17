@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import type { MemberBadge, ImpactScore } from '@/types'
 import { BADGE_META } from '@/lib/badge-meta'
 import { Trophy, Star, Zap, TrendingUp, CalendarCheck, CheckSquare, MessageSquare, Heart } from 'lucide-react'
+import BackLink from '@/components/dashboard/BackLink'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,6 +94,7 @@ export default async function AchievementsPage() {
 
   return (
     <div className="space-y-6">
+      <BackLink />
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Achievements</h1>
         <p className="text-slate-500 text-sm mt-1">Your badges, impact score, and activity record</p>

@@ -6,6 +6,7 @@ import {
   Download, FileText, BookOpen, FileBarChart,
   Shield, BookMarked, FolderOpen, ExternalLink,
 } from 'lucide-react'
+import BackLink from '@/components/dashboard/BackLink'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +53,7 @@ export default async function ResourcesPage() {
 
   return (
     <div className="space-y-8 max-w-3xl">
+      <BackLink />
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Resources & Documents</h1>
         <p className="text-slate-500 text-sm mt-1">

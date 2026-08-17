@@ -48,3 +48,4 @@ MEMBERSHIP_HMAC_SECRET*
 *.HEIC
 build.log
 git-check.txt
+.env*

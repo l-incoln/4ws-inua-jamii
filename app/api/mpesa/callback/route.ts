@@ -66,6 +66,45 @@ export async function POST(req: NextRequest) {
       .select('donor_name, donor_email, amount')
       .single()
 
+    // If no donation matched, try to match a membership payment.
+    // The membership STK push stores the checkout_request_id in
+    // profiles.payment_reference.
+    if (!donation) {
+      const { data: member } = await supabase
+        .from('profiles')
+        .update({
+          payment_confirmed: true,
+          payment_reference: mpesaReceiptNumber || checkoutRequestId,
+          payment_confirmed_at: new Date().toISOString(),
+        })
+        .eq('payment_reference', checkoutRequestId)
+        .select('id, full_name, email')
+        .single()
+
+      if (member) {
+        // Audit log for membership payment
+        await supabase.from('mpesa_transactions').insert({
+          checkout_request_id: checkoutRequestId,
+          result_code: resultCode,
+          receipt_number: mpesaReceiptNumber || null,
+          phone_number: phoneNumber || null,
+          amount,
+          raw_payload: body,
+        }).then(() => {})
+
+        // Insert an in-app notification for the member
+        await supabase.from('notifications').insert({
+          user_id: member.id,
+          type: 'general',
+          title: 'Payment Confirmed',
+          body: 'Your membership fee payment has been received. An admin will activate your membership shortly.',
+          link: '/dashboard',
+        }).then(() => {})
+
+        return NextResponse.json({ ResultCode: 0, ResultDesc: 'Accepted' })
+      }
+    }
+
     // Audit log — store raw callback for reconciliation
     await supabase.from('mpesa_transactions').insert({
       checkout_request_id: checkoutRequestId,

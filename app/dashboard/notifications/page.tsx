@@ -5,6 +5,7 @@ import type { Notification } from '@/types'
 import Link from 'next/link'
 import { Bell, BellOff, ExternalLink, CheckCheck } from 'lucide-react'
 import NotificationsClient from './NotificationsClient'
+import BackLink from '@/components/dashboard/BackLink'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,7 @@ export default async function NotificationsPage() {
 
   return (
     <div className="space-y-4">
+      <BackLink />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Notifications</h1>

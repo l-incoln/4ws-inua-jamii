@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2, CheckCircle2, Shield, Star, Award, Info } from 'lucide-react'
@@ -20,11 +20,13 @@ const passwordStrength = (pwd: string) => {
 const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong']
 const strengthColor = ['', 'bg-red-400', 'bg-yellow-400', 'bg-blue-400', 'bg-primary-500']
 
-const TIER_OPTIONS = [
+// Default tier metadata (icon, colors, description). Price is overridden
+// at runtime from site_settings so admins can change fees without code edits.
+const TIER_META = [
   {
     value: 'basic',
     label: 'Classic Member',
-    price: 'KES 500/yr',
+    defaultPrice: 'KES 500/yr',
     icon: Shield,
     color: 'border-cyan-300 bg-cyan-50',
     activeColor: 'border-cyan-500 bg-cyan-50 ring-2 ring-cyan-300',
@@ -33,7 +35,7 @@ const TIER_OPTIONS = [
   {
     value: 'active',
     label: 'Premium Member',
-    price: 'KES 1,500/yr',
+    defaultPrice: 'KES 1,500/yr',
     icon: Star,
     color: 'border-emerald-300 bg-emerald-50',
     activeColor: 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-300',
@@ -42,13 +44,72 @@ const TIER_OPTIONS = [
   {
     value: 'champion',
     label: 'Gold Member',
-    price: 'KES 5,000/yr',
+    defaultPrice: 'KES 5,000/yr',
     icon: Award,
     color: 'border-amber-300 bg-amber-50',
     activeColor: 'border-amber-500 bg-amber-50 ring-2 ring-amber-300',
     description: 'VIP access, recognition & advisory eligibility',
   },
 ]
+
+type TierOption = {
+  value: string
+  label: string
+  defaultPrice: string
+  price: string
+  icon: typeof Shield
+  color: string
+  activeColor: string
+  description: string
+}
+
+function formatPrice(currency: string, fee: string | number, years: string | number) {
+  const y = Number(years) || 1
+  const period = y === 1 ? 'yr' : `${y}yrs`
+  const num = typeof fee === 'number' ? fee : Number(fee)
+  if (!Number.isFinite(num) || num <= 0) return null
+  return `${currency} ${num.toLocaleString()}/${period}`
+}
+
+function useTierOptions() {
+  const [tiers, setTiers] = useState<TierOption[]>(
+    TIER_META.map((t) => ({ ...t, price: t.defaultPrice })),
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+    supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', [
+        'membership_currency',
+        'membership_fee_basic',
+        'membership_fee_active',
+        'membership_fee_champion',
+        'membership_duration_basic',
+        'membership_duration_active',
+        'membership_duration_champion',
+      ])
+      .then(({ data }: { data: { key: string; value: string }[] | null }) => {
+        if (cancelled || !data) return
+        const map: Record<string, string> = {}
+        for (const row of data) map[row.key] = row.value
+        const currency = map.membership_currency || 'KES'
+        setTiers(
+          TIER_META.map((t) => {
+            const fee = map[`membership_fee_${t.value}`]
+            const years = map[`membership_duration_${t.value}`]
+            const dynamic = fee ? formatPrice(currency, fee, years || 1) : null
+            return { ...t, price: dynamic ?? t.defaultPrice }
+          }),
+        )
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  return tiers
+}
 
 function GoogleIcon() {
   return (
@@ -72,6 +133,7 @@ function SignupForm() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const searchParams = useSearchParams()
   const next = searchParams.get('next') || ''
+  const tierOptions = useTierOptions()
 
   const strength = passwordStrength(password)
 
@@ -162,7 +224,7 @@ function SignupForm() {
               <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 gap-2.5">
-              {TIER_OPTIONS.map(({ value, label, price, icon: Icon, color, activeColor, description }) => (
+              {tierOptions.map(({ value, label, price, icon: Icon, color, activeColor, description }) => (
                 <label
                   key={value}
                   className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${

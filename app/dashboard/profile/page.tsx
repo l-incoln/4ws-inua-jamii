@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Save, CheckCircle2, Camera, Upload } from 'lucide-react'
 import { compressImage } from '@/lib/compress-image'
+import BackLink from '@/components/dashboard/BackLink'
 
 const tierLabels: Record<string, string> = {
   basic: 'Classic Member',
@@ -166,6 +167,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl space-y-6">
+      <BackLink />
       <div>
         <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
         <p className="text-slate-500 text-sm mt-1">Update your personal information and membership details.</p>

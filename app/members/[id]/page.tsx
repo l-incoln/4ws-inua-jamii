@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { Shield, Star, Award, CalendarDays, Users, MapPin } from 'lucide-react'
+import { Shield, Star, Award, CalendarDays, Users, MapPin, ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
@@ -74,7 +74,15 @@ export default async function PublicMemberProfilePage({ params }: Props) {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className={`bg-gradient-to-br ${config.gradient} py-12 px-4`}>
+      <div className={`bg-gradient-to-br ${config.gradient} py-12 px-4 relative`}>
+        {/* Back button */}
+        <Link
+          href="/"
+          className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 backdrop-blur-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
         <div className="max-w-2xl mx-auto text-center relative">
           {profile.avatar_url ? (
             <img

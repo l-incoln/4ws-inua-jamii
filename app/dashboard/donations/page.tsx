@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Heart, Calendar, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import BackLink from '@/components/dashboard/BackLink'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +38,7 @@ export default async function DashboardDonationsPage() {
 
   return (
     <div className="space-y-6">
+      <BackLink />
       <div>
         <h1 className="text-2xl font-bold text-slate-900">My Donations</h1>
         <p className="text-slate-500 text-sm mt-1">Your contribution history to Inua Jamii Foundation</p>

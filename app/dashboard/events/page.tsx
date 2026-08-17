@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Calendar, MapPin, ArrowRight, PlusCircle, Clock } from 'lucide-react'
 import type { Metadata } from 'next'
+import BackLink from '@/components/dashboard/BackLink'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,7 @@ export default async function MyEventsPage() {
 
   return (
     <div className="space-y-8">
+      <BackLink />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Events</h1>

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { CheckSquare, Tag, Calendar, User, AlertCircle, CheckCircle } from 'lucide-react'
 import { claimTask, unclaimTask, submitTaskCompletion } from '@/app/actions/tasks'
 import type { TaskStatus } from '@/types'
+import BackLink from '@/components/dashboard/BackLink'
 
 interface Claimer { id: string; full_name: string | null }
 interface Task {
@@ -106,6 +107,7 @@ export default function TaskBoardClient({ tasks: initial, currentUserId, userRol
 
   return (
     <div className="space-y-6">
+      <BackLink />
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Volunteer Tasks</h1>
         <p className="text-slate-500 text-sm mt-1">Claim tasks and contribute to the community</p>

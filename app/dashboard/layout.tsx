@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
+import MembershipPaymentButton from '@/components/dashboard/MembershipPaymentButton'
 import { createClient } from '@/lib/supabase/server'
 import { AlertTriangle, Clock, CheckCircle } from 'lucide-react'
 
@@ -18,7 +19,7 @@ export default async function DashboardLayout({
   // Fetch profile including membership status and payment info
   const { data: profile } = await supabase
     .from('profiles')
-    .select('membership_status, payment_confirmed, payment_reference, tier, selected_tier')
+    .select('membership_status, payment_confirmed, payment_reference, tier, selected_tier, phone')
     .eq('id', user.id)
     .single()
 
@@ -61,11 +62,12 @@ export default async function DashboardLayout({
           {isPending && !paymentConfirmed && (
             <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
               <Clock className="w-5 h-5 mt-0.5 flex-shrink-0 text-amber-500" />
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold text-sm">Membership Pending Approval</p>
                 <p className="text-xs mt-0.5">
-                  Your application is awaiting review. To speed up activation, complete your membership fee payment via M-Pesa or bank transfer and send proof to our admin team. Full access will be granted after approval.
+                  Your application is awaiting review. Pay your membership fee via M-Pesa below to speed up activation, or pay via bank transfer and send proof to our admin team. Full access will be granted after approval.
                 </p>
+                <MembershipPaymentButton phone={profile?.phone ?? null} />
               </div>
             </div>
           )}

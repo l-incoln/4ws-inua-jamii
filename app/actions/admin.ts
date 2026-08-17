@@ -1118,6 +1118,15 @@ export async function issueMembership(
   // Issuing a term is an approval in its own right — the member gets the same email.
   await sendMembershipStatusEmail({ profileId: userId, status: 'approved' })
 
+  await insertNotification({
+    supabase,
+    userId,
+    type:  'general',
+    title: 'Membership Approved',
+    body:  `Your ${tier} membership has been issued and is now active. View your digital membership card.`,
+    link:  '/dashboard/membership-card',
+  })
+
   await logActivity(supabase, user.id, 'issue', 'membership_terms', term.id, {
     user_id: userId,
     member_name: profile?.full_name,
@@ -1222,6 +1231,15 @@ export async function renewMembership(termId: string, months: number) {
     .insert({ term_id: newTerm.id, user_id: term.user_id })
 
   await sendMembershipRenewedEmail(term.user_id)
+
+  await insertNotification({
+    supabase,
+    userId: term.user_id,
+    type:  'general',
+    title: 'Membership Renewed',
+    body:  `Your ${term.tier} membership has been renewed. Your new membership card is now available.`,
+    link:  '/dashboard/membership-card',
+  })
 
   revalidatePath('/admin/members')
   revalidatePath('/dashboard/membership-card')

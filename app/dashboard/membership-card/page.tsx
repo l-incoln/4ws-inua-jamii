@@ -38,6 +38,7 @@ export default async function MembershipCardPage() {
 
   // Query token directly to avoid PostgREST nested-join shape ambiguity
   let verifyUrl: string | null = null
+  let hmacError = false
   if (activeTerm) {
     const { data: tokenRow } = await supabase
       .from('membership_tokens')
@@ -49,7 +50,8 @@ export default async function MembershipCardPage() {
       try {
         verifyUrl = getSignedVerifyUrl(tokenRow.token)
       } catch {
-        // MEMBERSHIP_HMAC_SECRET not configured
+        // MEMBERSHIP_HMAC_SECRET not configured — surface to client
+        hmacError = true
       }
     }
   }
@@ -77,6 +79,7 @@ export default async function MembershipCardPage() {
       profile={{ ...profile, email: user.email ?? '' }}
       activeTerm={activeTerm ?? null}
       verifyUrl={verifyUrl}
+      hmacError={hmacError}
       history={history ?? []}
       eventsCount={eventsRes.count ?? 0}
       badgesCount={badgesRes.count ?? 0}

@@ -13,6 +13,7 @@ import {
   ChevronRight, User, Calendar, Hash, BadgeCheck, Lock, RotateCcw,
   Trophy, Globe, Zap,
 } from 'lucide-react'
+import BackLink from '@/components/dashboard/BackLink'
 import { formatMembershipId, isExpired } from '@/lib/membership'
 
 interface HistoryItem {
@@ -45,6 +46,7 @@ interface Props {
     is_active: boolean
   } | null
   verifyUrl: string | null
+  hmacError?: boolean
   history: HistoryItem[]
   eventsCount: number
   badgesCount: number
@@ -129,7 +131,7 @@ const TIER_LABELS: Record<string, string> = {
 
 type Tab = 'card' | 'qr' | 'details' | 'history'
 
-export default function MembershipCardClient({ profile, activeTerm, verifyUrl, history, eventsCount, badgesCount, logoUrl }: Props) {
+export default function MembershipCardClient({ profile, activeTerm, verifyUrl, hmacError, history, eventsCount, badgesCount, logoUrl }: Props) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [qrSmall, setQrSmall] = useState<string | null>(null)
   const [qrLarge, setQrLarge] = useState<string | null>(null)
@@ -139,6 +141,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('card')
   const [flipped, setFlipped] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const tier = activeTerm?.tier ?? profile.tier
   const config = TIER_CONFIG[tier] ?? TIER_CONFIG.basic
@@ -189,6 +192,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
     const wasFlipped = flipped
     if (wasFlipped) setFlipped(false)
     setDownloading(true)
+    setExportError(null)
     // When unflipping: delay(0.3s) + duration(0.35s) = 0.65s — wait 750ms to be safe
     await new Promise((r) => setTimeout(r, wasFlipped ? 750 : 100))
     try {
@@ -208,6 +212,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
       a.click()
     } catch (e) {
       console.error('Download failed:', e)
+      setExportError('Could not download the card image. This is usually caused by cross-origin image restrictions (CORS). Please try the Print option instead, or contact support.')
     } finally {
       setDownloading(false)
       if (wasFlipped) setFlipped(true)
@@ -225,6 +230,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
     if (!cardRef.current) return
     const wasFlipped = flipped
     if (wasFlipped) setFlipped(false)
+    setExportError(null)
     await new Promise((r) => setTimeout(r, wasFlipped ? 750 : 100))
     try {
       const el = cardRef.current
@@ -237,7 +243,10 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
       el.style.transform = prevTransform
       el.style.opacity   = prevOpacity
       const win = window.open('', '_blank', 'width=640,height=420')
-      if (!win) return
+      if (!win) {
+        setExportError('Pop-up blocked. Please allow pop-ups for this site to print your membership card.')
+        return
+      }
       win.document.write(`<!DOCTYPE html><html><head>
         <title>${memberId} — 4W'S Inua Jamii Membership Card</title>
         <style>
@@ -251,6 +260,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
       win.document.close()
     } catch (e) {
       console.error('Print failed:', e)
+      setExportError('Could not generate the print image. This is usually caused by cross-origin image restrictions (CORS). Please contact support.')
     } finally {
       if (wasFlipped) setFlipped(true)
     }
@@ -265,6 +275,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <BackLink />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -294,12 +305,43 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
           </div>
         </div>
       )}
+      {isApproved && !activeTerm && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-4 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">No active membership term</p>
+            <p className="text-amber-700 mt-0.5 text-xs">
+              Your account is approved but no membership term has been issued yet. Please contact the foundation to have your membership activated.
+            </p>
+          </div>
+        </div>
+      )}
       {isApproved && activeTerm && expired && (
         <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm">
           <Clock className="w-4 h-4 flex-shrink-0" />
           <div>
             <p className="font-semibold">Membership expired</p>
             <p className="text-xs mt-0.5 text-red-600">Expired on <strong>{validUntil}</strong>. Contact the foundation to renew.</p>
+          </div>
+        </div>
+      )}
+      {hmacError && activeTerm && !expired && (
+        <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 text-orange-800 rounded-2xl p-4 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">QR verification temporarily unavailable</p>
+            <p className="text-orange-700 mt-0.5 text-xs">
+              The QR code signing key is not configured on the server. Your membership is active, but the QR code cannot be generated until the administrator sets it up.
+            </p>
+          </div>
+        </div>
+      )}
+      {exportError && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Export error</p>
+            <p className="text-red-600 mt-0.5 text-xs">{exportError}</p>
           </div>
         </div>
       )}
@@ -522,7 +564,7 @@ export default function MembershipCardClient({ profile, activeTerm, verifyUrl, h
                             <QrCode className="w-8 h-8 sm:w-10 sm:h-10 text-white/25" />
                           </div>
                           <p className="text-white/40 text-[9px] uppercase tracking-wider">
-                            {!isApproved ? 'Pending Approval' : expired ? 'Membership Expired' : 'No Active Term'}
+                            {!isApproved ? 'Pending Approval' : expired ? 'Membership Expired' : !activeTerm ? 'No Term Issued' : 'QR Unavailable'}
                           </p>
                         </>
                       )}
