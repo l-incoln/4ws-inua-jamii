@@ -11,6 +11,7 @@ import {
   sendMembershipStatusEmails,
   sendMembershipRenewedEmail,
 } from '@/lib/notifications/membership'
+import { insertNotification } from '@/app/actions/notifications'
 
 // ΓöÇΓöÇΓöÇ Auth guard ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function requireAdmin() {
@@ -923,12 +924,35 @@ export async function approveComment(commentId: string, approved: boolean) {
   const { supabase, error } = await requireAdmin()
   if (error || !supabase) return { error }
 
+  // Fetch the comment first so we can notify the author after approval
+  const { data: comment } = await supabase
+    .from('blog_comments')
+    .select('author_id, post_id, blog_posts ( title, slug )')
+    .eq('id', commentId)
+    .single()
+
   const { error: dbError } = await supabase
     .from('blog_comments')
     .update({ is_approved: approved })
     .eq('id', commentId)
 
   if (dbError) return { error: dbError.message }
+
+  // Notify the commenter in-app (only if they're a registered member and approved)
+  if (approved && comment?.author_id) {
+    const post = Array.isArray(comment.blog_posts) ? comment.blog_posts[0] : comment.blog_posts
+    const postTitle = (post as any)?.title ?? 'a blog post'
+    const postSlug  = (post as any)?.slug ?? ''
+    await insertNotification({
+      supabase,
+      userId: comment.author_id,
+      type:   'announcement',
+      title:  'Your comment was approved',
+      body:   `Your comment on "${postTitle}" is now visible on the blog.`,
+      link:   postSlug ? `/blog/${postSlug}` : '/blog',
+    })
+  }
+
   revalidatePath('/admin/comments')
   revalidatePath('/blog')
   return { success: true }

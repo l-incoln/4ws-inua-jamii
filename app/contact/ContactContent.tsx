@@ -5,37 +5,6 @@ import Link from 'next/link'
 import { submitContactMessage } from '@/app/actions/contact'
 import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2, Clock, MessageSquare } from 'lucide-react'
 
-const contactInfo = [
-  {
-    icon: Mail,
-    label: 'Email Us',
-    value: 'info@4wsinuajamii.org',
-    href: 'mailto:info@4wsinuajamii.org',
-    description: 'We respond within 24 hours',
-  },
-  {
-    icon: Phone,
-    label: 'Call Us',
-    value: '+254 700 000 000',
-    href: 'tel:+254700000000',
-    description: 'Monday – Friday, 8am – 5pm EAT',
-  },
-  {
-    icon: MapPin,
-    label: 'Visit Us',
-    value: 'Nairobi, Kenya',
-    href: '#',
-    description: 'By appointment only',
-  },
-  {
-    icon: Clock,
-    label: 'Office Hours',
-    value: 'Mon – Fri: 8am – 5pm',
-    href: '#',
-    description: 'Weekends by appointment',
-  },
-]
-
 const subjects = [
   'General Inquiry',
   'Membership & Volunteering',
@@ -46,10 +15,43 @@ const subjects = [
   'Other',
 ]
 
-export default function ContactContent() {
+export default function ContactContent({ contactInfo }: {
+  contactInfo: { email: string; phone: string; address: string }
+}) {
   const [isPending, startTransition] = useTransition()
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const contactCards = [
+    {
+      icon: Mail,
+      label: 'Email Us',
+      value: contactInfo.email,
+      href: `mailto:${contactInfo.email}`,
+      description: 'We respond within 24 hours',
+    },
+    {
+      icon: Phone,
+      label: 'Call Us',
+      value: contactInfo.phone,
+      href: `tel:${contactInfo.phone.replace(/\s+/g, '')}`,
+      description: 'Monday – Friday, 8am – 5pm EAT',
+    },
+    {
+      icon: MapPin,
+      label: 'Visit Us',
+      value: contactInfo.address,
+      href: '#',
+      description: 'By appointment only',
+    },
+    {
+      icon: Clock,
+      label: 'Office Hours',
+      value: 'Mon – Fri: 8am – 5pm',
+      href: '#',
+      description: 'Weekends by appointment',
+    },
+  ]
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -102,7 +104,7 @@ export default function ContactContent() {
               </div>
 
               <div className="space-y-4">
-                {contactInfo.map(({ icon: Icon, label, value, href, description }) => (
+                {contactCards.map(({ icon: Icon, label, value, href, description }) => (
                   <a
                     key={label}
                     href={href}
