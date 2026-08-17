@@ -158,7 +158,7 @@ export default function AdminSidebar({ displayName, initials, unreadMessages, pe
       </aside>
 
       {/* ── Mobile top bar ── */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 border-b border-slate-800 h-14 flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 border-b border-slate-800 h-14 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)]" style={{ height: 'calc(3.5rem + env(safe-area-inset-top))' }}>
         <SiteLogoClient
           subLabel="Admin"
           nameColor="text-white"

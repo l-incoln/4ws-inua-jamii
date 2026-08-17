@@ -79,10 +79,10 @@ export default function DonationsTable({
         <thead>
           <tr className="table-header">
             <th className="px-5 py-3.5 text-left">Donor</th>
-            <th className="px-5 py-3.5 text-left">Campaign</th>
+            <th className="px-5 py-3.5 text-left hidden md:table-cell">Campaign</th>
             <th className="px-5 py-3.5 text-left">Amount</th>
-            <th className="px-5 py-3.5 text-left">Method</th>
-            <th className="px-5 py-3.5 text-left">Date</th>
+            <th className="px-5 py-3.5 text-left hidden sm:table-cell">Method</th>
+            <th className="px-5 py-3.5 text-left hidden lg:table-cell">Date</th>
             <th className="px-5 py-3.5 text-left">Status</th>
             <th className="px-5 py-3.5 text-left">Actions</th>
           </tr>
@@ -98,16 +98,16 @@ export default function DonationsTable({
                   <div className="font-semibold text-slate-800">{displayName}</div>
                   <div className="text-xs text-slate-400">{displayEmail}</div>
                 </td>
-                <td className="table-cell">
+                <td className="table-cell hidden md:table-cell">
                   <span className="badge-gray text-xs">{d.campaign_title ?? 'General'}</span>
                 </td>
                 <td className="table-cell font-bold text-primary-600">
                   {d.currency ?? 'KES'} {Number(d.amount).toLocaleString()}
                 </td>
-                <td className="table-cell text-sm text-slate-500 capitalize">
+                <td className="table-cell text-sm text-slate-500 capitalize hidden sm:table-cell">
                   {d.payment_method ?? '—'}
                 </td>
-                <td className="table-cell text-sm text-slate-500">
+                <td className="table-cell text-sm text-slate-500 hidden lg:table-cell">
                   {new Date(d.created_at).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </td>
                 <td className="table-cell">

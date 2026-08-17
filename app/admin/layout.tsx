@@ -41,7 +41,7 @@ export default async function AdminLayout({
       />
 
       {/* Main content */}
-      <main className="flex-1 lg:ml-64 min-h-screen bg-gray-50 pt-14 lg:pt-0">
+      <main className="flex-1 lg:ml-64 min-h-screen bg-gray-50 pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0">
         <div className="max-w-7xl mx-auto p-6 lg:p-8">
           {/* Mobile back link — sidebar handles desktop navigation */}
           <Link

@@ -1,12 +1,41 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle2, AlertCircle, Loader2, MailX } from 'lucide-react'
 
-export default function UnsubscribeForm() {
-  const [email, setEmail] = useState('')
+export default function UnsubscribeForm({ initialEmail = '' }: { initialEmail?: string }) {
+  const [email, setEmail] = useState(initialEmail)
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [error, setError] = useState('')
+
+  // If email is pre-filled from URL, auto-submit immediately
+  useEffect(() => {
+    if (initialEmail) {
+      // Use a ref-like pattern to trigger unsubscribe on mount
+      const doUnsubscribe = async () => {
+        setStatus('loading')
+        try {
+          const res = await fetch('/api/newsletter/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: initialEmail }),
+          })
+          const data = await res.json()
+          if (data.error) {
+            setStatus('error')
+            setError(data.error)
+          } else {
+            setStatus('success')
+          }
+        } catch {
+          setStatus('error')
+          setError('Network error. Please try again.')
+        }
+      }
+      doUnsubscribe()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleUnsubscribe(e: React.FormEvent) {
     e.preventDefault()

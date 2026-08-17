@@ -385,7 +385,7 @@ function SignupForm() {
                     Privacy Policy
                   </Link>
                   {' '}and{' '}
-                  <Link href="/privacy#terms" target="_blank" className="text-primary-600 hover:underline font-semibold">
+                  <Link href="/terms" target="_blank" className="text-primary-600 hover:underline font-semibold">
                     Terms & Conditions
                   </Link>
                   . I consent to the processing of my personal data in accordance with the Kenya Data Protection Act 2019.

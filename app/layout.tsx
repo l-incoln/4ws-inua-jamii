@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import AnalyticsInjector from '@/components/layout/AnalyticsInjector'
+import CookieConsentBanner from '@/components/layout/CookieConsentBanner'
 
 export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }
 
@@ -26,9 +27,6 @@ export const metadata: Metadata = {
     title: '4W\'S Inua Jamii Foundation',
     description: 'Empowering communities through unity, service, and sustainable impact.',
   },
-  icons: {
-    icon: '/favicon.ico',
-  },
 }
 
 export default function RootLayout({
@@ -41,6 +39,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-white font-sans antialiased">
         <AnalyticsInjector />
         {children}
+        <CookieConsentBanner />
       </body>
     </html>
   )

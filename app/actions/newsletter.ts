@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, escapeHtml, emailLayout, emailButton, SITE_URL } from '@/lib/email'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -44,7 +44,8 @@ export async function subscribeNewsletter(
   await sendEmail({
     to: parsed.data.email,
     subject: `Welcome to the 4W'S Inua Jamii newsletter`,
-    html: newsletterWelcomeHtml(parsed.data.name),
+    html: newsletterWelcomeHtml(parsed.data.name, parsed.data.email),
+    template: 'newsletter_welcome',
   }).catch(() => {})
 
   revalidatePath('/admin')
@@ -65,12 +66,13 @@ export async function unsubscribeNewsletter(
 }
 
 // ---------------------------------------------------------------------------
-// Email template
+// Email template — uses the shared emailLayout for consistent branding
 // ---------------------------------------------------------------------------
-function newsletterWelcomeHtml(name?: string) {
+function newsletterWelcomeHtml(name: string | undefined, email: string) {
+  const unsubUrl = `${SITE_URL}/unsubscribe?email=${encodeURIComponent(email)}`
   const body = `
     <p style="color:#334155;font-size:15px;margin-top:0;">
-      ${name ? `Hi <strong>${name}</strong>,` : 'Hello,'}
+      ${name ? `Hi <strong>${escapeHtml(name)}</strong>,` : 'Hello,'}
     </p>
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       Thank you for subscribing to the <strong>4W'S Inua Jamii Foundation</strong> newsletter!
@@ -80,33 +82,16 @@ function newsletterWelcomeHtml(name?: string) {
     <p style="color:#334155;font-size:15px;line-height:1.6;">
       Together, we are building stronger communities across Kenya.
     </p>
+    ${emailButton('Visit Our Website', SITE_URL, '#1E3A8A')}
     <p style="color:#64748b;font-size:13px;margin-top:28px;">
-      You can unsubscribe at any time by clicking the unsubscribe link in any of our emails.
+      You can unsubscribe at any time by clicking
+      <a href="${unsubUrl}" style="color:#1E3A8A;">this unsubscribe link</a>
+      or the unsubscribe link in any of our emails.
     </p>
   `
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Newsletter Subscription — 4W'S Inua Jamii</title>
-</head>
-<body style="font-family:Arial,Helvetica,sans-serif;background:#f1f5f9;margin:0;padding:32px 16px;">
-  <div style="max-width:580px;margin:0 auto;">
-    <div style="background:#1E3A8A;border-radius:12px 12px 0 0;padding:32px 40px;">
-      <p style="margin:0 0 4px;color:rgba(255,255,255,0.75);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;">4W'S Inua Jamii Foundation</p>
-      <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Welcome to Our Newsletter</h1>
-    </div>
-    <div style="background:#ffffff;padding:36px 40px;">
-      ${body}
-    </div>
-    <div style="background:#e2e8f0;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
-      <p style="margin:0;color:#94a3b8;font-size:11px;">
-        You received this email because you subscribed on our website.
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || ''}/unsubscribe?email=${encodeURIComponent('')}" style="color:#1E3A8A;">Unsubscribe</a>
-      </p>
-    </div>
-  </div>
-</body>
-</html>`
+  return emailLayout({
+    headerTitle:    'Welcome to Our Newsletter',
+    headerSubtitle: '4W\'S Inua Jamii Foundation',
+    body,
+  })
 }

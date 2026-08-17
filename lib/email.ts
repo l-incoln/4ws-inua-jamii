@@ -24,7 +24,7 @@ import { TIER_LABELS, type MembershipTier } from '@/types'
 export const ORG_NAME    = "4W'S Inua Jamii Foundation"
 export const ORG_TAGLINE = 'Wisdom · Wellness · Wealth · Worth'
 const ORG_COUNTRY = 'Kenya'
-const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.4wsinuajamii.org'
+export const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.4wsinuajamii.org'
 
 // Tier display labels – keep in sync with types/index.ts
 export const TIER_DISPLAY: Record<string, string> = {
@@ -231,7 +231,7 @@ export async function sendEmailBatch(messages: SendEmailOptions[]): Promise<Send
 // ---------------------------------------------------------------------------
 // Shared layout wrapper — every template uses this for consistent branding
 // ---------------------------------------------------------------------------
-function emailLayout({
+export function emailLayout({
   headerTitle,
   headerSubtitle,
   headerColor = '#1E3A8A',
@@ -282,7 +282,7 @@ function emailLayout({
 }
 
 // Reusable button block
-function emailButton(label: string, href: string, color = '#1E3A8A') {
+export function emailButton(label: string, href: string, color = '#1E3A8A') {
   return `<a href="${href}" style="display:inline-block;margin-top:20px;padding:13px 28px;background:${color};color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.02em;">${label}</a>`
 }
 

@@ -234,7 +234,7 @@ export default function ProfilePage() {
       {/* Membership info */}
       <div className="card p-6">
         <h2 className="font-bold text-slate-900 mb-4">Membership Status</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             { label: 'Membership Tier', value: tierLabels[profile?.tier ?? 'basic'] ?? 'Basic' },
             { label: 'Member Since', value: memberSince },

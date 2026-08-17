@@ -262,10 +262,10 @@ export default function MembersTable({ members }: { members: Member[] }) {
                   <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} className="w-4 h-4 rounded accent-primary-600" />
                 </th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Member</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Phone</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Joined</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tier</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Events</th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Phone</th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Joined</th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Tier</th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Events</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
               </tr>
@@ -292,13 +292,13 @@ export default function MembersTable({ members }: { members: Member[] }) {
                         <span className="font-semibold text-slate-800">{name}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-slate-500 text-sm">{member.phone || '—'}</td>
-                    <td className="px-5 py-4 text-slate-500 text-sm">
+                    <td className="px-5 py-4 text-slate-500 text-sm hidden md:table-cell">{member.phone || '—'}</td>
+                    <td className="px-5 py-4 text-slate-500 text-sm hidden lg:table-cell">
                       {new Date(member.created_at).toLocaleDateString('en-KE', {
                         month: 'short', day: 'numeric', year: 'numeric',
                       })}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 hidden sm:table-cell">
                       <div className="relative">
                         <button
                           onClick={() => setShowTierDropdown(showTierDropdown === member.id ? null : member.id)}
@@ -322,7 +322,7 @@ export default function MembersTable({ members }: { members: Member[] }) {
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-slate-600 font-medium text-sm">{member.rsvp_count}</td>
+                    <td className="px-5 py-4 text-slate-600 font-medium text-sm hidden md:table-cell">{member.rsvp_count}</td>
                     <td className="px-5 py-4">
                       <span className={statusColors[member.membership_status] || 'badge-gray'}>
                         {member.membership_status}

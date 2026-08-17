@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff, QrCode, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Bell, Lock, Shield, Trash2, Loader2, CheckCircle2, Eye, EyeOff, QrCode, ChevronRight, AlertTriangle, BadgeCheck, Upload, FileText, Phone } from 'lucide-react'
 import BirthdaySettingsCard from '@/components/dashboard/BirthdaySettingsCard'
 import BackLink from '@/components/dashboard/BackLink'
+import { uploadIdDocument } from '@/app/actions/verification'
 
 const DEFAULT_PREFS = {
   event_reminders: true,
@@ -118,6 +119,14 @@ export default function DashboardSettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [membershipStatus, setMembershipStatus] = useState<string | null>(null)
   const [hasActiveTerm, setHasActiveTerm] = useState(false)
+  const [verificationInfo, setVerificationInfo] = useState<{
+    phone: string | null
+    phoneVerified: boolean
+    idDocumentUrl: string | null
+    idVerified: boolean
+  }>({ phone: null, phoneVerified: false, idDocumentUrl: null, idVerified: false })
+  const [idUploading, setIdUploading] = useState(false)
+  const [idMessage, setIdMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -128,13 +137,21 @@ export default function DashboardSettingsPage() {
       if (saved && typeof saved === 'object') {
         setNotifPrefs({ ...DEFAULT_PREFS, ...saved })
       }
-      // Fetch membership status
+      // Fetch membership status and verification info
       const { data: profile } = await supabase
         .from('profiles')
-        .select('membership_status')
+        .select('membership_status, phone, phone_verified, id_document_url, id_verified')
         .eq('id', user.id)
         .single()
-      if (profile) setMembershipStatus(profile.membership_status)
+      if (profile) {
+        setMembershipStatus(profile.membership_status)
+        setVerificationInfo({
+          phone: profile.phone ?? null,
+          phoneVerified: profile.phone_verified ?? false,
+          idDocumentUrl: profile.id_document_url ?? null,
+          idVerified: profile.id_verified ?? false,
+        })
+      }
       // Check for active term
       const { data: terms } = await supabase
         .from('membership_terms')
@@ -178,6 +195,36 @@ export default function DashboardSettingsPage() {
     if (!error) {
       setNotifSaved(true)
       setTimeout(() => setNotifSaved(false), 2500)
+    }
+  }
+
+  async function handleIdUpload(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    setIdUploading(true)
+    setIdMessage(null)
+    const result = await uploadIdDocument(formData)
+    setIdUploading(false)
+    if (result?.error) {
+      setIdMessage({ type: 'error', text: result.error })
+    } else if (result?.success) {
+      setIdMessage({ type: 'success', text: 'ID document uploaded successfully. An admin will review it shortly.' })
+      // Refresh verification info
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id_document_url, id_verified')
+          .eq('id', user.id)
+          .single()
+        if (profile) {
+          setVerificationInfo((prev) => ({
+            ...prev,
+            idDocumentUrl: profile.id_document_url ?? null,
+            idVerified: profile.id_verified ?? false,
+          }))
+        }
+      }
     }
   }
 
@@ -375,6 +422,119 @@ export default function DashboardSettingsPage() {
               The verification link is cryptographically signed — any tampering with the token is automatically detected and rejected during verification.
               Your email and phone number are never included.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Identity Verification */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
+            <BadgeCheck className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="font-bold text-slate-900">Identity Verification</h2>
+            <p className="text-xs text-slate-500">Verify your phone number and upload an ID document</p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {/* Phone verification status */}
+          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <Phone className="w-4 h-4 text-slate-400" />
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Phone Number</p>
+                <p className="text-xs text-slate-500 mt-0.5">{verificationInfo.phone || 'Not set'}</p>
+              </div>
+            </div>
+            {verificationInfo.phoneVerified ? (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-full">
+                <CheckCircle2 className="w-3 h-3" />
+                Verified
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+                Not verified
+              </span>
+            )}
+          </div>
+
+          {/* ID document upload */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">ID Document</p>
+                <p className="text-xs text-slate-500 mt-0.5">Upload a national ID, passport, or driver&apos;s license (JPG, PNG, PDF, max 5MB)</p>
+              </div>
+              {verificationInfo.idVerified ? (
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-full">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Verified
+                </span>
+              ) : verificationInfo.idDocumentUrl ? (
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-full">
+                  <Loader2 className="w-3 h-3" />
+                  Pending review
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+                  Not uploaded
+                </span>
+              )}
+            </div>
+
+            {verificationInfo.idDocumentUrl && (
+              <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl mb-3">
+                <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <a
+                  href={verificationInfo.idDocumentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary-600 hover:underline truncate flex-1"
+                >
+                  View uploaded document
+                </a>
+              </div>
+            )}
+
+            {idMessage && (
+              <div className={`p-3 rounded-xl text-sm mb-3 ${
+                idMessage.type === 'success'
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                  : 'bg-red-50 border border-red-200 text-red-700'
+              }`}>
+                {idMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleIdUpload} className="space-y-3">
+              <input
+                type="file"
+                name="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                required
+                disabled={idUploading}
+                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:cursor-pointer cursor-pointer disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={idUploading}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {idUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Upload ID Document
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </div>

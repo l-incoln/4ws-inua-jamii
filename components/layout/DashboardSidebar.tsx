@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { signOut } from '@/app/actions/auth'
 import {
   LayoutDashboard, User, CalendarCheck, Rss, Heart,
   CheckSquare, CreditCard, Trophy, FolderOpen, Settings,
-  Bell, LogOut, ExternalLink,
+  Bell, LogOut, ExternalLink, MoreHorizontal, X,
 } from 'lucide-react'
 import SiteLogoClient from '@/components/layout/SiteLogoClient'
 
@@ -24,18 +25,23 @@ const navItems = [
 
 const RESTRICTED_HREFS = ['/dashboard/membership-card', '/dashboard/achievements', '/dashboard/tasks']
 
-const mobileNavItems = [
+// Core items shown in the mobile bottom nav (5 items + "More" button)
+const mobileCoreItems = [
   { href: '/dashboard',                label: 'Home',         icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/profile',        label: 'Profile',      icon: User },
   { href: '/dashboard/events',         label: 'Events',       icon: CalendarCheck },
-  { href: '/dashboard/feed',           label: 'Feed',         icon: Rss },
-  { href: '/dashboard/donations',      label: 'Donations',    icon: Heart },
-  { href: '/dashboard/tasks',          label: 'Tasks',        icon: CheckSquare },
   { href: '/dashboard/membership-card',label: 'Card',         icon: CreditCard },
-  { href: '/dashboard/achievements',   label: 'Awards',       icon: Trophy },
-  { href: '/dashboard/resources',      label: 'Resources',    icon: FolderOpen },
   { href: '/dashboard/notifications',  label: 'Alerts',       icon: Bell, badge: true },
   { href: '/dashboard/settings',       label: 'Settings',     icon: Settings },
+]
+
+// Additional items shown in the "More" drawer
+const mobileMoreItems = [
+  { href: '/dashboard/profile',        label: 'My Profile',     icon: User },
+  { href: '/dashboard/feed',           label: 'Activity Feed',  icon: Rss },
+  { href: '/dashboard/donations',      label: 'My Donations',   icon: Heart },
+  { href: '/dashboard/tasks',          label: 'Volunteer Tasks',icon: CheckSquare },
+  { href: '/dashboard/achievements',   label: 'Achievements',   icon: Trophy },
+  { href: '/dashboard/resources',      label: 'Resources',      icon: FolderOpen },
 ]
 
 interface Props {
@@ -132,6 +138,8 @@ function MobileNavItem({
 }
 
 export default function DashboardSidebar({ displayName, email, initials, unread, isPending = false }: Props) {
+  const [moreOpen, setMoreOpen] = useState(false)
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -208,9 +216,9 @@ export default function DashboardSidebar({ displayName, email, initials, unread,
         </div>
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex overflow-x-auto scrollbar-hide min-h-16 pb-[env(safe-area-inset-bottom)]">
-        {mobileNavItems.map(({ href, label, icon, exact, badge }) => {
+      {/* Mobile bottom nav — 5 core items + More button */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex min-h-16 pb-[env(safe-area-inset-bottom)]">
+        {mobileCoreItems.map(({ href, label, icon, exact, badge }) => {
           const disabled = isPending && RESTRICTED_HREFS.includes(href)
           return (
             <MobileNavItem
@@ -224,7 +232,63 @@ export default function DashboardSidebar({ displayName, email, initials, unread,
             />
           )
         })}
+        {/* More button */}
+        <button
+          onClick={() => setMoreOpen(true)}
+          className="flex-1 flex flex-col items-center gap-0.5 py-3 text-slate-500 hover:text-primary-600 transition-colors"
+          aria-label="More navigation"
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          <span className="text-[10px] leading-tight text-center w-full px-0.5 truncate">More</span>
+        </button>
       </nav>
+
+      {/* Mobile "More" drawer */}
+      {moreOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setMoreOpen(false)}
+          />
+          <div className="relative bg-white rounded-t-2xl shadow-2xl pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="font-bold text-slate-900">More</h3>
+              <button
+                onClick={() => setMoreOpen(false)}
+                aria-label="Close"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1 p-4">
+              {mobileMoreItems.map(({ href, label, icon: Icon }) => {
+                const disabled = isPending && RESTRICTED_HREFS.includes(href)
+                return disabled ? (
+                  <span
+                    key={href}
+                    title="Available after membership is approved"
+                    className="flex flex-col items-center gap-1.5 p-3 text-slate-300 cursor-not-allowed select-none"
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[11px] text-center leading-tight">{label}</span>
+                  </span>
+                ) : (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMoreOpen(false)}
+                    className="flex flex-col items-center gap-1.5 p-3 text-slate-600 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[11px] text-center leading-tight">{label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
