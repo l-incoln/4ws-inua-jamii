@@ -1,0 +1,13 @@
+# Large video files (exceed Vercel's 100MB file limit)
+*.mp4
+*.mov
+*.avi
+
+# Local-only files
+*.txt
+build.log
+git-check.txt
+
+# Already in .gitignore but explicit for Vercel
+.env
+.env*.local
