@@ -54,6 +54,7 @@ export default async function VerifyMembershipPage({ params, searchParams }: Pro
     .select(`
       token,
       created_at,
+      term_id,
       membership_terms (
         id,
         tier,
@@ -72,7 +73,41 @@ export default async function VerifyMembershipPage({ params, searchParams }: Pro
     .eq('token', token)
     .maybeSingle()
 
-  if (!tokenRecord || !tokenRecord.membership_terms) {
+  // If the nested join returned the term, use it directly.
+  // Otherwise, fall back to a separate query (handles RLS edge cases
+  // where the nested join is blocked but direct queries are not).
+  let term: any = tokenRecord?.membership_terms
+    ? (Array.isArray(tokenRecord.membership_terms)
+        ? tokenRecord.membership_terms[0]
+        : tokenRecord.membership_terms)
+    : null
+
+  let profile: any = term?.profiles
+    ? (Array.isArray(term.profiles) ? term.profiles[0] : term.profiles)
+    : null
+
+  // Fallback: fetch term + profile separately if nested join was blocked by RLS
+  if (!term && tokenRecord?.term_id) {
+    const { data: termRow } = await supabase
+      .from('membership_terms')
+      .select('id, tier, valid_from, valid_until, is_active, issued_at, user_id')
+      .eq('id', tokenRecord.term_id)
+      .maybeSingle()
+
+    if (termRow) {
+      term = termRow
+      if (termRow.user_id) {
+        const { data: profileRow } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, role')
+          .eq('id', termRow.user_id)
+          .maybeSingle()
+        profile = profileRow
+      }
+    }
+  }
+
+  if (!tokenRecord || !term) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-xl max-w-sm w-full p-8 text-center space-y-4">
@@ -90,12 +125,6 @@ export default async function VerifyMembershipPage({ params, searchParams }: Pro
       </div>
     )
   }
-
-  const term = Array.isArray(tokenRecord.membership_terms)
-    ? tokenRecord.membership_terms[0]
-    : tokenRecord.membership_terms
-
-  const profile = Array.isArray(term.profiles) ? term.profiles[0] : term.profiles
 
   const expired = isExpired(term.valid_until)
   const isValid = term.is_active && !expired
