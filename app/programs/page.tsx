@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
+import PageBackLink from '@/components/layout/PageBackLink'
 import { ArrowRight, Heart, BookOpen, Sprout, DollarSign, Users, Globe } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { createPublicClient } from '@/lib/supabase/public-client'
@@ -61,6 +62,7 @@ export default async function ProgramsPage() {
         {/* Programs Grid */}
         <section className="py-16 md:py-24 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <PageBackLink href="/" label="Back to Home" className="mb-6" />
             {programs.length === 0 ? (
               <p className="text-center text-slate-500 py-12">No programs found.</p>
             ) : (

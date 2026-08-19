@@ -1,6 +1,7 @@
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import EventsGrid from '@/components/events/EventsGrid'
+import PageBackLink from '@/components/layout/PageBackLink'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
 
@@ -58,6 +59,7 @@ export default async function EventsPage() {
 
         <section className="py-16 md:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <PageBackLink href="/" label="Back to Home" className="mb-6" />
             <EventsGrid events={events} rsvpCounts={rsvpCounts} categories={categories} />
           </div>
         </section>

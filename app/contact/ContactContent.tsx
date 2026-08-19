@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { submitContactMessage } from '@/app/actions/contact'
 import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2, Clock, MessageSquare } from 'lucide-react'
+import PageBackLink from '@/components/layout/PageBackLink'
 
 const subjects = [
   'General Inquiry',
@@ -92,7 +93,8 @@ export default function ContactContent({ contactInfo }: {
 
       <section className="py-16 md:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
+          <PageBackLink href="/" label="Back to Home" />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 mt-6">
 
             {/* Contact info sidebar */}
             <div className="lg:col-span-2 space-y-6">

@@ -1,6 +1,7 @@
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import BlogGrid from '@/components/blog/BlogGrid'
+import PageBackLink from '@/components/layout/PageBackLink'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import type { Metadata } from 'next'
 import { Heart, Sparkles } from 'lucide-react'
@@ -53,6 +54,7 @@ export default async function StoriesPage() {
 
         <section className="py-16 md:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <PageBackLink href="/" label="Back to Home" className="mb-6" />
             {allPosts.length === 0 ? (
               <div className="text-center py-20">
                 <Sparkles className="w-12 h-12 text-slate-300 mx-auto mb-3" />

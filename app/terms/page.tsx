@@ -1,5 +1,6 @@
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
+import PageBackLink from '@/components/layout/PageBackLink'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { FileText } from 'lucide-react'
@@ -30,6 +31,7 @@ export default function TermsPage() {
         {/* Content */}
         <section className="py-16">
           <div className="max-w-3xl mx-auto px-4 space-y-8">
+            <PageBackLink href="/" label="Back to Home" />
             <div className="prose prose-slate max-w-none">
               <p className="text-slate-600 text-sm leading-relaxed">
                 These Terms &amp; Conditions govern your use of the 4W&apos;S Inua Jamii Foundation

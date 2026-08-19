@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import PageBackLink from '@/components/layout/PageBackLink'
 import {
   Users, CalendarCheck, Heart, Package, Globe, TrendingUp,
   Award, ArrowRight, MapPin,
@@ -182,6 +183,7 @@ export default async function ImpactDashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+        <PageBackLink href="/" label="Back to Home" className="!px-0 !pt-0" />
         {/* Key stats */}
         <section id="overview" className="scroll-mt-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

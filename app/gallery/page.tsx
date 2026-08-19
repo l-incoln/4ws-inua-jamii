@@ -1,6 +1,7 @@
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import GalleryGrid from '@/components/gallery/GalleryGrid'
+import PageBackLink from '@/components/layout/PageBackLink'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import type { Metadata } from 'next'
 
@@ -45,6 +46,7 @@ export default async function GalleryPage() {
 
         <section className="py-16 md:py-20 bg-gray-50 min-h-[60vh]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <PageBackLink href="/" label="Back to Home" className="mb-6" />
             <GalleryGrid items={items} categories={categories} />
           </div>
         </section>

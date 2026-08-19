@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import DonateForm from '@/components/donate/DonateForm'
+import PageBackLink from '@/components/layout/PageBackLink'
 import { createClient } from '@/lib/supabase/server'
 import { Heart, Shield, Zap, Users2 } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -93,6 +94,7 @@ export default async function DonatePage() {
 
         <section className="py-16 md:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <PageBackLink href="/" label="Back to Home" />
 
             {/* Active Campaigns */}
             {activeCampaigns.length > 0 && (

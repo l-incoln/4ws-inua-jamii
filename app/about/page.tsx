@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import PartnersSection from '@/components/home/PartnersSection'
+import PageBackLink from '@/components/layout/PageBackLink'
 import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2, HandHeart, Leaf, BookOpen, Stethoscope, ClipboardList, Megaphone, Zap, Shield, Globe } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
@@ -146,7 +147,8 @@ export default async function AboutPage() {
         {/* Mission & Vision */}
         <section id="mission" className="py-16 md:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <PageBackLink href="/" label="Back to Home" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-6">
               <div className="card p-8 border-l-4 border-primary-600">
                 <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-5">
                   <Target className="w-6 h-6 text-primary-600" />

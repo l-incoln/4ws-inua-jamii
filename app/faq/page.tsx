@@ -1,5 +1,6 @@
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
+import PageBackLink from '@/components/layout/PageBackLink'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { ChevronDown, HelpCircle } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -81,6 +82,7 @@ export default async function FaqPage() {
         {/* FAQ Content */}
         <section className="py-16 md:py-24 bg-gray-50 min-h-[60vh]">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <PageBackLink href="/" label="Back to Home" className="mb-6" />
             {grouped.length === 0 ? (
               <div className="text-center py-20">
                 <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />

@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin-client'
 import { Shield, Star, Award, Search, CheckCircle, XCircle, Clock, Mail, CreditCard } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import PageBackLink from '@/components/layout/PageBackLink'
 import { isExpired, formatMembershipId } from '@/lib/membership'
 
 export const dynamic = 'force-dynamic'
@@ -117,6 +118,7 @@ export default async function VerifyHubPage({ searchParams }: PageProps) {
       </div>
 
       <div className="max-w-xl mx-auto px-4 py-10 space-y-8">
+        <PageBackLink href="/" label="Back to Home" className="!px-0 !pt-0" />
 
         {/* Search form */}
         <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
