@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Cookie, X } from 'lucide-react'
 
 const CONSENT_KEY = '4ws-cookie-consent'
 
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false)
+  const pathname = usePathname()
+
+  // On dashboard/admin pages, the mobile bottom nav sits at bottom-0.
+  // Lift the cookie banner above it so it doesn't block navigation.
+  const isDashboard = pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin')
 
   useEffect(() => {
     // Only show on client side, after checking localStorage
@@ -53,7 +59,9 @@ export default function CookieConsentBanner() {
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed bottom-0 left-0 right-0 z-[100] p-4 animate-in slide-in-from-bottom"
+      className={`fixed left-0 right-0 z-[100] p-4 animate-in slide-in-from-bottom ${
+        isDashboard ? 'bottom-20 lg:bottom-0' : 'bottom-0'
+      }`}
     >
       <div className="max-w-3xl mx-auto bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 p-5 sm:p-6">
         <div className="flex items-start gap-4">

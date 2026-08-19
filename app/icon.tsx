@@ -42,7 +42,7 @@ export default async function Icon() {
     }
   }
 
-  // Fallback: render a branded "4W" badge
+  // Fallback: render a branded "4W" badge with better visibility
   return new ImageResponse(
     (
       <div
@@ -52,11 +52,12 @@ export default async function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #1E3A8A 0%, #1e40af 100%)',
+          background: 'linear-gradient(135deg, #1E3A8A 0%, #2D5CC8 100%)',
           color: 'white',
-          fontSize: 18,
-          fontWeight: 700,
-          borderRadius: 6,
+          fontSize: 16,
+          fontWeight: 800,
+          borderRadius: 8,
+          letterSpacing: -1,
         }}
       >
         4W

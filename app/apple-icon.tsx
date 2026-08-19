@@ -6,8 +6,8 @@ export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
 
 /**
- * Apple touch icon — serves the site logo at 180x180 for iOS home screen.
- * Falls back to a branded "4W" badge.
+ * Apple Touch Icon (180×180) — used by iOS for home screen bookmarks.
+ * Falls back to a branded "4W" badge if no logo is configured.
  */
 export default async function AppleIcon() {
   let logoUrl: string | null = null
@@ -21,7 +21,7 @@ export default async function AppleIcon() {
       .single()
     logoUrl = data?.value ?? null
   } catch {
-    // ignore
+    // ignore — use fallback
   }
 
   if (logoUrl) {
@@ -37,10 +37,11 @@ export default async function AppleIcon() {
         })
       }
     } catch {
-      // fall through
+      // fall through to fallback
     }
   }
 
+  // Fallback: render a branded "4W" badge at 180×180
   return new ImageResponse(
     (
       <div
@@ -50,10 +51,12 @@ export default async function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#1E3A8A',
+          background: 'linear-gradient(135deg, #1E3A8A 0%, #2D5CC8 100%)',
           color: 'white',
-          fontSize: 80,
-          fontWeight: 700,
+          fontSize: 90,
+          fontWeight: 800,
+          borderRadius: 44,
+          letterSpacing: -4,
         }}
       >
         4W

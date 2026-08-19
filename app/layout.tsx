@@ -14,6 +14,14 @@ export const metadata: Metadata = {
     'Empowering communities through unity, service, and sustainable impact. Join us in building a better tomorrow across Kenya.',
   keywords: ['foundation', 'community', 'Kenya', 'social impact', 'charity', 'empowerment'],
   authors: [{ name: '4W\'S Inua Jamii Foundation' }],
+  icons: {
+    icon: [
+      { url: '/icon', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   openGraph: {
     type: 'website',
     locale: 'en_KE',

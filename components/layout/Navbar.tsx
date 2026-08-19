@@ -95,6 +95,11 @@ export default function Navbar({
 
   const isHomePage = pathname === '/'
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsOpen(false)
+  }, [pathname])
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -280,9 +285,9 @@ export default function Navbar({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-white border-t border-gray-100 shadow-lg"
+            className="lg:hidden bg-white border-t border-gray-100 shadow-lg overflow-hidden"
           >
-            <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
+            <div className="max-w-7xl mx-auto px-4 py-4 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain">
               {navLinks.map((link) =>
                 link.label === 'Donate' ? (
                   <Link

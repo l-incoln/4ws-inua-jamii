@@ -110,7 +110,7 @@ export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight"
           >
             {heroTitle ? (
               heroTitle
@@ -140,7 +140,7 @@ export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-7 text-lg md:text-xl text-primary-100/90 max-w-2xl mx-auto leading-relaxed"
+            className="mt-5 sm:mt-7 text-base sm:text-lg md:text-xl text-primary-100/90 max-w-2xl mx-auto leading-relaxed"
           >
             {subtitle}
           </motion.p>
@@ -172,7 +172,7 @@ export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-14 grid grid-cols-3 gap-4 max-w-2xl mx-auto"
+            className="mt-10 sm:mt-14 grid grid-cols-3 gap-2 sm:gap-4 max-w-2xl mx-auto"
           >
             {stats.map(({ value, label, icon: Icon }, i) => (
               <motion.div
@@ -180,11 +180,11 @@ export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
-                className="glass border border-white/10 rounded-2xl px-4 py-5 text-center group hover:bg-white/15 transition-colors duration-200"
+                className="glass border border-white/10 rounded-2xl px-2 sm:px-4 py-4 sm:py-5 text-center group hover:bg-white/15 transition-colors duration-200"
               >
-                <Icon className="w-5 h-5 text-sky-300 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                <div className="text-2xl md:text-3xl font-extrabold text-white leading-none">{value}</div>
-                <div className="text-[11px] text-primary-200 mt-1.5 uppercase tracking-widest leading-tight">{label}</div>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                <div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-none">{value}</div>
+                <div className="text-[10px] sm:text-[11px] text-primary-200 mt-1.5 uppercase tracking-widest leading-tight">{label}</div>
               </motion.div>
             ))}
           </motion.div>

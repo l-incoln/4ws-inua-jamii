@@ -170,7 +170,7 @@ export default async function ImpactDashboardPage() {
       </div>
 
       {/* Section navigation */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+      <div className="sticky top-16 md:top-20 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex gap-1 overflow-x-auto py-3 text-sm font-medium">
             <a href="#overview" className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-primary-50 hover:text-primary-700 whitespace-nowrap transition-colors">Overview</a>
@@ -185,7 +185,7 @@ export default async function ImpactDashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         <PageBackLink href="/" label="Back to Home" className="!px-0 !pt-0" />
         {/* Key stats */}
-        <section id="overview" className="scroll-mt-20">
+        <section id="overview" className="scroll-mt-32">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {keyStats.map(({ label, value, icon: Icon, color, bg, sub }) => (
             <div key={label} className="card p-6">
@@ -202,7 +202,7 @@ export default async function ImpactDashboardPage() {
 
         {/* CMS-managed impact metrics (if any) */}
         {cmsMetrics.length > 0 && (
-          <section id="foundation" className="scroll-mt-20">
+          <section id="foundation" className="scroll-mt-32">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Foundation Impact</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {cmsMetrics.map((m) => (
@@ -217,7 +217,7 @@ export default async function ImpactDashboardPage() {
         )}
 
         {/* Distribution tracking */}
-        <section id="distributions" className="scroll-mt-20">
+        <section id="distributions" className="scroll-mt-32">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">Distributions</h2>
@@ -277,7 +277,7 @@ export default async function ImpactDashboardPage() {
         </section>
 
         {/* Outreach activities */}
-        <section id="outreach" className="scroll-mt-20">
+        <section id="outreach" className="scroll-mt-32">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">Outreach Activities</h2>
@@ -331,7 +331,7 @@ export default async function ImpactDashboardPage() {
         </section>
 
         {/* CTA */}
-        <section id="get-involved" className="scroll-mt-20">
+        <section id="get-involved" className="scroll-mt-32">
         <div className="card p-8 bg-hero-gradient text-white text-center">
           <h2 className="text-2xl font-bold mb-2">Want to Be Part of the Impact?</h2>
           <p className="text-primary-100/80 text-sm mb-6 max-w-xl mx-auto">
@@ -348,3 +348,4 @@ export default async function ImpactDashboardPage() {
     </div>
   )
 }
+
