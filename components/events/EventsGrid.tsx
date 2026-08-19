@@ -148,8 +148,17 @@ function EventCard({ event, attendees, showCompleted }: { event: EventItem; atte
 export default function EventsGrid({ events, rsvpCounts, categories }: Props) {
   const [activeCategory, setActiveCategory] = useState('All')
 
-  const upcoming = events.filter((e) => e.status === 'upcoming' || e.status === 'ongoing')
-  const completed = events.filter((e) => e.status === 'completed')
+  const today = new Date().toISOString().split('T')[0]
+
+  // An event is "upcoming" only if its date is today or in the future,
+  // regardless of the status field (which may not have been updated).
+  const upcoming = events.filter((e) =>
+    (e.status === 'upcoming' || e.status === 'ongoing') && e.event_date >= today
+  )
+  // Past events: either explicitly marked completed, or whose date has passed.
+  const completed = events.filter((e) =>
+    e.status === 'completed' || e.event_date < today
+  )
 
   const filteredUpcoming = activeCategory === 'All'
     ? upcoming

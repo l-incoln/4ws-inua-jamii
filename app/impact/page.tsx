@@ -168,8 +168,22 @@ export default async function ImpactDashboardPage() {
         </div>
       </div>
 
+      {/* Section navigation */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex gap-1 overflow-x-auto py-3 text-sm font-medium">
+            <a href="#overview" className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-primary-50 hover:text-primary-700 whitespace-nowrap transition-colors">Overview</a>
+            <a href="#foundation" className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-primary-50 hover:text-primary-700 whitespace-nowrap transition-colors">Foundation Impact</a>
+            <a href="#distributions" className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-primary-50 hover:text-primary-700 whitespace-nowrap transition-colors">Distributions</a>
+            <a href="#outreach" className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-primary-50 hover:text-primary-700 whitespace-nowrap transition-colors">Outreach</a>
+            <a href="#get-involved" className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-primary-50 hover:text-primary-700 whitespace-nowrap transition-colors">Get Involved</a>
+          </nav>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         {/* Key stats */}
+        <section id="overview" className="scroll-mt-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {keyStats.map(({ label, value, icon: Icon, color, bg, sub }) => (
             <div key={label} className="card p-6">
@@ -182,10 +196,11 @@ export default async function ImpactDashboardPage() {
             </div>
           ))}
         </div>
+        </section>
 
         {/* CMS-managed impact metrics (if any) */}
         {cmsMetrics.length > 0 && (
-          <div>
+          <section id="foundation" className="scroll-mt-20">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Foundation Impact</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {cmsMetrics.map((m) => (
@@ -196,11 +211,11 @@ export default async function ImpactDashboardPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Distribution tracking */}
-        <div>
+        <section id="distributions" className="scroll-mt-20">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">Distributions</h2>
@@ -257,10 +272,10 @@ export default async function ImpactDashboardPage() {
               <p className="text-sm text-slate-500">No distribution records yet. Records will appear here as the foundation conducts distribution activities.</p>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Outreach activities */}
-        <div>
+        <section id="outreach" className="scroll-mt-20">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">Outreach Activities</h2>
@@ -311,9 +326,10 @@ export default async function ImpactDashboardPage() {
               <p className="text-sm text-slate-500">No outreach activities recorded yet. Activities will appear here as the foundation conducts outreach programs.</p>
             </div>
           )}
-        </div>
+        </section>
 
         {/* CTA */}
+        <section id="get-involved" className="scroll-mt-20">
         <div className="card p-8 bg-hero-gradient text-white text-center">
           <h2 className="text-2xl font-bold mb-2">Want to Be Part of the Impact?</h2>
           <p className="text-primary-100/80 text-sm mb-6 max-w-xl mx-auto">
@@ -325,6 +341,7 @@ export default async function ImpactDashboardPage() {
             <Link href="/contact" className="btn-secondary text-sm">Get Involved</Link>
           </div>
         </div>
+        </section>
       </div>
     </div>
   )
