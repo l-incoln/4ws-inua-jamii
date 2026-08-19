@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin-client'
 import { Shield, Star, Award, Search, CheckCircle, XCircle, Clock, Mail, CreditCard } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -22,7 +22,10 @@ interface PageProps {
 
 export default async function VerifyHubPage({ searchParams }: PageProps) {
   const { q, method = 'id' } = await searchParams
-  const supabase = await createClient()
+  // Use admin client to bypass RLS — verification is a public service.
+  // The membership_terms table only has "user read own" + "admin manage"
+  // policies, which would block lookups by unauthenticated users.
+  const supabase = createAdminClient()
 
   let result: null | {
     found: boolean
@@ -39,17 +42,7 @@ export default async function VerifyHubPage({ searchParams }: PageProps) {
     const query = q.trim()
 
     if (method === 'email') {
-      // Verify by email
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, tier, membership_status')
-        .eq('membership_status', 'approved')
-        .ilike('id', '%') // just get all approved, then filter by auth email
-        .limit(200)
-        .maybeSingle()
-
-      // Actually we need to join with auth.users for email — use a safer approach
-      // Search by name for now (email is in auth.users, not profiles)
+      // Search by name (email is in auth.users, not queryable via PostgREST)
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, tier, membership_status')

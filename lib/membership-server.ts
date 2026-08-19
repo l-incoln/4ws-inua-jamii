@@ -20,7 +20,11 @@ export function signToken(token: string): string {
  * sig = HMAC-SHA256(token, MEMBERSHIP_HMAC_SECRET)
  */
 export function getSignedVerifyUrl(token: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  // Prefer NEXT_PUBLIC_SITE_URL (the canonical public URL) over
+  // NEXT_PUBLIC_APP_URL (which may be localhost in dev).
+  const base = process.env.NEXT_PUBLIC_SITE_URL
+    ?? process.env.NEXT_PUBLIC_APP_URL
+    ?? 'http://localhost:3000'
   const sig = signToken(token)
   return `${base}/verify/${token}?sig=${sig}`
 }

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin-client'
 import { Shield, Star, Award, CheckCircle, XCircle, Calendar, Clock, ShieldAlert } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -48,13 +48,17 @@ export default async function VerifyMembershipPage({ params, searchParams }: Pro
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  const supabase = await createClient()
+  // Use the admin (service-role) client to bypass RLS.
+  // The HMAC signature check above is the security gate — anyone who
+  // passes it has a cryptographically valid link issued by the foundation.
+  // RLS on membership_terms/membership_tokens was blocking the nested join
+  // for unauthenticated users, causing false "Invalid Verification Link" errors.
+  const supabase = createAdminClient()
   const { data: tokenRecord } = await supabase
     .from('membership_tokens')
     .select(`
       token,
       created_at,
-      term_id,
       membership_terms (
         id,
         tier,
@@ -62,6 +66,7 @@ export default async function VerifyMembershipPage({ params, searchParams }: Pro
         valid_until,
         is_active,
         issued_at,
+        user_id,
         profiles (
           id,
           full_name,
@@ -73,39 +78,15 @@ export default async function VerifyMembershipPage({ params, searchParams }: Pro
     .eq('token', token)
     .maybeSingle()
 
-  // If the nested join returned the term, use it directly.
-  // Otherwise, fall back to a separate query (handles RLS edge cases
-  // where the nested join is blocked but direct queries are not).
-  let term: any = tokenRecord?.membership_terms
+  const term: any = tokenRecord?.membership_terms
     ? (Array.isArray(tokenRecord.membership_terms)
         ? tokenRecord.membership_terms[0]
         : tokenRecord.membership_terms)
     : null
 
-  let profile: any = term?.profiles
+  const profile: any = term?.profiles
     ? (Array.isArray(term.profiles) ? term.profiles[0] : term.profiles)
     : null
-
-  // Fallback: fetch term + profile separately if nested join was blocked by RLS
-  if (!term && tokenRecord?.term_id) {
-    const { data: termRow } = await supabase
-      .from('membership_terms')
-      .select('id, tier, valid_from, valid_until, is_active, issued_at, user_id')
-      .eq('id', tokenRecord.term_id)
-      .maybeSingle()
-
-    if (termRow) {
-      term = termRow
-      if (termRow.user_id) {
-        const { data: profileRow } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url, role')
-          .eq('id', termRow.user_id)
-          .maybeSingle()
-        profile = profileRow
-      }
-    }
-  }
 
   if (!tokenRecord || !term) {
     return (
