@@ -5,8 +5,6 @@ import {
   Users, CalendarCheck, Heart, Package, Globe, TrendingUp,
   Award, ArrowRight, MapPin,
 } from 'lucide-react'
-import { BADGE_META } from '@/lib/badge-meta'
-import { RANK_TIERS } from '@/lib/achievements'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -72,7 +70,7 @@ export default async function ImpactDashboardPage() {
   // Fetch all real impact data in parallel
   const [
     donationsRes, eventsRes, programsRes, volunteersRes, membersRes,
-    distributionsRes, outreachRes, impactMetricsRes, badgesRes, impactScoresRes,
+    distributionsRes, outreachRes, impactMetricsRes,
   ] = await Promise.all([
     // Total donations received (completed)
     supabase
@@ -114,16 +112,6 @@ export default async function ImpactDashboardPage() {
       .from('impact_metrics')
       .select('*')
       .order('sort_order', { ascending: true }),
-    // Badge counts across all members
-    supabase
-      .from('member_badges')
-      .select('badge_type'),
-    // Impact scores for leaderboard
-    supabase
-      .from('member_impact_scores')
-      .select('user_id, full_name, total_score, events_attended, tasks_completed, donations_made, donation_amount_total')
-      .order('total_score', { ascending: false })
-      .limit(10),
   ])
 
   // Compute real totals
@@ -150,15 +138,6 @@ export default async function ImpactDashboardPage() {
   const outreachActivities = (outreachRes.data ?? []) as unknown as OutreachActivity[]
   const totalOutreachBeneficiaries = outreachActivities.reduce((s, a) => s + a.beneficiaries, 0)
   const totalOutreachParticipants = outreachActivities.reduce((s, a) => s + a.participants, 0)
-
-  // Badge distribution
-  const badgeCounts: Record<string, number> = {}
-  for (const b of badgesRes.data ?? []) {
-    badgeCounts[b.badge_type] = (badgeCounts[b.badge_type] ?? 0) + 1
-  }
-
-  // Top contributors leaderboard
-  const topContributors = (impactScoresRes.data ?? []).slice(0, 10)
 
   // CMS impact metrics
   const cmsMetrics = impactMetricsRes.data ?? []
@@ -332,51 +311,6 @@ export default async function ImpactDashboardPage() {
               <p className="text-sm text-slate-500">No outreach activities recorded yet. Activities will appear here as the foundation conducts outreach programs.</p>
             </div>
           )}
-        </div>
-
-        {/* Top contributors leaderboard */}
-        {topContributors.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Top Contributors</h2>
-            <div className="card p-6">
-              <div className="space-y-3">
-                {topContributors.map((c, i) => (
-                  <div key={c.user_id} className="flex items-center gap-4 pb-3 border-b border-slate-50 last:border-0 last:pb-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                      i === 0 ? 'bg-amber-100 text-amber-700' :
-                      i === 1 ? 'bg-slate-200 text-slate-600' :
-                      i === 2 ? 'bg-orange-100 text-orange-700' :
-                      'bg-slate-50 text-slate-400'
-                    }`}>{i + 1}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{c.full_name ?? 'Anonymous Member'}</p>
-                      <p className="text-xs text-slate-500">
-                        {c.events_attended ?? 0} events · {c.tasks_completed ?? 0} tasks · {c.donations_made ?? 0} donations
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-primary-600">{c.total_score ?? 0} pts</p>
-                      <p className="text-xs text-slate-400">KES {(c.donation_amount_total ?? 0).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Badge distribution */}
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Community Badges Earned</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-            {Object.entries(BADGE_META).map(([type, meta]) => (
-              <div key={type} className="card p-4 text-center">
-                <div className="text-3xl mb-2">{meta.emoji}</div>
-                <p className="text-2xl font-extrabold text-slate-900">{badgeCounts[type] ?? 0}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{meta.label}</p>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* CTA */}
