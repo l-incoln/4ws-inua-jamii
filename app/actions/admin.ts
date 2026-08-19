@@ -398,6 +398,8 @@ export async function saveSiteSettings(formData: FormData) {
     // Achievement thresholds (drive automatic badge unlocking)
     'founding_member_cutoff', 'active_member_threshold', 'event_hero_threshold',
     'champion_donor_threshold', 'top_contributor_threshold',
+    // Platform
+    'maintenance_mode',
     // Homepage (including partners)
     'show_events_preview', 'show_impact_stats', 'show_partners_section',
     'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
@@ -1321,6 +1323,7 @@ export async function saveGalleryItem(formData: FormData, itemId?: string) {
   const is_active   = formData.get('is_active') !== 'false'
   const focal_x     = parseFloat(formData.get('focal_x') as string)
   const focal_y     = parseFloat(formData.get('focal_y') as string)
+  const video_url   = (formData.get('video_url') as string)?.trim() || null
 
   if (!title) return { error: 'Title is required' }
   if (!image_url) return { error: 'Image is required' }
@@ -1330,6 +1333,7 @@ export async function saveGalleryItem(formData: FormData, itemId?: string) {
     taken_at: taken_at || null, sort_order, is_active,
     focal_x: isNaN(focal_x) ? 50 : focal_x,
     focal_y: isNaN(focal_y) ? 50 : focal_y,
+    video_url,
   }
 
   if (itemId) {

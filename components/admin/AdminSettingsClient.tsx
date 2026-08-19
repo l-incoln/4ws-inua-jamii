@@ -548,6 +548,17 @@ export default function AdminSettingsClient({
         {/* ── Membership ── */}
         {tab === 'Membership' && (
           <div className="space-y-4">
+            <Section icon={<AlertCircle />} title="Platform Controls">
+              <div className="space-y-4">
+                <ToggleField
+                  label="Maintenance Mode"
+                  description="When on, all public pages show a maintenance notice to non-admin visitors. Admins can still access the full site."
+                  value={s.maintenance_mode === 'true'}
+                  onToggle={() => toggle('maintenance_mode')}
+                  name="maintenance_mode"
+                />
+              </div>
+            </Section>
             <Section icon={<Users />} title="Registration Controls">
               <div className="space-y-4">
                 <ToggleField

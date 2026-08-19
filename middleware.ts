@@ -29,6 +29,33 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // ── Maintenance mode ──
+  // When enabled, non-admin users see a maintenance page for all public routes.
+  // Admins and auth routes are always accessible so the admin can disable it.
+  if (pathname !== '/maintenance' && !pathname.startsWith('/admin') && !pathname.startsWith('/auth') && !pathname.startsWith('/api')) {
+    const { data: maintenanceSetting } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'maintenance_mode')
+      .single()
+
+    if (maintenanceSetting?.value === 'true') {
+      // Allow logged-in admins through
+      let isAdmin = false
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        isAdmin = profile?.role === 'admin'
+      }
+      if (!isAdmin) {
+        return NextResponse.rewrite(new URL('/maintenance', request.url))
+      }
+    }
+  }
+
   // Protect dashboard routes
   if (pathname.startsWith('/dashboard') && !user) {
     return NextResponse.redirect(new URL('/auth/login', request.url))

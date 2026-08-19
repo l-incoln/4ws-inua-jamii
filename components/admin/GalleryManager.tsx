@@ -17,6 +17,7 @@ export type GalleryItem = {
   title: string
   description: string | null
   image_url: string
+  video_url: string | null
   category: string | null
   event_name: string | null
   taken_at: string | null
@@ -193,7 +194,7 @@ export default function GalleryManager({ initialItems }: Props) {
 
   // Form state (single / library pick)
   const [form, setForm] = useState({
-    title: '', description: '', image_url: '',
+    title: '', description: '', image_url: '', video_url: '',
     category: '', event_name: '', taken_at: '',
     sort_order: '0', is_active: true,
     focal_x: 50, focal_y: 50,
@@ -204,7 +205,7 @@ export default function GalleryManager({ initialItems }: Props) {
   })
 
   const resetForm = () => {
-    setForm({ title: '', description: '', image_url: '', category: '', event_name: '', taken_at: '', sort_order: '0', is_active: true, focal_x: 50, focal_y: 50 })
+    setForm({ title: '', description: '', image_url: '', video_url: '', category: '', event_name: '', taken_at: '', sort_order: '0', is_active: true, focal_x: 50, focal_y: 50 })
     setPreviewUrl('')
     setEditing(null)
     setError(null)
@@ -222,6 +223,7 @@ export default function GalleryManager({ initialItems }: Props) {
       title:       item.title,
       description: item.description ?? '',
       image_url:   item.image_url,
+      video_url:   item.video_url ?? '',
       category:    item.category ?? '',
       event_name:  item.event_name ?? '',
       taken_at:    item.taken_at ?? '',
@@ -528,6 +530,14 @@ export default function GalleryManager({ initialItems }: Props) {
                   <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="e.g. Health Camp 2025" />
+                </div>
+                {/* Video URL (optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Video URL (optional)</label>
+                  <input type="url" value={form.video_url} onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." />
+                  <p className="text-xs text-slate-400 mt-1">Paste a YouTube or Vimeo link to make this a video. The image above is used as the thumbnail.</p>
                 </div>
                 <MetaFields
                   vals={form}

@@ -9,6 +9,7 @@ import {
   Settings, LogOut, BarChart3, ShieldCheck, Megaphone,
   FolderOpen, Mail, Target, MessageSquare, ClipboardList,
   CheckSquare, ImageIcon, GalleryHorizontal, Activity, Menu, X, HelpCircle, Bell, Cake,
+  Trophy, Package, Megaphone as Outreach,
 } from 'lucide-react'
 import SiteLogoClient from '@/components/layout/SiteLogoClient'
 import GlobalSearch from '@/components/ui/GlobalSearch'
@@ -26,6 +27,7 @@ const mainNavItems = [
   { href: '/admin/birthdays',     label: 'Birthdays',     icon: Cake },
   { href: '/admin/donations',     label: 'Donations',     icon: Heart },
   { href: '/admin/analytics',     label: 'Analytics',     icon: BarChart3 },
+  { href: '/admin/achievements',  label: 'Achievements',  icon: Trophy },
   { href: '/admin/activity',      label: 'Activity Log',  icon: Activity },
 ]
 
@@ -35,6 +37,8 @@ const communityNavItems = [
   { href: '/admin/volunteers',   label: 'Volunteers',   icon: CheckSquare },
   { href: '/admin/comments',     label: 'Comments',     icon: MessageSquare },
   { href: '/admin/faq',          label: 'FAQ',          icon: HelpCircle },
+  { href: '/admin/distributions', label: 'Distributions', icon: Package },
+  { href: '/admin/outreach',     label: 'Outreach',     icon: Outreach },
 ]
 
 interface Props {
