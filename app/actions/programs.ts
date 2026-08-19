@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { sendEmail, escapeHtml, emailLayout, emailButton, SITE_URL, ORG_NAME } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 
 const applicationSchema = z.object({
   motivation:   z.string().min(20, 'Please tell us more about why you want to join (min 20 characters)').max(1000),
@@ -50,8 +50,13 @@ export async function applyToProgram(
       getEmailSettings(supabase),
     ])
     if (settings.adminEmails.length && program) {
+      // Admin approval alert → sent from no-reply@ (automation) to admin@,
+      // reply-to the applicant so an admin can respond.
+      const noReply = senderFor(settings, 'no-reply')
       await sendEmail({
         to: settings.adminEmails,
+        from: noReply.from,
+        replyTo: user.email ?? undefined,
         subject: `[Program Application] ${profile?.full_name ?? 'Member'} applied to "${program.title}"`,
         html: adminProgramAlertHtml({
           type: 'New Program Application',

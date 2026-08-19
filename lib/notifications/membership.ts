@@ -15,7 +15,7 @@ import {
   type SendEmailOptions,
   type SendEmailResult,
 } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { getMemberEmails } from '@/lib/notifications/member-emails'
 import type { MembershipStatus } from '@/types'
 
@@ -64,6 +64,10 @@ async function buildStatusEmails(
 
   const termByUser = new Map((terms ?? []).map((t) => [t.user_id as string, t]))
 
+  // Member-facing membership communication → sent from the membership@ role
+  // (member relations), reply-to membership@ so the member can ask questions.
+  const membership = senderFor(settings, 'membership')
+
   return (profiles ?? []).flatMap((profile) => {
     const to = emails.get(profile.id as string)
     if (!to) return []
@@ -71,7 +75,8 @@ async function buildStatusEmails(
     return [{
       to,
       subject: SUBJECTS[status],
-      from:    settings.fromHeader,
+      from:    membership.from,
+      replyTo: membership.replyTo,
       html:    statusHtml(status, {
         name:       (profile.full_name as string) ?? 'Member',
         tier:       (profile.tier as string) ?? 'basic',
@@ -106,12 +111,15 @@ export async function sendMembershipStatusEmail({
     const result = await sendEmail(message)
     if (!result.success) console.error(`[email] ${status} email failed for ${profileId}:`, result.error)
 
-    // Notify admins about the membership status change
+    // Notify admins about the membership status change.
+    // Admin alert → sent from no-reply@ (automation) to admin@.
     const { data: profile } = await admin.from('profiles').select('full_name, email').eq('id', profileId).single()
     const settings = await getEmailSettings(admin)
+    const noReply = senderFor(settings, 'no-reply')
     if (settings.adminEmails.length && profile) {
       await sendEmail({
         to: settings.adminEmails,
+        from: noReply.from,
         subject: `[Admin] Membership ${status}: ${profile.full_name ?? 'Member'}`,
         html: adminMembershipAlertHtml({
           type: `Membership ${status}`,
@@ -151,10 +159,13 @@ export async function sendMembershipRenewedEmail(profileId: string): Promise<Sen
     const to = emails.get(profileId)
     if (!to) return { success: false, error: 'Member has no email address' }
 
+    // Member-facing renewal confirmation → sent from membership@ (member relations).
+    const membership = senderFor(settings, 'membership')
     const result = await sendEmail({
       to,
       subject: `Your Membership Has Been Renewed — 4W'S Inua Jamii Foundation`,
-      from:    settings.fromHeader,
+      from:    membership.from,
+      replyTo: membership.replyTo,
       html:    membershipRenewedHtml({
         name:       profile?.full_name ?? 'Member',
         tier:       profile?.tier ?? 'basic',
@@ -165,10 +176,12 @@ export async function sendMembershipRenewedEmail(profileId: string): Promise<Sen
 
     if (!result.success) console.error(`[email] renewal email failed for ${profileId}:`, result.error)
 
-    // Notify admins about the renewal
+    // Notify admins about the renewal → sent from no-reply@ (automation) to admin@.
+    const noReply = senderFor(settings, 'no-reply')
     if (settings.adminEmails.length && profile) {
       await sendEmail({
         to: settings.adminEmails,
+        from: noReply.from,
         subject: `[Admin] Membership Renewed: ${profile.full_name ?? 'Member'}`,
         html: adminMembershipAlertHtml({
           type: 'Membership Renewed',

@@ -12,6 +12,7 @@ import {
   sendMembershipRenewedEmail,
 } from '@/lib/notifications/membership'
 import { sendEmail, commentApprovedHtml, donationReceiptHtml } from '@/lib/email'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { insertNotification } from '@/app/actions/notifications'
 
 // ΓöÇΓöÇΓöÇ Auth guard ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
@@ -382,7 +383,7 @@ export async function saveSiteSettings(formData: FormData) {
     // Payments
     'mpesa_paybill', 'mpesa_account', 'bank_name', 'bank_account',
     'donation_currency', 'min_donation_amount', 'mpesa_shortcode_type',
-    'donation_thank_you_message', 'donation_receipts_email',
+    'donation_thank_you_message',
     // SEO & Metadata
     'meta_description', 'og_image_url',
     'google_analytics_id', 'google_tag_manager_id', 'facebook_pixel_id',
@@ -390,10 +391,13 @@ export async function saveSiteSettings(formData: FormData) {
     'membership_fee_basic', 'membership_fee_active', 'membership_fee_champion',
     'membership_currency', 'new_signups_enabled', 'auto_approve_members',
     'membership_duration_basic', 'membership_duration_active', 'membership_duration_champion',
-    // Email / Notifications
-    'from_email', 'from_name', 'admin_notify_email',
+    // Email / Notifications (four role addresses + sender display name)
+    'from_name', 'email_role_noreply', 'email_role_info', 'email_role_membership', 'email_role_admin',
     'welcome_email_enabled', 'welcome_email_body',
     'admin_notify_new_member', 'admin_notify_new_donation',
+    // Achievement thresholds (drive automatic badge unlocking)
+    'founding_member_cutoff', 'active_member_threshold', 'event_hero_threshold',
+    'champion_donor_threshold', 'top_contributor_threshold',
     // Homepage (including partners)
     'show_events_preview', 'show_impact_stats', 'show_partners_section',
     'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
@@ -725,10 +729,14 @@ export async function updateDonationStatus(
   if (dbError) return { error: dbError.message }
 
   // If admin manually marks as completed, send a receipt email
-  // (covers the case where the M-Pesa callback failed but payment was received)
+  // (covers the case where the M-Pesa callback failed but payment was received).
+  // Receipt → sent from no-reply@ (automation, no reply-to).
   if (status === 'completed' && donation && donation.status !== 'completed' && donation.donor_email) {
+    const receiptSettings = await getEmailSettings(supabase)
+    const noReply = senderFor(receiptSettings, 'no-reply')
     await sendEmail({
       to: donation.donor_email,
+      from: noReply.from,
       subject: 'Your Inua Jamii Donation Receipt',
       html: donationReceiptHtml({
         name:      donation.donor_name ?? 'Donor',
@@ -988,8 +996,12 @@ export async function approveComment(commentId: string, approved: boolean) {
       .single()
 
     if (authorProfile?.email) {
+      // Comment-approved notification → sent from no-reply@ (automation).
+      const commentSettings = await getEmailSettings(supabase)
+      const noReply = senderFor(commentSettings, 'no-reply')
       await sendEmail({
         to: authorProfile.email,
+        from: noReply.from,
         subject: `Your comment on "${postTitle}" was approved`,
         html: commentApprovedHtml({
           name:        authorProfile.full_name ?? 'Member',

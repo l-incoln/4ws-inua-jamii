@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail, escapeHtml, emailLayout, emailButton, SITE_URL } from '@/lib/email'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -40,9 +41,14 @@ export async function subscribeNewsletter(
     return { error: 'Failed to subscribe. Please try again.' }
   }
 
-  // Send a welcome email (best-effort, don't block on failure)
+  // Send a welcome email (best-effort, don't block on failure).
+  // Public communication → sent from info@ (public), reply-to info@.
+  const settings = await getEmailSettings(supabase)
+  const info = senderFor(settings, 'info')
   await sendEmail({
     to: parsed.data.email,
+    from: info.from,
+    replyTo: info.replyTo,
     subject: `Welcome to the 4W'S Inua Jamii newsletter`,
     html: newsletterWelcomeHtml(parsed.data.name, parsed.data.email),
     template: 'newsletter_welcome',

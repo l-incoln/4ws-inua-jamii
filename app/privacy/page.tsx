@@ -122,8 +122,8 @@ export default function PrivacyPage() {
                 </ul>
                 <p className="mt-3">
                   To exercise any of these rights, contact us at{' '}
-                  <a href="mailto:privacy@4wsinuajamii.org" className="text-primary-600 hover:underline font-medium">
-                    privacy@4wsinuajamii.org
+                  <a href="mailto:info@4wsinuajamii.org" className="text-primary-600 hover:underline font-medium">
+                    info@4wsinuajamii.org
                   </a>.
                 </p>
               </div>
@@ -171,7 +171,7 @@ export default function PrivacyPage() {
                 <div className="mt-3 p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-1 text-sm">
                   <p><strong>4W&apos;S Inua Jamii Foundation</strong></p>
                   <p>Nairobi, Kenya</p>
-                  <p>Email: <a href="mailto:privacy@4wsinuajamii.org" className="text-primary-600 hover:underline">privacy@4wsinuajamii.org</a></p>
+                  <p>Email: <a href="mailto:info@4wsinuajamii.org" className="text-primary-600 hover:underline">info@4wsinuajamii.org</a></p>
                   <p>Phone: <a href="tel:+254700000000" className="text-primary-600 hover:underline">+254 700 000 000</a></p>
                 </div>
               </div>

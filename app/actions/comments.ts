@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { sendEmail, escapeHtml } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { insertNotification } from '@/app/actions/notifications'
 
 const commentSchema = z.object({
@@ -58,11 +58,13 @@ export async function submitComment(
       .single()
 
     const settings = await getEmailSettings(supabase)
+    // Moderation alert → sent from no-reply@ (automation) to admin@ (system alert).
+    const noReply = senderFor(settings, 'no-reply')
     if (settings.adminEmails.length) {
       await sendEmail({
         to: settings.adminEmails,
         subject: `[Inua Jamii] New comment on "${post?.title ?? 'blog post'}"`,
-        from: settings.fromHeader,
+        from: noReply.from,
         replyTo: undefined,
         html: `
           <h2>New Blog Comment</h2>

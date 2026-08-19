@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
 INSERT INTO public.site_settings (key, value) VALUES
   ('site_name',       '4W''S Inua Jamii Foundation'),
   ('tagline',         'Where, Who, Why, What — Transforming Communities'),
-  ('contact_email',   'info@4ws-inuajamii.org'),
+  ('contact_email',   'info@4wsinuajamii.org'),
   ('contact_phone',   '+254 700 000 000'),
   ('address',         'Nairobi, Kenya'),
   ('facebook_url',    ''),

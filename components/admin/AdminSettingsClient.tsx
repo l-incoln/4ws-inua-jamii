@@ -6,6 +6,7 @@ import {
   Wallet, BarChart3, Info, CheckCircle, AlertCircle, Edit2, Save,
   Search, Users, Bell, Home, Calendar, CalendarDays, Scale, CreditCard,
   Upload, ImageIcon, Loader2, Plus, Trash2, X, Link2, Heart,
+  Trophy, Star, CalendarCheck, TrendingUp,
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -502,10 +503,6 @@ export default function AdminSettingsClient({
                 <Field label="Minimum Donation Amount">
                   <input name="min_donation_amount" type="number" min="1" className="input" value={s.min_donation_amount ?? '100'} onChange={(e) => set('min_donation_amount', e.target.value)} placeholder="100" />
                 </Field>
-                <Field label="Receipt BCC Email" icon={<Mail className="w-3.5 h-3.5" />} className="md:col-span-2">
-                  <input name="donation_receipts_email" type="email" className="input" value={s.donation_receipts_email ?? ''} onChange={(e) => set('donation_receipts_email', e.target.value)} placeholder="finance@example.org" />
-                  <p className="text-xs text-slate-400 mt-1">BCC&apos;d on every completed donation receipt email.</p>
-                </Field>
                 <Field label="Thank-You Message" className="md:col-span-2">
                   <textarea name="donation_thank_you_message" rows={3} className="input resize-none" value={s.donation_thank_you_message ?? ''} onChange={(e) => set('donation_thank_you_message', e.target.value)} placeholder="Thank you for your generous donation…" />
                 </Field>
@@ -650,6 +647,33 @@ export default function AdminSettingsClient({
                 />
               </div>
             </Section>
+            <Section icon={<Trophy />} title="Achievement Thresholds">
+              <p className="text-xs text-slate-500 -mt-1 mb-2">
+                Control when badges auto-unlock. Founder Member uses a join-date cutoff; the others use numeric thresholds. Badges are checked every time a member views their dashboard.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Founding Member Cutoff" icon={<Calendar className="w-3.5 h-3.5" />}>
+                  <input name="founding_member_cutoff" type="date" className="input" value={s.founding_member_cutoff ?? '2025-12-31'} onChange={(e) => set('founding_member_cutoff', e.target.value)} />
+                  <p className="text-xs text-slate-400 mt-1">Members who joined on or before this date get the Founding Member badge.</p>
+                </Field>
+                <Field label="Active Member (points)" icon={<Star className="w-3.5 h-3.5" />}>
+                  <input name="active_member_threshold" type="number" min="1" className="input" value={s.active_member_threshold ?? '50'} onChange={(e) => set('active_member_threshold', e.target.value)} placeholder="50" />
+                  <p className="text-xs text-slate-400 mt-1">Points needed to unlock the Active Member badge.</p>
+                </Field>
+                <Field label="Event Hero (events)" icon={<CalendarCheck className="w-3.5 h-3.5" />}>
+                  <input name="event_hero_threshold" type="number" min="1" className="input" value={s.event_hero_threshold ?? '10'} onChange={(e) => set('event_hero_threshold', e.target.value)} placeholder="10" />
+                  <p className="text-xs text-slate-400 mt-1">Confirmed events attended to unlock the Event Hero badge.</p>
+                </Field>
+                <Field label="Champion Donor (KES)" icon={<Heart className="w-3.5 h-3.5" />}>
+                  <input name="champion_donor_threshold" type="number" min="1" className="input" value={s.champion_donor_threshold ?? '10000'} onChange={(e) => set('champion_donor_threshold', e.target.value)} placeholder="10000" />
+                  <p className="text-xs text-slate-400 mt-1">Total donation amount (KES) to unlock the Champion Donor badge.</p>
+                </Field>
+                <Field label="Top Contributor (impact)" icon={<TrendingUp className="w-3.5 h-3.5" />} className="md:col-span-2">
+                  <input name="top_contributor_threshold" type="number" min="1" className="input" value={s.top_contributor_threshold ?? '500'} onChange={(e) => set('top_contributor_threshold', e.target.value)} placeholder="500" />
+                  <p className="text-xs text-slate-400 mt-1">Impact score needed to unlock the Top Contributor badge.</p>
+                </Field>
+              </div>
+            </Section>
             <SaveBar isPending={isPending} />
           </div>
         )}
@@ -657,17 +681,30 @@ export default function AdminSettingsClient({
         {/* ── Email & Notifications ── */}
         {tab === 'Email & Notifications' && (
           <div className="space-y-4">
-            <Section icon={<Mail />} title="Sender Identity">
+            <Section icon={<Mail />} title="Email Roles">
+              <p className="text-xs text-slate-500 -mt-1 mb-2">
+                Four canonical inboxes own all communication. Each role address is used as the sender for its category of email. Defaults use <span className="font-mono">4wsinuajamii.org</span>.
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="From Email Address">
-                  <input name="from_email" type="email" className="input" value={s.from_email ?? ''} onChange={(e) => set('from_email', e.target.value)} placeholder="no-reply@example.org" />
-                </Field>
-                <Field label="From Name">
+                <Field label="From Name" className="md:col-span-2">
                   <input name="from_name" className="input" value={s.from_name ?? ''} onChange={(e) => set('from_name', e.target.value)} placeholder="4W'S Inua Jamii Foundation" />
+                  <p className="text-xs text-slate-400 mt-1">Display name used in the From header for every role.</p>
                 </Field>
-                <Field label="Admin Notification Email" icon={<Bell className="w-3.5 h-3.5" />} className="md:col-span-2">
-                  <input name="admin_notify_email" className="input" value={s.admin_notify_email ?? ''} onChange={(e) => set('admin_notify_email', e.target.value)} placeholder="admin@example.org, chair@example.org" />
-                  <p className="text-xs text-slate-400 mt-1">Receives alerts for new member signups, donations, and contact messages. Separate multiple addresses with commas.</p>
+                <Field label="no-reply@ (Automation)" icon={<Mail className="w-3.5 h-3.5" />}>
+                  <input name="email_role_noreply" type="email" className="input" value={s.email_role_noreply ?? ''} onChange={(e) => set('email_role_noreply', e.target.value)} placeholder="no-reply@4wsinuajamii.org" />
+                  <p className="text-xs text-slate-400 mt-1">Sends receipts, confirmations, verification, resets, automated alerts. Receives nothing (no reply-to).</p>
+                </Field>
+                <Field label="info@ (Public)" icon={<Mail className="w-3.5 h-3.5" />}>
+                  <input name="email_role_info" type="email" className="input" value={s.email_role_info ?? ''} onChange={(e) => set('email_role_info', e.target.value)} placeholder="info@4wsinuajamii.org" />
+                  <p className="text-xs text-slate-400 mt-1">Receives general enquiries, partnerships, media. Sends public responses (e.g. newsletter).</p>
+                </Field>
+                <Field label="membership@ (Member Relations)" icon={<Mail className="w-3.5 h-3.5" />}>
+                  <input name="email_role_membership" type="email" className="input" value={s.email_role_membership ?? ''} onChange={(e) => set('email_role_membership', e.target.value)} placeholder="membership@4wsinuajamii.org" />
+                  <p className="text-xs text-slate-400 mt-1">Receives membership questions, birthday reminders. Sends member support, reminders, membership comms.</p>
+                </Field>
+                <Field label="admin@ (Administration)" icon={<Bell className="w-3.5 h-3.5" />}>
+                  <input name="email_role_admin" className="input" value={s.email_role_admin ?? ''} onChange={(e) => set('email_role_admin', e.target.value)} placeholder="admin@4wsinuajamii.org, chair@4wsinuajamii.org" />
+                  <p className="text-xs text-slate-400 mt-1">Receives payments, approvals, system alerts. Separate multiple addresses with commas.</p>
                 </Field>
               </div>
             </Section>

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { sendEmail, membershipExpiryReminderHtml } from '@/lib/email'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import type { NotificationType } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -139,6 +140,11 @@ export async function sendExpiryReminders() {
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]))
 
+  // Expiry reminders are member-relations communication → sent from membership@
+  // (member relations), reply-to membership@.
+  const settings = await getEmailSettings(supabase)
+  const membership = senderFor(settings, 'membership')
+
   let sent = 0
   for (const term of expiringTerms) {
     // Insert in-app notification
@@ -155,6 +161,8 @@ export async function sendExpiryReminders() {
     if (profile?.email) {
       await sendEmail({
         to: profile.email,
+        from: membership.from,
+        replyTo: membership.replyTo,
         subject: 'Your 4W\'S Inua Jamii membership is expiring soon',
         html: membershipExpiryReminderHtml({
           name: profile.full_name ?? 'Member',
@@ -162,6 +170,7 @@ export async function sendExpiryReminders() {
             year: 'numeric', month: 'long', day: 'numeric',
           }),
           tier: term.tier ?? 'basic',
+          contactEmail: settings.roles.membership.address,
         }),
       }).catch(() => {})
       sent++

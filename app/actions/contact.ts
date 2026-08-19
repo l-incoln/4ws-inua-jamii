@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail, escapeHtml } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { z } from 'zod'
 
 const contactSchema = z.object({
@@ -48,25 +48,25 @@ export async function submitContactMessage(
 
   if (error) return { error: 'Failed to send message. Please try again.' }
 
-  // Notify admin by email (best-effort, don't block response)
+  // Notify the public enquiries inbox (info@) by email — best-effort, don't block.
+  // General enquiries are owned by the info@ role (public communication).
   const settings = await getEmailSettings(supabase)
-  if (settings.adminEmails.length) {
-    await sendEmail({
-      to: settings.adminEmails,
-      subject: `[Inua Jamii] New contact message: ${parsed.data.subject}`,
-      replyTo: parsed.data.email,
-      from: settings.fromHeader,
-      html: `
-        <h2>New Contact Message</h2>
-        <p><strong>From:</strong> ${escapeHtml(parsed.data.name)} &lt;${escapeHtml(parsed.data.email)}&gt;</p>
-        <p><strong>Subject:</strong> ${escapeHtml(parsed.data.subject)}</p>
-        <hr />
-        <p style="white-space: pre-wrap;">${escapeHtml(parsed.data.message)}</p>
-        <hr />
-        <p style="color:#888;font-size:12px;">Sent via Inua Jamii contact form</p>
-      `,
-    })
-  }
+  const noReply = senderFor(settings, 'no-reply')
+  await sendEmail({
+    to:      settings.roles.info.address,
+    subject: `[Inua Jamii] New contact message: ${parsed.data.subject}`,
+    replyTo: parsed.data.email,
+    from:    noReply.from,
+    html: `
+      <h2>New Contact Message</h2>
+      <p><strong>From:</strong> ${escapeHtml(parsed.data.name)} &lt;${escapeHtml(parsed.data.email)}&gt;</p>
+      <p><strong>Subject:</strong> ${escapeHtml(parsed.data.subject)}</p>
+      <hr />
+      <p style="white-space: pre-wrap;">${escapeHtml(parsed.data.message)}</p>
+      <hr />
+      <p style="color:#888;font-size:12px;">Sent via Inua Jamii contact form</p>
+    `,
+  })
 
   return { success: true }
 }

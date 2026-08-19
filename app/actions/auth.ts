@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { sendEmail, applicationReceivedHtml, adminNewMemberHtml, membershipApprovedHtml, ORG_NAME } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { insertNotification } from '@/app/actions/notifications'
 
 const loginSchema = z.object({
@@ -133,31 +133,39 @@ export async function signup(formData: FormData) {
     if (autoApprove) {
       // Auto-approved members skip review entirely, so the approval email is the
       // right one to send. The membership term (and card ID) is issued later.
+      // Confirmation → sent from no-reply@ (automation, no reply-to).
+      const noReply = senderFor(settings, 'no-reply')
       sends.push(sendEmail({
         to:      parsed.data.email,
         subject: `Your Membership Has Been Approved — 4W'S Inua Jamii Foundation`,
-        from:    settings.fromHeader,
+        from:    noReply.from,
         html:    membershipApprovedHtml({ name: parsed.data.full_name, tier: parsed.data.tier }),
       }))
     } else if (settings.applicationEmailEnabled) {
+      // Application-received confirmation → sent from no-reply@ (automation).
+      const noReply = senderFor(settings, 'no-reply')
       sends.push(sendEmail({
         to:      parsed.data.email,
         subject: `Application Received — 4W'S Inua Jamii Foundation`,
-        from:    settings.fromHeader,
+        from:    noReply.from,
         html:    applicationReceivedHtml({
           name:          parsed.data.full_name,
           tier:          parsed.data.tier,
           customMessage: settings.applicationEmailBody,
           requiresEmailConfirmation: !data.session,
+          contactEmail:  settings.contactEmail,
         }),
       }))
     }
 
     if (settings.notifyAdminOnNewMember && settings.adminEmails.length) {
+      // Admin approval alert → sent from no-reply@ to admin@, reply-to the
+      // applicant so an admin can respond directly.
+      const noReply = senderFor(settings, 'no-reply')
       sends.push(sendEmail({
         to:      settings.adminEmails,
         subject: `New Member Application — ${parsed.data.full_name}`,
-        from:    settings.fromHeader,
+        from:    noReply.from,
         replyTo: parsed.data.email,
         html:    adminNewMemberHtml({
           memberName:  parsed.data.full_name,

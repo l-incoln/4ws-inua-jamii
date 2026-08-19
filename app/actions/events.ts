@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail, escapeHtml, emailLayout, emailButton, SITE_URL, ORG_NAME } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { revalidatePath } from 'next/cache'
 
 export async function rsvpForEvent(eventId: string): Promise<{ error?: string; success?: boolean }> {
@@ -55,8 +55,13 @@ export async function rsvpForEvent(eventId: string): Promise<{ error?: string; s
       getEmailSettings(supabase),
     ])
     if (settings.adminEmails.length && event) {
+      // Admin coordination alert → sent from no-reply@ (automation) to admin@,
+      // reply-to the member so an admin can respond.
+      const noReply = senderFor(settings, 'no-reply')
       await sendEmail({
         to: settings.adminEmails,
+        from: noReply.from,
+        replyTo: user.email,
         subject: `[Event RSVP] ${profile?.full_name ?? 'Member'} registered for "${event.title}"`,
         html: adminEventAlertHtml({
           type: 'New Event Registration',
@@ -141,8 +146,13 @@ export async function cancelRsvp(eventId: string): Promise<{ error?: string; suc
           .single()
 
         if (profile?.email) {
+          // Member communication → sent from membership@ (member relations).
+          const promoSettings = await getEmailSettings(supabase)
+          const membership = senderFor(promoSettings, 'membership')
           await sendEmail({
             to: profile.email,
+            from: membership.from,
+            replyTo: membership.replyTo,
             subject: `You're in! Spot confirmed for "${event.title}"`,
             html: eventPromotionHtml(profile.full_name ?? 'Member', event.title, eventId),
             template: 'event_waitlist_promotion',
@@ -186,6 +196,10 @@ export async function sendEventReminders() {
     .neq('status', 'cancelled')
 
   if (!events || events.length === 0) return { sent: 0 }
+
+  // Event reminders are member-relations communication → sent from membership@.
+  const settings = await getEmailSettings(supabase)
+  const membership = senderFor(settings, 'membership')
 
   let sent = 0
   for (const event of events) {
@@ -232,6 +246,8 @@ export async function sendEventReminders() {
       if (profile.email) {
         await sendEmail({
           to: profile.email,
+          from: membership.from,
+          replyTo: membership.replyTo,
           subject: `Reminder: ${event.title} is coming up!`,
           html: eventReminderHtml(
             profile.full_name ?? 'Member',

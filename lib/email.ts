@@ -109,8 +109,11 @@ export interface SendEmailResult {
 
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
   const apiKey  = process.env.RESEND_API_KEY
-  const from    = opts.from ?? process.env.EMAIL_FROM ?? `${ORG_NAME} <noreply@4wsinuajamii.org>`
-  const replyTo = opts.replyTo ?? process.env.EMAIL_REPLY_TO ?? 'admin@4wsinuajamii.org'
+  // Default sender is the no-reply role (automation). Per-role callers pass
+  // `from`/`replyTo` via senderFor() from lib/email-settings. no-reply has no
+  // reply-to because it receives nothing.
+  const from    = opts.from ?? process.env.EMAIL_FROM ?? `${ORG_NAME} <no-reply@4wsinuajamii.org>`
+  const replyTo = opts.replyTo ?? process.env.EMAIL_REPLY_TO ?? undefined
 
   if (!apiKey) {
     console.warn('[email] RESEND_API_KEY not set — email skipped')
@@ -198,7 +201,7 @@ export async function sendEmailBatch(messages: SendEmailOptions[]): Promise<Send
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(chunk.map((m) => ({
-          from:     m.from ?? process.env.EMAIL_FROM ?? `${ORG_NAME} <noreply@4wsinuajamii.org>`,
+          from:     m.from ?? process.env.EMAIL_FROM ?? `${ORG_NAME} <no-reply@4wsinuajamii.org>`,
           to:       Array.isArray(m.to) ? m.to : [m.to],
           subject:  sanitiseSubject(m.subject),
           html:     m.html,
@@ -304,12 +307,15 @@ export function applicationReceivedHtml({
   tier,
   customMessage,
   requiresEmailConfirmation = true,
+  contactEmail = 'info@4wsinuajamii.org',
 }: {
   name: string
   tier: string
   /** Optional CMS-authored intro (site_settings.welcome_email_body). */
   customMessage?: string
   requiresEmailConfirmation?: boolean
+  /** Public contact address (info@ role) shown in the "questions?" line. */
+  contactEmail?: string
 }) {
   const intro = customMessage
     ? `<p style="color:#334155;font-size:15px;line-height:1.6;">${escapeMultiline(customMessage)}</p>`
@@ -339,7 +345,7 @@ export function applicationReceivedHtml({
 
     <p style="color:#64748b;font-size:13px;margin-top:24px;">
       If you have any questions in the meantime, please contact us at
-      <a href="mailto:info@4wsinuajamii.org" style="color:#1E3A8A;">info@4wsinuajamii.org</a>.
+      <a href="mailto:${escapeHtml(contactEmail)}" style="color:#1E3A8A;">${escapeHtml(contactEmail)}</a>.
     </p>
   `
   return emailLayout({
@@ -737,7 +743,7 @@ export function birthdayGreetingHtml({ name }: { name: string }) {
 // 7. WELCOME EMAIL  (legacy / CMS-customisable fallback — kept for compatibility)
 //    NOTE: For new flows use applicationReceivedHtml + membershipApprovedHtml instead.
 // ---------------------------------------------------------------------------
-export function welcomeEmailHtml({ name }: { name: string }) {
+export function welcomeEmailHtml({ name, contactEmail = 'info@4wsinuajamii.org' }: { name: string; contactEmail?: string }) {
   const body = `
     <p style="color:#334155;font-size:15px;margin-top:0;">Hi <strong>${escapeHtml(name)}</strong>,</p>
     <p style="color:#334155;font-size:15px;line-height:1.6;">
@@ -751,7 +757,7 @@ export function welcomeEmailHtml({ name }: { name: string }) {
     ${emailButton('Go to My Dashboard', `${SITE_URL}/dashboard`, '#1E3A8A')}
     <p style="color:#64748b;font-size:13px;margin-top:28px;">
       If you have any questions, please contact us at
-      <a href="mailto:info@4wsinuajamii.org" style="color:#1E3A8A;">info@4wsinuajamii.org</a>.
+      <a href="mailto:${escapeHtml(contactEmail)}" style="color:#1E3A8A;">${escapeHtml(contactEmail)}</a>.
     </p>
   `
   return emailLayout({
@@ -768,10 +774,13 @@ export function membershipExpiryReminderHtml({
   name,
   expiryDate,
   tier,
+  contactEmail = 'membership@4wsinuajamii.org',
 }: {
   name: string
   expiryDate: string
   tier: string
+  /** Member-relations address (membership@ role) shown in the "renewal questions?" line. */
+  contactEmail?: string
 }) {
   const tierLabel =
     tier === 'champion' ? 'Gold'
@@ -796,7 +805,7 @@ export function membershipExpiryReminderHtml({
     ${emailButton('View My Membership Card', `${SITE_URL}/dashboard/membership-card`, '#1E3A8A')}
     <p style="color:#64748b;font-size:13px;margin-top:28px;">
       If you have any questions about renewal, please contact us at
-      <a href="mailto:info@4wsinuajamii.org" style="color:#1E3A8A;">info@4wsinuajamii.org</a>.
+      <a href="mailto:${escapeHtml(contactEmail)}" style="color:#1E3A8A;">${escapeHtml(contactEmail)}</a>.
     </p>
   `
   return emailLayout({

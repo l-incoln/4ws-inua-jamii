@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin-client'
 import { sendEmail, birthdayTeamReminderHtml, birthdayGreetingHtml, plainSubjectText } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { getMemberEmails } from '@/lib/notifications/member-emails'
 import {
   BIRTHDAY_TEAM_EMAIL,
@@ -126,10 +126,13 @@ async function sendTeamReminder(
     getEmailSettings(admin),
   ])
 
+  // Internal team reminder → automated, sent from no-reply@ (automation) to the
+  // membership desk (membership@). Receives nothing back.
+  const noReply = senderFor(settings, 'no-reply')
   const sent = await sendEmail({
     to:      recipients,
     subject: `Birthday tomorrow: ${plainSubjectText(pending.map((m) => m.name).join(', '))} — 4W'S Inua Jamii Foundation`,
-    from:    settings.fromHeader,
+    from:    noReply.from,
     html:    birthdayTeamReminderHtml({
       celebrationDate: formatBirthdayDayMonth(occasionDate),
       members: pending.map((m) => ({ name: m.name, tier: m.tier, isPublic: m.isPublic })),
@@ -164,6 +167,9 @@ async function sendMemberGreetings(
     getEmailSettings(admin),
   ])
 
+  // Member engagement greeting → sent from membership@ (member relations),
+  // reply-to membership@ so the member can respond.
+  const membership = senderFor(settings, 'membership')
   const greeted: string[] = []
 
   for (const member of pending) {
@@ -175,7 +181,8 @@ async function sendMemberGreetings(
     const sent = await sendEmail({
       to,
       subject: `Happy Birthday, ${plainSubjectText(member.name)}! — 4W'S Inua Jamii Foundation`,
-      from:    settings.fromHeader,
+      from:    membership.from,
+      replyTo: membership.replyTo,
       html:    birthdayGreetingHtml({ name: member.name }),
     })
     if (sent.success) greeted.push(member.userId)

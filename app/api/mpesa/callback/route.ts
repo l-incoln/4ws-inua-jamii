@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin-client'
 import { sendEmail, donationReceiptHtml, membershipReceiptHtml, escapeHtml, emailLayout, emailButton, ORG_NAME } from '@/lib/email'
-import { getEmailSettings } from '@/lib/email-settings'
+import { getEmailSettings, senderFor } from '@/lib/email-settings'
 
 /**
  * M-Pesa Daraja STK Push Callback
@@ -63,14 +63,17 @@ export async function POST(req: NextRequest) {
         .eq('payment_reference', checkoutRequestId)
         .single()
 
-      // Notify admins about the failed payment
+      // Notify admins about the failed payment.
+      // System alert → sent from no-reply@ (automation) to admin@.
       const settings = await getEmailSettings(supabase)
+      const noReply = senderFor(settings, 'no-reply')
       if (settings.adminEmails.length) {
         const isDonation = !!failedDonation
         const name = failedDonation?.donor_name ?? failedMember?.full_name ?? 'Unknown'
         const amount = failedDonation?.amount ?? 'Unknown'
         await sendEmail({
           to: settings.adminEmails,
+          from: noReply.from,
           subject: `[Payment Alert] Failed M-Pesa payment — ${checkoutRequestId}`,
           html: adminPaymentAlertHtml({
             type: 'Payment Failed',
@@ -143,10 +146,14 @@ export async function POST(req: NextRequest) {
           link: '/dashboard',
         }).then(() => {})
 
-        // Send receipt email to the member
+        // Send receipt email to the member.
+        // Receipt → sent from no-reply@ (automation, no reply-to).
         if (member.email) {
+          const receiptSettings = await getEmailSettings(supabase)
+          const receiptNoReply = senderFor(receiptSettings, 'no-reply')
           await sendEmail({
             to: member.email,
+            from: receiptNoReply.from,
             subject: 'Your 4W\'S Inua Jamii Membership Payment Receipt',
             html: membershipReceiptHtml({
               name:      member.full_name ?? 'Member',
@@ -158,11 +165,14 @@ export async function POST(req: NextRequest) {
           }).catch(() => {})
         }
 
-        // Notify admins about the membership payment
+        // Notify admins about the membership payment.
+        // Payment alert → sent from no-reply@ (automation) to admin@.
         const memberSettings = await getEmailSettings(supabase)
+        const memberNoReply = senderFor(memberSettings, 'no-reply')
         if (memberSettings.adminEmails.length) {
           await sendEmail({
             to: memberSettings.adminEmails,
+            from: memberNoReply.from,
             subject: `[Membership Payment] ${member.full_name ?? 'Member'} — KES ${amount}`,
             html: adminPaymentAlertHtml({
               type: 'Membership Payment Confirmed',
@@ -190,10 +200,14 @@ export async function POST(req: NextRequest) {
       raw_payload: body,
     }).then(() => {})
 
-    // Send receipt email if we have donor details
+    // Send receipt email if we have donor details.
+    // Receipt → sent from no-reply@ (automation, no reply-to).
     if (donation?.donor_email) {
+      const donorSettings = await getEmailSettings(supabase)
+      const donorNoReply = senderFor(donorSettings, 'no-reply')
       await sendEmail({
         to: donation.donor_email,
+        from: donorNoReply.from,
         subject: 'Your Inua Jamii Donation Receipt',
         html: donationReceiptHtml({
           name:      donation.donor_name ?? 'Donor',
@@ -204,12 +218,15 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Notify admins about the donation
+    // Notify admins about the donation.
+    // Payment alert → sent from no-reply@ (automation) to admin@.
     if (donation) {
       const donationSettings = await getEmailSettings(supabase)
+      const donationNoReply = senderFor(donationSettings, 'no-reply')
       if (donationSettings.adminEmails.length) {
         await sendEmail({
           to: donationSettings.adminEmails,
+          from: donationNoReply.from,
           subject: `[Donation] ${donation.donor_name ?? 'Anonymous'} — KES ${donation.amount}`,
           html: adminPaymentAlertHtml({
             type: 'New Donation Received',

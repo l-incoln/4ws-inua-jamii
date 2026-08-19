@@ -174,8 +174,8 @@ export default function TermsPage() {
               <div className="mt-3 p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-1 text-sm">
                 <p><strong>4W&apos;S Inua Jamii Foundation</strong></p>
                 <p>Nairobi, Kenya</p>
-                <p>Email: <a href="mailto:admin@4wsinuajamii.org" className="text-primary-600 hover:underline">admin@4wsinuajamii.org</a></p>
-                <p>Privacy: <a href="mailto:privacy@4wsinuajamii.org" className="text-primary-600 hover:underline">privacy@4wsinuajamii.org</a></p>
+                <p>Email: <a href="mailto:info@4wsinuajamii.org" className="text-primary-600 hover:underline">info@4wsinuajamii.org</a></p>
+                <p>Privacy: <a href="mailto:info@4wsinuajamii.org" className="text-primary-600 hover:underline">info@4wsinuajamii.org</a></p>
               </div>
             </div>
           </div>
