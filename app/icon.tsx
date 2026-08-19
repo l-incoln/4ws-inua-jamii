@@ -6,7 +6,8 @@ export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
 /**
- * Dynamic favicon — serves the site logo from the CMS as a favicon.
+ * Dynamic favicon — renders the site logo from the CMS on a solid
+ * background so it's always visible in browser tabs (no transparency).
  * Falls back to a branded "4W" badge if no logo is configured.
  */
 export default async function Icon() {
@@ -25,24 +26,39 @@ export default async function Icon() {
   }
 
   if (logoUrl) {
-    // If we have a logo URL, fetch it and serve as-is
     try {
+      // Verify the logo is reachable before embedding it
       const res = await fetch(logoUrl, { cache: 'no-store' })
       if (res.ok) {
-        const buffer = await res.arrayBuffer()
-        return new Response(buffer, {
-          headers: {
-            'Content-Type': res.headers.get('content-type') || 'image/png',
-            'Cache-Control': 'public, max-age=3600',
-          },
-        })
+        return new ImageResponse(
+          (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#1E3A8A',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt="logo"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
+            </div>
+          ),
+          { ...size }
+        )
       }
     } catch {
       // fall through to fallback
     }
   }
 
-  // Fallback: render a branded "4W" badge with better visibility
+  // Fallback: render a branded "4W" badge with solid background
   return new ImageResponse(
     (
       <div

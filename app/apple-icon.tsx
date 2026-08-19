@@ -7,7 +7,8 @@ export const contentType = 'image/png'
 
 /**
  * Apple Touch Icon (180×180) — used by iOS for home screen bookmarks.
- * Falls back to a branded "4W" badge if no logo is configured.
+ * Renders the site logo on a solid background (no transparency) so it's
+ * always visible on iOS home screens. Falls back to a branded "4W" badge.
  */
 export default async function AppleIcon() {
   let logoUrl: string | null = null
@@ -28,13 +29,28 @@ export default async function AppleIcon() {
     try {
       const res = await fetch(logoUrl, { cache: 'no-store' })
       if (res.ok) {
-        const buffer = await res.arrayBuffer()
-        return new Response(buffer, {
-          headers: {
-            'Content-Type': res.headers.get('content-type') || 'image/png',
-            'Cache-Control': 'public, max-age=3600',
-          },
-        })
+        return new ImageResponse(
+          (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#1E3A8A',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt="logo"
+                style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+              />
+            </div>
+          ),
+          { ...size }
+        )
       }
     } catch {
       // fall through to fallback
