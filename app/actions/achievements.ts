@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { BadgeType } from '@/types'
 import { BADGE_META } from '@/lib/badge-meta'
+import { syncMemberBadges as syncBadges } from '@/lib/achievements'
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -55,4 +56,22 @@ export async function revokeBadge(userId: string, badgeType: BadgeType) {
   revalidatePath('/admin/members')
   revalidatePath('/dashboard/achievements')
   return { success: true }
+}
+
+/**
+ * Checks every badge criterion against the member's current activity and
+ * awards any newly-earned badges automatically. Safe to call on every page
+ * load — it only inserts badges that are missing, never removes existing ones.
+ *
+ * Called from the achievements page and dashboard home so badges are always
+ * current when a member views their profile.
+ */
+export async function syncMemberBadges(userId: string) {
+  const supabase = await createClient()
+  const result = await syncBadges(supabase, userId)
+  if (result.newlyAwarded.length) {
+    revalidatePath('/dashboard/achievements')
+    revalidatePath('/dashboard')
+  }
+  return result
 }

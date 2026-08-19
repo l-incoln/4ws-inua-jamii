@@ -212,6 +212,8 @@ export interface ImpactScore {
   tasks_completed: number
   comments_made: number
   donations_made: number
+  /** Total KES amount of completed donations (added in phase13). */
+  donation_amount_total: number
   total_score: number
 }
 

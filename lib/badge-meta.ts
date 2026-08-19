@@ -1,44 +1,51 @@
-export const BADGE_META: Record<string, { label: string; description: string; emoji: string; color: string }> = {
+export const BADGE_META: Record<string, { label: string; description: string; emoji: string; color: string; howToEarn: string }> = {
   founding_member: {
     label: 'Founding Member',
     description: 'Among the first members of the foundation',
     emoji: '🌱',
     color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    howToEarn: 'Join during the founding cohort',
   },
   active_member: {
     label: 'Active Member',
     description: 'Consistently engaged with foundation activities',
     emoji: '⚡',
     color: 'bg-blue-100 text-blue-800 border-blue-200',
+    howToEarn: 'Earn 50+ points from activity',
   },
   event_hero: {
     label: 'Event Hero',
     description: 'Attended 10+ foundation events',
     emoji: '🎯',
     color: 'bg-purple-100 text-purple-800 border-purple-200',
+    howToEarn: 'Attend 10 confirmed events',
   },
   volunteer: {
     label: 'Volunteer',
     description: 'Completed volunteer tasks for the community',
     emoji: '🙌',
     color: 'bg-sky-100 text-sky-800 border-sky-200',
+    howToEarn: 'Complete 1 verified volunteer task',
   },
   leader: {
     label: 'Leader',
     description: 'Demonstrated leadership within the foundation',
     emoji: '🏆',
     color: 'bg-amber-100 text-amber-800 border-amber-200',
+    howToEarn: 'Hold a verified leadership (admin) role',
   },
   champion_donor: {
     label: 'Champion Donor',
     description: 'Made significant contributions to the foundation',
     emoji: '💎',
     color: 'bg-rose-100 text-rose-800 border-rose-200',
+    howToEarn: 'Donate KES 10,000+ in total',
   },
   top_contributor: {
     label: 'Top Contributor',
     description: 'One of the highest impact contributors',
     emoji: '🌟',
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    howToEarn: 'Reach an impact score of 500+',
   },
 }

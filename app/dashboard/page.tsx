@@ -1,12 +1,14 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { CalendarCheck, Bell, ArrowRight, Users, Heart, Star } from 'lucide-react'
+import { CalendarCheck, Bell, ArrowRight, Users, Heart, Star, Trophy, TrendingUp } from 'lucide-react'
 import { getTierStyle } from '@/lib/tier-colors'
 import AwarenessGreeting from '@/components/awareness/AwarenessGreeting'
 import BirthdayCelebration from '@/components/dashboard/BirthdayCelebration'
 import { getAwarenessDaysForDate, getUpcomingAwarenessDays } from '@/lib/awareness'
 import { isBirthdayOn, todayInZone } from '@/lib/birthdays'
+import { fetchMemberMetrics, computeRank, computeImpactScore } from '@/lib/achievements'
+import { syncMemberBadges } from '@/app/actions/achievements'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -69,6 +71,34 @@ export default async function DashboardPage() {
   const tierStyle = getTierStyle(tier)
   const tierLabel = tierStyle.label
   const isApproved = profileRes.data?.membership_status === 'approved'
+
+  // Achievement summary — only for approved members (pending members can't
+  // access the achievements page per the sidebar restriction). Auto-sync
+  // badges so the widget is always current, then fetch metrics + badge count.
+  let achievementWidget: { points: number; impactScore: number; rankName: string; rankEmoji: string; rankGradient: string; badgeCount: number; toNext: number; progress: number; nextRank: string | null } | null = null
+  if (isApproved) {
+    await syncMemberBadges(user.id).catch(() => {})
+    const metrics = await fetchMemberMetrics(supabase, user.id)
+    if (metrics) {
+      const { count: badgeCount } = await supabase
+        .from('member_badges')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+      const impactScore = computeImpactScore(metrics.points, metrics.donationAmountTotal, badgeCount ?? 0)
+      const rank = computeRank(impactScore)
+      achievementWidget = {
+        points: metrics.points,
+        impactScore,
+        rankName: rank.current.name,
+        rankEmoji: rank.current.emoji,
+        rankGradient: rank.current.gradient,
+        badgeCount: badgeCount ?? 0,
+        toNext: rank.toNext,
+        progress: rank.progress,
+        nextRank: rank.next?.name ?? null,
+      }
+    }
+  }
 
   const announcements = announcementsRes.data ?? []
 
@@ -148,6 +178,78 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Achievement summary — approved members only */}
+      {achievementWidget && (
+        <Link href="/dashboard/achievements" className="block card p-6 hover:shadow-md transition-shadow group">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <h2 className="font-bold text-slate-900">Your Achievements</h2>
+            </div>
+            <span className="text-xs text-primary-600 group-hover:text-primary-700 font-medium flex items-center gap-1">
+              View Details <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Impact score */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-emerald-600">{achievementWidget.impactScore}</div>
+                <div className="text-xs text-slate-500">Impact Score</div>
+              </div>
+            </div>
+            {/* Points */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Star className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-amber-600">{achievementWidget.points}</div>
+                <div className="text-xs text-slate-500">Points</div>
+              </div>
+            </div>
+            {/* Rank */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 bg-gradient-to-br ${achievementWidget.rankGradient} rounded-xl flex items-center justify-center flex-shrink-0 text-lg`}>
+                {achievementWidget.rankEmoji}
+              </div>
+              <div>
+                <div className="text-lg font-extrabold text-slate-900">{achievementWidget.rankName}</div>
+                <div className="text-xs text-slate-500">Rank</div>
+              </div>
+            </div>
+            {/* Badges */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Trophy className="w-5 h-5 text-violet-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-violet-600">{achievementWidget.badgeCount}</div>
+                <div className="text-xs text-slate-500">Badges</div>
+              </div>
+            </div>
+          </div>
+          {/* Rank progress bar */}
+          {achievementWidget.nextRank && (
+            <div className="mt-4 pt-4 border-t border-slate-50">
+              <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+                <span>Progress to {achievementWidget.nextRank}</span>
+                <span className="font-semibold">{achievementWidget.toNext} impact to go</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className={`h-full bg-gradient-to-r ${achievementWidget.rankGradient} rounded-full transition-all duration-700`}
+                  style={{ width: `${Math.round(achievementWidget.progress * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </Link>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Announcements */}
