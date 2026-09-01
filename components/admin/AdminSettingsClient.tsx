@@ -464,6 +464,22 @@ export default function AdminSettingsClient({
         {/* ── Payments ── */}
         {tab === 'Payments' && (
           <div className="space-y-4">
+            <Section icon={<CreditCard />} title="Online Payments">
+              <div className="space-y-4">
+                <ToggleField
+                  label="Accept Online Payments"
+                  description="Master switch for all online payment functionality (donations and membership fee payments via M-Pesa / card). When off, payment forms show a 'Coming Soon' notice. Turn this on once your live payment details are configured and verified."
+                  value={s.payments_enabled === 'true'}
+                  onToggle={() => toggle('payments_enabled')}
+                  name="payments_enabled"
+                />
+                {s.payments_enabled !== 'true' && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                    Online payments are currently paused. Visitors see a &lsquo;Coming Soon&rsquo; notice on the donate page and the membership payment button is hidden. Configure the details below, then flip this switch on to go live.
+                  </div>
+                )}
+              </div>
+            </Section>
             <Section icon={<Wallet />} title="M-Pesa">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Paybill / Till Number">

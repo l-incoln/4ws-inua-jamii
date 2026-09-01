@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { initiateStkPush } from '@/lib/mpesa'
 import { normaliseKePhone } from '@/lib/phone'
+import { isPaymentsEnabled, PAYMENTS_DISABLED_ERROR } from '@/lib/payments'
 import { z } from 'zod'
 
 const donationSchema = z.object({
@@ -24,6 +25,10 @@ export async function submitDonation(
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
   const supabase = await createClient()
+
+  // Refuse submissions while online payments are paused site-wide.
+  if (!(await isPaymentsEnabled(supabase))) return { error: PAYMENTS_DISABLED_ERROR }
+
   const { data: { user } } = await supabase.auth.getUser()
 
   // Idempotency: check for an existing pending M-Pesa donation from the same

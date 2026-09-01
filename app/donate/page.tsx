@@ -2,8 +2,10 @@ import Image from 'next/image'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import DonateForm from '@/components/donate/DonateForm'
+import PaymentsComingSoon from '@/components/payments/PaymentsComingSoon'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { createClient } from '@/lib/supabase/server'
+import { isPaymentsEnabled } from '@/lib/payments'
 import { Heart, Shield, Zap, Users2 } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -38,6 +40,10 @@ export default async function DonatePage() {
       'mpesa_paybill', 'mpesa_account', 'min_donation_amount', 'donation_thank_you_message', 'donation_currency',
       'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
     ])
+
+  // Online payments can be paused site-wide (site_settings.payments_enabled).
+  // Defaults to disabled so the site can launch before payment details are live.
+  const paymentsEnabled = await isPaymentsEnabled(supabase)
 
   const sv = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
 
@@ -150,17 +156,24 @@ export default async function DonatePage() {
               </div>
             )}
 
-            {/* Donation Form */}
-            <DonateForm
-              campaigns={activeCampaigns.map((c) => ({ id: c.id, title: c.title }))}
-              paymentSettings={{
-                mpesaPaybill:      sv.mpesa_paybill      || '400200',
-                mpesaAccount:      sv.mpesa_account      || 'DONATION',
-                minDonation:       parseInt(sv.min_donation_amount) || 100,
-                currency:          sv.donation_currency  || 'KES',
-                thankYouMessage:   sv.donation_thank_you_message || '',
-              }}
-            />
+            {/* Donation Form — paused while online payments are finalised */}
+            {paymentsEnabled ? (
+              <DonateForm
+                campaigns={activeCampaigns.map((c) => ({ id: c.id, title: c.title }))}
+                paymentSettings={{
+                  mpesaPaybill:      sv.mpesa_paybill      || '400200',
+                  mpesaAccount:      sv.mpesa_account      || 'DONATION',
+                  minDonation:       parseInt(sv.min_donation_amount) || 100,
+                  currency:          sv.donation_currency  || 'KES',
+                  thankYouMessage:   sv.donation_thank_you_message || '',
+                }}
+              />
+            ) : (
+              <PaymentsComingSoon
+                title="Donations Are Coming Soon"
+                message="Our online donation system is being finalised and will be available very soon. Thank you for your interest in supporting 4W'S Inua Jamii Foundation — please check back shortly."
+              />
+            )}
 
             {/* Impact calculator */}
             <div className="max-w-2xl mx-auto mt-14">

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { isPaymentsEnabled } from '@/lib/payments'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Heart, Calendar, ExternalLink } from 'lucide-react'
@@ -29,6 +30,8 @@ export default async function DashboardDonationsPage() {
     .filter((d) => d.status === 'completed')
     .reduce((sum, d) => sum + (d.amount ?? 0), 0)
 
+  const paymentsEnabled = await isPaymentsEnabled(supabase)
+
   const statusBadge: Record<string, string> = {
     completed: 'badge-green',
     pending:   'badge-sky',
@@ -55,9 +58,13 @@ export default async function DashboardDonationsPage() {
             <p className="text-sm text-slate-500">Total confirmed donations</p>
           </div>
         </div>
-        <Link href="/donate" className="sm:ml-auto btn-primary text-sm flex items-center gap-2 min-h-[44px]">
-          <Heart className="w-4 h-4" /> Donate Again
-        </Link>
+        {paymentsEnabled ? (
+          <Link href="/donate" className="sm:ml-auto btn-primary text-sm flex items-center gap-2 min-h-[44px]">
+            <Heart className="w-4 h-4" /> Donate Again
+          </Link>
+        ) : (
+          <p className="sm:ml-auto text-xs text-slate-400">Online donations are coming soon.</p>
+        )}
       </div>
 
       {/* Table */}
@@ -66,7 +73,9 @@ export default async function DashboardDonationsPage() {
           <Heart className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No donations yet</p>
           <p className="text-sm mt-1">Your donation history will appear here once you make a contribution.</p>
-          <Link href="/donate" className="btn-primary text-sm mt-4 inline-flex">Make a Donation</Link>
+          {paymentsEnabled && (
+            <Link href="/donate" className="btn-primary text-sm mt-4 inline-flex">Make a Donation</Link>
+          )}
         </div>
       ) : (
         <div className="card overflow-x-auto">

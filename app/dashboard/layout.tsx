@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import MembershipPaymentButton from '@/components/dashboard/MembershipPaymentButton'
 import { createClient } from '@/lib/supabase/server'
+import { isPaymentsEnabled } from '@/lib/payments'
 import { AlertTriangle, Clock, CheckCircle, Settings, Bell, LogOut } from 'lucide-react'
 import Link from 'next/link'
 
@@ -33,6 +34,9 @@ export default async function DashboardLayout({
     .eq('read', false)
 
   const unread = unreadCount ?? 0
+
+  // Online payments can be paused site-wide while payment details are finalised.
+  const paymentsEnabled = await isPaymentsEnabled(supabase)
 
   const displayName = user.user_metadata?.full_name || user.email || 'Member'
   const initials = displayName
@@ -73,9 +77,21 @@ export default async function DashboardLayout({
               <div className="flex-1">
                 <p className="font-semibold text-sm">Membership Pending Approval</p>
                 <p className="text-xs mt-0.5">
-                  Your application is awaiting review. Pay your membership fee via M-Pesa below to speed up activation, or pay via bank transfer and send proof to our admin team. Full access will be granted after approval.
+                  Your application is awaiting review. Full access will be granted after approval.
                 </p>
-                <MembershipPaymentButton phone={profile?.phone ?? null} />
+                {paymentsEnabled ? (
+                  <>
+                    <p className="text-xs mt-2">
+                      Pay your membership fee via M-Pesa below to speed up activation, or pay via bank transfer and send proof to our admin team.
+                    </p>
+                    <MembershipPaymentButton phone={profile?.phone ?? null} />
+                  </>
+                ) : (
+                  <p className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/70 border border-amber-200 text-xs font-medium text-amber-700">
+                    <Clock className="w-3.5 h-3.5" />
+                    Online membership payments are coming soon. Your application will still be reviewed by our admin team.
+                  </p>
+                )}
               </div>
             </div>
           )}

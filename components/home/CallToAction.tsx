@@ -29,6 +29,18 @@ function AuthAwareMemberLink() {
 }
 
 export default function CallToAction() {
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'payments_enabled')
+      .maybeSingle()
+      .then(({ data }) => setPaymentsEnabled(data?.value === 'true'))
+  }, [])
+
   return (
     <section className="py-16 md:py-24 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0F2260 0%, #1E3A8A 40%, #2D5CC8 75%, #4FA3D1 100%)' }}>
       {/* Animated orbs — hidden on mobile for performance */}
@@ -109,27 +121,35 @@ export default function CallToAction() {
             </p>
 
             {/* Donation amounts */}
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              {['KES 500', 'KES 1,000', 'KES 5,000'].map((amount) => (
-                <motion.button
-                  key={amount}
-                  whileHover={{ scale: 1.06, backgroundColor: 'rgba(255,255,255,0.22)' }}
-                  whileTap={{ scale: 0.96 }}
-                  className="glass border border-white/20 rounded-xl py-3 text-sm font-bold text-white transition-colors"
-                >
-                  {amount}
-                </motion.button>
-              ))}
-            </div>
+            {paymentsEnabled && (
+              <div className="mt-6 grid grid-cols-3 gap-3">
+                {['KES 500', 'KES 1,000', 'KES 5,000'].map((amount) => (
+                  <motion.button
+                    key={amount}
+                    whileHover={{ scale: 1.06, backgroundColor: 'rgba(255,255,255,0.22)' }}
+                    whileTap={{ scale: 0.96 }}
+                    className="glass border border-white/20 rounded-xl py-3 text-sm font-bold text-white transition-colors"
+                  >
+                    {amount}
+                  </motion.button>
+                ))}
+              </div>
+            )}
 
             <Link href="/donate" className="mt-5 btn-gold inline-flex w-full lg:w-auto justify-center">
               Donate Now
               <Heart className="w-4 h-4" />
             </Link>
 
-            <p className="mt-4 text-xs text-blue-200/70">
-              All donations are tax-deductible. M-Pesa &amp; card payments accepted.
-            </p>
+            {paymentsEnabled ? (
+              <p className="mt-4 text-xs text-blue-200/70">
+                All donations are tax-deductible. M-Pesa &amp; card payments accepted.
+              </p>
+            ) : (
+              <p className="mt-4 text-xs text-blue-200/70">
+                Online donations are coming soon. Thank you for your patience.
+              </p>
+            )}
           </motion.div>
         </div>
       </div>

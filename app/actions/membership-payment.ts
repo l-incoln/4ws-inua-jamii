@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { initiateStkPush } from '@/lib/mpesa'
 import { normaliseKePhone } from '@/lib/phone'
+import { isPaymentsEnabled, PAYMENTS_DISABLED_ERROR } from '@/lib/payments'
 import { revalidatePath } from 'next/cache'
 
 /**
@@ -22,6 +23,9 @@ export async function initiateMembershipPayment(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'You must be logged in to pay.' }
+
+  // Refuse submissions while online payments are paused site-wide.
+  if (!(await isPaymentsEnabled(supabase))) return { error: PAYMENTS_DISABLED_ERROR }
 
   const { data: profile } = await supabase
     .from('profiles')

@@ -111,6 +111,23 @@ function useTierOptions() {
   return tiers
 }
 
+/** Whether online payments are currently enabled (defaults to disabled). */
+function usePaymentsEnabled() {
+  const [enabled, setEnabled] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+    supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'payments_enabled')
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled) setEnabled(data?.value === 'true') })
+    return () => { cancelled = true }
+  }, [])
+  return enabled
+}
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
@@ -134,6 +151,7 @@ function SignupForm() {
   const searchParams = useSearchParams()
   const next = searchParams.get('next') || ''
   const tierOptions = useTierOptions()
+  const paymentsEnabled = usePaymentsEnabled()
 
   const strength = passwordStrength(password)
 
@@ -194,8 +212,17 @@ function SignupForm() {
           <h2 className="text-2xl font-bold text-slate-900">Check Your Email</h2>
           <p className="text-slate-500 mt-3 leading-relaxed">{success}</p>
           <div className="mt-5 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-800">
-            <p className="font-semibold">Next step: Pay your membership fee</p>
-            <p className="mt-1 text-amber-700">After confirming your email, your membership will be reviewed once payment is received. Details will be sent to your inbox.</p>
+            {paymentsEnabled ? (
+              <>
+                <p className="font-semibold">Next step: Pay your membership fee</p>
+                <p className="mt-1 text-amber-700">After confirming your email, your membership will be reviewed once payment is received. Details will be sent to your inbox.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Next step: Confirm your email</p>
+                <p className="mt-1 text-amber-700">After confirming your email, your membership application will be reviewed by our admin team. Online membership payments are coming soon — we&apos;ll notify you when they&apos;re available.</p>
+              </>
+            )}
           </div>
           <Link href="/auth/login" className="btn-primary mt-6 inline-flex">
             Back to Sign In
@@ -257,7 +284,9 @@ function SignupForm() {
             </div>
             <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
               <Info className="w-3 h-3" />
-              Membership is activated after payment confirmation by admin.
+              {paymentsEnabled
+                ? 'Membership is activated after payment confirmation by admin.'
+                : 'Membership is activated after admin approval. Online payments are coming soon.'}
             </p>
           </div>
 
