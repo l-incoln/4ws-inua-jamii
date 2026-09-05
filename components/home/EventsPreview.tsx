@@ -79,13 +79,13 @@ export default function EventsPreview({
                 className="card card-glow-primary group cursor-pointer"
               >
                 {/* Image */}
-                <div className="relative h-48 overflow-hidden bg-gray-100">
+                <div className="relative h-56 overflow-hidden bg-slate-100">
                   {event.image_url ? (
                     <Image
                       src={event.image_url}
                       alt={event.title}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="object-contain group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-primary-800 to-primary-600" />

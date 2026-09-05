@@ -995,6 +995,33 @@ export default function AdminSettingsClient({
                 </Field>
               </div>
             </Section>
+            <Section icon={<Calendar />} title="Event Partners & Sponsors">
+              <div className="space-y-4">
+                <ToggleField
+                  label="Show Event Partners on Detail Pages"
+                  description="When on, partners linked to an event (from the Events admin) appear at the bottom of that event's detail page. When off, the section is hidden everywhere even if partners are linked."
+                  value={s.show_event_partners === 'true'}
+                  onToggle={() => toggle('show_event_partners')}
+                  name="show_event_partners"
+                />
+                <Field label="Partners Section Heading">
+                  <input
+                    name="event_partners_title"
+                    type="text"
+                    className="input"
+                    placeholder="Supported by"
+                    value={s.event_partners_title ?? 'Supported by'}
+                    onChange={(e) => set('event_partners_title', e.target.value)}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Small label shown above the partner logos on each event page.</p>
+                </Field>
+                <p className="text-xs text-slate-400">
+                  Tip: link partners to individual events from the <strong>Events</strong> admin —
+                  open an event and use the &ldquo;Event Partners &amp; Sponsors&rdquo; picker. Partners
+                  themselves are managed on this page under the <strong>Partners &amp; Sponsors</strong> tab.
+                </p>
+              </div>
+            </Section>
             <SaveBar isPending={isPending} />
           </div>
         )}

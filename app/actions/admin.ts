@@ -341,16 +341,20 @@ export async function saveEvent(formData: FormData, eventId?: string) {
       .update(updatePayload)
       .eq('id', eventId)
     if (dbError) return { error: dbError.message }
+    revalidatePath('/admin/events')
+    revalidatePath('/events')
+    return { success: true, id: eventId }
   } else {
-    const { error: dbError } = await supabase
+    const { data: inserted, error: dbError } = await supabase
       .from('events')
       .insert(payload)
+      .select('id')
+      .single()
     if (dbError) return { error: dbError.message }
+    revalidatePath('/admin/events')
+    revalidatePath('/events')
+    return { success: true, id: inserted?.id }
   }
-
-  revalidatePath('/admin/events')
-  revalidatePath('/events')
-  return { success: true }
 }
 
 export async function deleteEvent(eventId: string) {
@@ -364,6 +368,43 @@ export async function deleteEvent(eventId: string) {
 
   if (dbError) return { error: dbError.message }
   revalidatePath('/admin/events')
+  revalidatePath('/events')
+  return { success: true }
+}
+
+// ── Event partners ──────────────────────────────────────────────────────
+// Replaces the full set of partners linked to an event. Each entry may carry
+// an optional "contribution" label (e.g. "Title Sponsor"). Pass an empty
+// array to unlink all partners from the event.
+export async function saveEventPartners(
+  eventId: string,
+  partners: { partner_id: string; contribution?: string | null }[],
+) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  // Wipe existing links, then insert the new set in one transaction-ish flow.
+  const { error: delError } = await supabase
+    .from('event_partners')
+    .delete()
+    .eq('event_id', eventId)
+  if (delError) return { error: delError.message }
+
+  if (partners.length > 0) {
+    const rows = partners.map((p, i) => ({
+      event_id: eventId,
+      partner_id: p.partner_id,
+      contribution: p.contribution?.trim() || null,
+      sort_order: i,
+    }))
+    const { error: insError } = await supabase
+      .from('event_partners')
+      .insert(rows)
+    if (insError) return { error: insError.message }
+  }
+
+  revalidatePath('/admin/events')
+  revalidatePath(`/events/${eventId}`)
   revalidatePath('/events')
   return { success: true }
 }
@@ -409,6 +450,8 @@ export async function saveSiteSettings(formData: FormData) {
     'show_awareness_banner', 'awareness_min_priority',
     // Events & RSVP
     'rsvp_enabled', 'rsvp_require_login', 'event_reminder_days',
+    // Event partners (optional per-event sponsors)
+    'show_event_partners', 'event_partners_title',
     // Legal / Footer
     'privacy_policy_url', 'terms_url', 'registration_number', 'footer_tagline',
     // About Page

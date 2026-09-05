@@ -44,9 +44,9 @@ function EventCard({ event, attendees, showCompleted }: { event: EventItem; atte
   if (showCompleted) {
     return (
       <article className="card group opacity-80">
-        <div className="relative h-40 overflow-hidden grayscale">
+        <div className="relative h-40 overflow-hidden grayscale bg-gray-100">
           {event.image_url ? (
-            <Image src={event.image_url} alt={event.title} fill className="object-cover" />
+            <Image src={event.image_url} alt={event.title} fill className="object-contain" />
           ) : (
             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
               <Calendar className="w-10 h-10 text-gray-400" />
@@ -69,13 +69,13 @@ function EventCard({ event, attendees, showCompleted }: { event: EventItem; atte
 
   return (
     <article className="card group bg-white">
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-56 overflow-hidden bg-slate-100">
         {event.image_url ? (
           <Image
             src={event.image_url}
             alt={event.title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-contain group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full bg-primary-100 flex items-center justify-center">

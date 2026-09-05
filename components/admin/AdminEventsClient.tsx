@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { saveEvent, deleteEvent } from '@/app/actions/admin'
+import { saveEvent, deleteEvent, saveEventPartners } from '@/app/actions/admin'
 import {
   PlusCircle, Edit2, Trash2, Calendar, MapPin, Users,
   Search, X, AlertCircle, CheckCircle, Clock, Download,
@@ -25,6 +25,16 @@ type Event = {
   rsvp_count?: number
 }
 
+type Partner = {
+  id: string
+  name: string
+  logo_url: string | null
+  website_url: string | null
+  is_active: boolean
+}
+
+type PartnerLink = { partner_id: string; contribution: string | null }
+
 const CATEGORIES = ['Health', 'Education', 'Economic', 'Environment', 'Empowerment', 'Fundraiser', 'Community']
 
 const statusColors: Record<string, string> = {
@@ -40,12 +50,23 @@ const emptyForm = {
   image_url: '', category: 'Health', max_attendees: '', status: 'upcoming',
 }
 
-export default function AdminEventsClient({ events: initial }: { events: Event[] }) {
+export default function AdminEventsClient({
+  events: initial,
+  partners = [],
+  eventPartnerLinks = {},
+}: {
+  events: Event[]
+  partners?: Partner[]
+  eventPartnerLinks?: Record<string, PartnerLink[]>
+}) {
   const [events, setEvents]         = useState(initial)
   const [search, setSearch]         = useState('')
   const [showForm, setShowForm]     = useState(false)
   const [editingId, setEditingId]   = useState<string | null>(null)
   const [form, setForm]             = useState(emptyForm)
+  // Selected partners for the event being edited/created:
+  // map of partner_id -> optional contribution label.
+  const [selectedPartners, setSelectedPartners] = useState<Record<string, string>>({})
   const [isPending, startTransition] = useTransition()
   const [toast, setToast]           = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
@@ -57,6 +78,7 @@ export default function AdminEventsClient({ events: initial }: { events: Event[]
   const openCreate = () => {
     setForm(emptyForm)
     setEditingId(null)
+    setSelectedPartners({})
     setShowForm(true)
   }
 
@@ -74,6 +96,11 @@ export default function AdminEventsClient({ events: initial }: { events: Event[]
       max_attendees: event.max_attendees?.toString() ?? '',
       status:        event.status,
     })
+    // Load existing partner links for this event.
+    const links = eventPartnerLinks[event.id] ?? []
+    const map: Record<string, string> = {}
+    for (const l of links) map[l.partner_id] = l.contribution ?? ''
+    setSelectedPartners(map)
     setEditingId(event.id)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -87,17 +114,33 @@ export default function AdminEventsClient({ events: initial }: { events: Event[]
       const result = await saveEvent(fd, editingId ?? undefined)
       if (result?.error) {
         showToast('error', result.error)
-      } else {
-        showToast('success', editingId ? 'Event updated.' : 'Event created.')
-        setShowForm(false)
-        setEditingId(null)
-        setForm(emptyForm)
-        // Optimistic refresh: update local state
-        if (editingId) {
-          setEvents((prev) =>
-            prev.map((e) =>
-              e.id === editingId
-                ? {
+        return
+      }
+
+      // Link partners to the event (new or existing id).
+      const eventId = result?.id
+      if (eventId) {
+        const partnerList = Object.entries(selectedPartners).map(
+          ([partner_id, contribution]) => ({ partner_id, contribution: contribution || null }),
+        )
+        const pr = await saveEventPartners(eventId, partnerList)
+        if (pr?.error) {
+          showToast('error', `Event saved, but partners failed: ${pr.error}`)
+          return
+        }
+      }
+
+      showToast('success', editingId ? 'Event updated.' : 'Event created.')
+      setShowForm(false)
+      setEditingId(null)
+      setForm(emptyForm)
+      setSelectedPartners({})
+      // Optimistic refresh: update local state
+      if (editingId) {
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === editingId
+              ? {
                     ...e,
                     title:    form.title,
                     location: form.location,
@@ -108,12 +151,12 @@ export default function AdminEventsClient({ events: initial }: { events: Event[]
                     max_attendees: form.max_attendees ? parseInt(form.max_attendees) : null,
                   }
                 : e
-            )
           )
-        } else {
-          // Add a temporary placeholder (will be replaced on next server render)
-          setEvents((prev) => [
-            {
+        )
+      } else {
+        // Add a temporary placeholder (will be replaced on next server render)
+        setEvents((prev) => [
+          {
               id:           'temp-' + Date.now(),
               title:        form.title,
               slug:         null,
@@ -129,8 +172,7 @@ export default function AdminEventsClient({ events: initial }: { events: Event[]
               status:       form.status as Event['status'],
             },
             ...prev,
-          ])
-        }
+        ])
       }
     })
   }
@@ -267,10 +309,77 @@ export default function AdminEventsClient({ events: initial }: { events: Event[]
                 name="image_url"
                 defaultValue={form.image_url}
                 folder="events"
-                label="Event Banner Image"
+                label="Event Banner / Poster Image"
                 onChange={(url) => f('image_url', url)}
               />
+              <p className="text-xs text-slate-400 mt-1">
+                The full image is always shown (no cropping), so portrait posters are fine.
+              </p>
             </div>
+
+            {/* Event partners (optional) */}
+            {partners.length > 0 && (
+              <div className="sm:col-span-2">
+                <label className="label">Event Partners &amp; Sponsors (optional)</label>
+                <p className="text-xs text-slate-400 mb-3">
+                  Select partners to display on this event&apos;s detail page. Add an optional
+                  role/contribution label (e.g. &ldquo;Title Sponsor&rdquo;) for each. The section
+                  only appears on the public page when enabled in Settings and at least one partner
+                  is linked here.
+                </p>
+                <div className="space-y-2 max-h-64 overflow-y-auto rounded-xl border border-gray-200 p-3 bg-gray-50/50">
+                  {partners.map((p) => {
+                    const selected = selectedPartners[p.id] !== undefined
+                    return (
+                      <div
+                        key={p.id}
+                        className={`flex items-center gap-3 rounded-lg border p-2.5 transition-colors ${
+                          selected ? 'border-primary-300 bg-primary-50/60' : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(e) => {
+                              setSelectedPartners((prev) => {
+                                const next = { ...prev }
+                                if (e.target.checked) next[p.id] = ''
+                                else delete next[p.id]
+                                return next
+                              })
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="font-medium text-sm text-slate-700 truncate">
+                            {p.name}
+                          </span>
+                          {!p.is_active && (
+                            <span className="badge-gray text-[10px]">inactive</span>
+                          )}
+                        </label>
+                        {selected && (
+                          <input
+                            type="text"
+                            placeholder="Role (optional)"
+                            value={selectedPartners[p.id] ?? ''}
+                            onChange={(e) =>
+                              setSelectedPartners((prev) => ({ ...prev, [p.id]: e.target.value }))
+                            }
+                            className="input !py-1.5 !text-xs w-40 flex-shrink-0"
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {Object.keys(selectedPartners).length > 0 && (
+                  <p className="text-xs text-primary-600 mt-2">
+                    {Object.keys(selectedPartners).length} partner{Object.keys(selectedPartners).length > 1 ? 's' : ''} linked to this event.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">

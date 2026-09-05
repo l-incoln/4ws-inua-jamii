@@ -73,13 +73,13 @@ export default function ImageUpload({
       <input type="hidden" name={name} value={url} />
 
       {url ? (
-        <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-          <div className="relative w-full h-48">
+        <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+          <div className="relative w-full h-56">
             <Image
               src={url}
               alt="Uploaded image"
               fill
-              className="object-cover"
+              className="object-contain"
               unoptimized
             />
           </div>

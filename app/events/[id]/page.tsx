@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer'
 import RsvpButton from '@/components/events/RsvpButton'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
+import { getEventPartnerSettings, getEventPartners } from '@/lib/event-partners-settings'
 import { Calendar, MapPin, Users, Clock, ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -71,6 +72,13 @@ export default async function EventDetailPage({ params }: Props) {
     .maybeSingle()
   const rsvpEnabled = rsvpSetting?.value !== 'false'
 
+  // Optional event partners (only fetched/shown when the feature is enabled).
+  const publicClient = createPublicClient()
+  const partnerSettings = await getEventPartnerSettings(publicClient)
+  const eventPartners = partnerSettings.showEventPartners
+    ? await getEventPartners(publicClient, id)
+    : []
+
   const eventDate = event.event_date
     ? new Date(event.event_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
     : 'Date TBC'
@@ -81,9 +89,9 @@ export default async function EventDetailPage({ params }: Props) {
       <Navbar />
       <main className="pt-20">
         {/* Hero */}
-        <div className="relative h-72 md:h-96">
+        <div className="relative h-80 md:h-[28rem] bg-slate-900">
           {event.image_url ? (
-            <Image src={event.image_url} alt={event.title} fill className="object-cover" />
+            <Image src={event.image_url} alt={event.title} fill className="object-contain" />
           ) : (
             <div className="absolute inset-0 bg-primary-900" />
           )}
@@ -186,6 +194,82 @@ export default async function EventDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Optional event partners / sponsors */}
+        {eventPartners.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+            <div className="rounded-3xl border border-slate-100 bg-gradient-to-b from-slate-50 to-white p-8 md:p-12">
+              <div className="text-center mb-8">
+                <span className="badge-green text-xs uppercase tracking-widest mb-3 inline-block">
+                  {partnerSettings.eventPartnersTitle}
+                </span>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900">
+                  This event is made possible with our partners
+                </h2>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+                {eventPartners.map((partner) => {
+                  const inner = partner.logo_url ? (
+                    <div className="h-24 w-48 relative flex items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-100 p-3 hover:shadow-md hover:border-primary-200 transition-all duration-300">
+                      <Image
+                        src={partner.logo_url}
+                        alt={partner.name}
+                        fill
+                        className="object-contain p-3 transition-transform duration-300 hover:scale-105"
+                        unoptimized
+                      />
+                    </div>
+                  ) : (
+                    <div className="px-7 py-5 rounded-2xl border-2 border-slate-200 bg-white shadow-sm hover:border-primary-400 hover:shadow-md transition-all duration-300">
+                      <span className="text-base font-bold text-slate-700 hover:text-primary-700 transition-colors">
+                        {partner.name}
+                      </span>
+                    </div>
+                  )
+
+                  const label = (
+                    <div className="mt-2 text-center">
+                      <div className="text-sm font-semibold text-slate-800">{partner.name}</div>
+                      {partner.contribution && (
+                        <div className="text-xs text-primary-600 font-medium mt-0.5">
+                          {partner.contribution}
+                        </div>
+                      )}
+                      {partner.description && (
+                        <div className="text-xs text-slate-500 mt-1 max-w-[16rem] line-clamp-2">
+                          {partner.description}
+                        </div>
+                      )}
+                    </div>
+                  )
+
+                  if (partner.website_url) {
+                    return (
+                      <a
+                        key={partner.id}
+                        href={partner.website_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={partner.name}
+                        className="flex flex-col items-center transition-transform duration-200 hover:scale-105"
+                      >
+                        {inner}
+                        {label}
+                      </a>
+                    )
+                  }
+
+                  return (
+                    <div key={partner.id} className="flex flex-col items-center" title={partner.name}>
+                      {inner}
+                      {label}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </>

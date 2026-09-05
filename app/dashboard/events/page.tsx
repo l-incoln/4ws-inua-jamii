@@ -88,7 +88,7 @@ export default async function MyEventsPage() {
                 <div key={rsvp.id} className="card flex items-start sm:items-center gap-4 p-4">
                   <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                     {event.image_url && (
-                      <Image src={event.image_url} alt={event.title} fill className="object-cover" />
+                      <Image src={event.image_url} alt={event.title} fill className="object-contain" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -142,7 +142,7 @@ export default async function MyEventsPage() {
                 <div key={rsvp.id} className="card flex items-start sm:items-center gap-4 p-4 opacity-75">
                   <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 grayscale bg-gray-100">
                     {event.image_url && (
-                      <Image src={event.image_url} alt={event.title} fill className="object-cover" />
+                      <Image src={event.image_url} alt={event.title} fill className="object-contain" />
                     )}
                   </div>
                   <div className="flex-1">
