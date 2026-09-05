@@ -3,6 +3,11 @@ import './globals.css'
 import AnalyticsInjector from '@/components/layout/AnalyticsInjector'
 import CookieConsentBanner from '@/components/layout/CookieConsentBanner'
 
+// Every page renders NavbarWrapper + Footer, both of which call Supabase
+// (cookies() / createPublicClient) at request time. Force dynamic so Vercel
+// doesn't try to statically pre-render pages and crash without a request context.
+export const dynamic = 'force-dynamic'
+
 export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }
 
 export const metadata: Metadata = {
