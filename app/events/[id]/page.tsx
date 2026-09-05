@@ -107,6 +107,77 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Optional event partners / sponsors — shown right under the banner */}
+        {eventPartners.length > 0 && (
+          <div className="bg-white border-y border-slate-100">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                <div className="md:flex-shrink-0 md:border-r md:border-slate-200 md:pr-8">
+                  <span className="text-xs uppercase tracking-widest text-primary-600 font-semibold">
+                    {partnerSettings.eventPartnersTitle}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 md:gap-6">
+                  {eventPartners.map((partner) => {
+                    const logo = partner.logo_url ? (
+                      <div className="h-16 w-32 relative flex items-center justify-center">
+                        <Image
+                          src={partner.logo_url}
+                          alt={partner.name}
+                          fill
+                          className="object-contain transition-transform duration-300 hover:scale-105"
+                          unoptimized
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-sm font-bold text-slate-700 hover:text-primary-700 transition-colors">
+                        {partner.name}
+                      </span>
+                    )
+
+                    const inner = (
+                      <div className="flex flex-col items-center">
+                        {logo}
+                        <div className="mt-1 text-center">
+                          {partner.logo_url && (
+                            <span className="text-xs font-medium text-slate-600">{partner.name}</span>
+                          )}
+                          {partner.contribution && (
+                            <span className="block text-[10px] text-primary-600 font-semibold uppercase tracking-wide">
+                              {partner.contribution}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+
+                    if (partner.website_url) {
+                      return (
+                        <a
+                          key={partner.id}
+                          href={partner.website_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={partner.name}
+                          className="rounded-xl hover:bg-slate-50 px-3 py-2 transition-colors"
+                        >
+                          {inner}
+                        </a>
+                      )
+                    }
+
+                    return (
+                      <div key={partner.id} className="px-3 py-2" title={partner.name}>
+                        {inner}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Main */}
@@ -194,82 +265,6 @@ export default async function EventDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
-
-        {/* Optional event partners / sponsors */}
-        {eventPartners.length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-            <div className="rounded-3xl border border-slate-100 bg-gradient-to-b from-slate-50 to-white p-8 md:p-12">
-              <div className="text-center mb-8">
-                <span className="badge-green text-xs uppercase tracking-widest mb-3 inline-block">
-                  {partnerSettings.eventPartnersTitle}
-                </span>
-                <h2 className="text-xl md:text-2xl font-bold text-slate-900">
-                  This event is made possible with our partners
-                </h2>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
-                {eventPartners.map((partner) => {
-                  const inner = partner.logo_url ? (
-                    <div className="h-24 w-48 relative flex items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-100 p-3 hover:shadow-md hover:border-primary-200 transition-all duration-300">
-                      <Image
-                        src={partner.logo_url}
-                        alt={partner.name}
-                        fill
-                        className="object-contain p-3 transition-transform duration-300 hover:scale-105"
-                        unoptimized
-                      />
-                    </div>
-                  ) : (
-                    <div className="px-7 py-5 rounded-2xl border-2 border-slate-200 bg-white shadow-sm hover:border-primary-400 hover:shadow-md transition-all duration-300">
-                      <span className="text-base font-bold text-slate-700 hover:text-primary-700 transition-colors">
-                        {partner.name}
-                      </span>
-                    </div>
-                  )
-
-                  const label = (
-                    <div className="mt-2 text-center">
-                      <div className="text-sm font-semibold text-slate-800">{partner.name}</div>
-                      {partner.contribution && (
-                        <div className="text-xs text-primary-600 font-medium mt-0.5">
-                          {partner.contribution}
-                        </div>
-                      )}
-                      {partner.description && (
-                        <div className="text-xs text-slate-500 mt-1 max-w-[16rem] line-clamp-2">
-                          {partner.description}
-                        </div>
-                      )}
-                    </div>
-                  )
-
-                  if (partner.website_url) {
-                    return (
-                      <a
-                        key={partner.id}
-                        href={partner.website_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={partner.name}
-                        className="flex flex-col items-center transition-transform duration-200 hover:scale-105"
-                      >
-                        {inner}
-                        {label}
-                      </a>
-                    )
-                  }
-
-                  return (
-                    <div key={partner.id} className="flex flex-col items-center" title={partner.name}>
-                      {inner}
-                      {label}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
       </main>
       <Footer />
     </>
