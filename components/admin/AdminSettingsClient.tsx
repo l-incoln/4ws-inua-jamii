@@ -283,6 +283,17 @@ export default function AdminSettingsClient({
     !gallerySearch || (g.title ?? '').toLowerCase().includes(gallerySearch.toLowerCase())
   )
 
+  // Handle gallery picker selection — supports appending to hero slideshow
+  const handlePickerSelect = (url: string) => {
+    if (galleryPickerKey === 'hero_slides') {
+      // Append to hero slideshow list (avoid duplicates)
+      setHeroSlides((prev) => prev.includes(url) ? prev : [...prev, url])
+    } else if (galleryPickerKey) {
+      set(galleryPickerKey, url)
+    }
+    setGalleryPickerOpen(false)
+  }
+
   return (
     <div className="space-y-6">
       {/* Gallery Picker Modal */}
@@ -290,7 +301,11 @@ export default function AdminSettingsClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setGalleryPickerOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h3 className="font-semibold text-slate-800">Pick from {galleryPickerSource === 'media' ? 'Media Library' : 'Media Gallery'}</h3>
+              <h3 className="font-semibold text-slate-800">
+                {galleryPickerKey === 'hero_slides'
+                  ? `Add to Hero Slideshow — ${galleryPickerSource === 'media' ? 'Media Library' : 'Media Gallery'}`
+                  : `Pick from ${galleryPickerSource === 'media' ? 'Media Library' : 'Media Gallery'}`}
+              </h3>
               <button type="button" onClick={() => setGalleryPickerOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
@@ -313,7 +328,7 @@ export default function AdminSettingsClient({
                       key={g.id}
                       type="button"
                       className="relative h-24 rounded-xl overflow-hidden border-2 border-transparent hover:border-primary-500 focus:border-primary-600 focus:outline-none transition-all group"
-                      onClick={() => { set(galleryPickerKey, g.image_url); setGalleryPickerOpen(false) }}
+                      onClick={() => handlePickerSelect(g.image_url)}
                     >
                       <Image src={g.image_url} alt={g.title ?? ''} fill className="object-cover" unoptimized />
                       {g.title && (
@@ -837,27 +852,45 @@ export default function AdminSettingsClient({
                     </div>
                   )}
 
-                  {/* Upload button */}
-                  <input
-                    ref={heroSlideInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleHeroSlideUpload(file)
-                      e.target.value = ''
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={heroSlideUploading}
-                    onClick={() => heroSlideInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
-                  >
-                    {heroSlideUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                    {heroSlideUploading ? 'Uploading…' : 'Add Slideshow Image'}
-                  </button>
+                  {/* Upload + pick buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      ref={heroSlideInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleHeroSlideUpload(file)
+                        e.target.value = ''
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={heroSlideUploading}
+                      onClick={() => heroSlideInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
+                    >
+                      {heroSlideUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                      {heroSlideUploading ? 'Uploading…' : 'Upload Image'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openGalleryPicker('hero_slides', 'media')}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700 transition-colors"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      Pick from Media Library
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openGalleryPicker('hero_slides', 'gallery')}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-600 text-white text-xs font-semibold hover:bg-slate-700 transition-colors"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      Pick from Gallery
+                    </button>
+                  </div>
 
                   {/* Hidden field to persist the list on save */}
                   <input type="hidden" name="hero_images" value={heroSlides.join(',')} />
