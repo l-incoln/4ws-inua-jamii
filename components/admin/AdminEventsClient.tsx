@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { saveEvent, deleteEvent, saveEventPartners } from '@/app/actions/admin'
+import { saveEvent, deleteEvent, saveEventPartners, saveEventFormFields } from '@/app/actions/admin'
 import {
   PlusCircle, Edit2, Trash2, Calendar, MapPin, Users,
-  Search, X, AlertCircle, CheckCircle, Clock, Download,
+  Search, X, AlertCircle, CheckCircle, Clock, Download, ClipboardList, Plus, GripVertical,
 } from 'lucide-react'
 import ImageUpload from './ImageUpload'
 
@@ -23,6 +23,21 @@ type Event = {
   max_attendees: number | null
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
   rsvp_count?: number
+  rsvp_mode?: string
+  external_rsvp_url?: string | null
+  external_rsvp_label?: string | null
+  rsvp_deadline?: string | null
+  requires_login?: boolean
+}
+
+type FormFieldDef = {
+  id?: string
+  field_name: string
+  field_label: string
+  field_type: 'text' | 'email' | 'phone' | 'textarea' | 'select' | 'checkbox' | 'number' | 'date'
+  field_options: string[] | null
+  is_required: boolean
+  sort_order: number
 }
 
 type Partner = {
@@ -48,16 +63,24 @@ const emptyForm = {
   title: '', description: '', location: '', address: '',
   event_date: '', start_time: '', end_time: '',
   image_url: '', category: 'Health', max_attendees: '', status: 'upcoming',
+  rsvp_mode: 'website', external_rsvp_url: '', external_rsvp_label: 'Register on External Form',
+  rsvp_deadline: '', requires_login: 'false',
+}
+
+const emptyField: FormFieldDef = {
+  field_name: '', field_label: '', field_type: 'text', field_options: null, is_required: true, sort_order: 0,
 }
 
 export default function AdminEventsClient({
   events: initial,
   partners = [],
   eventPartnerLinks = {},
+  eventFormFields = {},
 }: {
   events: Event[]
   partners?: Partner[]
   eventPartnerLinks?: Record<string, PartnerLink[]>
+  eventFormFields?: Record<string, FormFieldDef[]>
 }) {
   const [events, setEvents]         = useState(initial)
   const [search, setSearch]         = useState('')
@@ -67,6 +90,8 @@ export default function AdminEventsClient({
   // Selected partners for the event being edited/created:
   // map of partner_id -> optional contribution label.
   const [selectedPartners, setSelectedPartners] = useState<Record<string, string>>({})
+  // Custom registration form fields
+  const [formFields, setFormFields] = useState<FormFieldDef[]>([])
   const [isPending, startTransition] = useTransition()
   const [toast, setToast]           = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
@@ -79,6 +104,7 @@ export default function AdminEventsClient({
     setForm(emptyForm)
     setEditingId(null)
     setSelectedPartners({})
+    setFormFields([])
     setShowForm(true)
   }
 
@@ -95,12 +121,19 @@ export default function AdminEventsClient({
       category:      event.category ?? 'Health',
       max_attendees: event.max_attendees?.toString() ?? '',
       status:        event.status,
+      rsvp_mode:     event.rsvp_mode ?? 'website',
+      external_rsvp_url:   event.external_rsvp_url ?? '',
+      external_rsvp_label: event.external_rsvp_label ?? 'Register on External Form',
+      rsvp_deadline:       event.rsvp_deadline ? event.rsvp_deadline.slice(0, 16) : '',
+      requires_login:      event.requires_login ? 'true' : 'false',
     })
     // Load existing partner links for this event.
     const links = eventPartnerLinks[event.id] ?? []
     const map: Record<string, string> = {}
     for (const l of links) map[l.partner_id] = l.contribution ?? ''
     setSelectedPartners(map)
+    // Load existing form fields
+    setFormFields(eventFormFields[event.id] ?? [])
     setEditingId(event.id)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -127,6 +160,25 @@ export default function AdminEventsClient({
         if (pr?.error) {
           showToast('error', `Event saved, but partners failed: ${pr.error}`)
           return
+        }
+
+        // Save custom form fields (only for website/hybrid modes)
+        if (form.rsvp_mode === 'website' || form.rsvp_mode === 'hybrid') {
+          const cleanFields = formFields
+            .filter((f) => f.field_name.trim() && f.field_label.trim())
+            .map((f, i) => ({
+              field_name: f.field_name.trim().replace(/\s+/g, '_').toLowerCase(),
+              field_label: f.field_label.trim(),
+              field_type: f.field_type,
+              field_options: f.field_type === 'select' ? (f.field_options?.filter(Boolean) ?? undefined) : undefined,
+              is_required: f.is_required,
+              sort_order: i,
+            }))
+          const fr = await saveEventFormFields(eventId, cleanFields)
+          if (fr?.error) {
+            showToast('error', `Event saved, but form fields failed: ${fr.error}`)
+            return
+          }
         }
       }
 
@@ -317,6 +369,160 @@ export default function AdminEventsClient({
               </p>
             </div>
 
+            {/* Registration Settings */}
+            <div className="sm:col-span-2 border-t border-slate-100 pt-4">
+              <label className="label text-base font-bold text-slate-900">Registration Settings</label>
+              <p className="text-xs text-slate-400 mb-4">
+                Configure how people register for this event. The website generates a shareable registration form with QR code by default.
+              </p>
+
+              {/* RSVP Mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Registration Mode</label>
+                  <select className="input" value={form.rsvp_mode} onChange={(e) => f('rsvp_mode', e.target.value)}>
+                    <option value="website">Website Form (primary)</option>
+                    <option value="external">External Form only</option>
+                    <option value="hybrid">Website + External (hybrid)</option>
+                    <option value="none">No registration</option>
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {form.rsvp_mode === 'website' && 'Users fill a form on your website. Registrations are tracked in Supabase.'}
+                    {form.rsvp_mode === 'external' && 'Users are redirected to an external form (Google Forms, etc.).'}
+                    {form.rsvp_mode === 'hybrid' && 'Users register on your website first, then are directed to the external form.'}
+                    {form.rsvp_mode === 'none' && 'Registration is disabled for this event.'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="label">Registration Deadline</label>
+                  <input
+                    type="datetime-local"
+                    className="input"
+                    value={form.rsvp_deadline}
+                    onChange={(e) => f('rsvp_deadline', e.target.value)}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Optional — registration closes after this date/time.</p>
+                </div>
+              </div>
+
+              {/* External URL (shown for external + hybrid modes) */}
+              {(form.rsvp_mode === 'external' || form.rsvp_mode === 'hybrid') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 p-4 bg-amber-50/50 rounded-xl border border-amber-100">
+                  <div className="sm:col-span-2">
+                    <label className="label">External Form URL</label>
+                    <input
+                      type="url"
+                      className="input"
+                      placeholder="https://forms.google.com/…"
+                      value={form.external_rsvp_url}
+                      onChange={(e) => f('external_rsvp_url', e.target.value)}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="label">External Form Button Label</label>
+                    <input
+                      className="input"
+                      placeholder="Register on External Form"
+                      value={form.external_rsvp_label}
+                      onChange={(e) => f('external_rsvp_label', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Login requirement */}
+              <div className="mt-4">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.requires_login === 'true'}
+                    onChange={(e) => f('requires_login', e.target.checked ? 'true' : 'false')}
+                    className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-slate-700">Require login to register</span>
+                </label>
+                <p className="text-xs text-slate-400 ml-6 mt-1">If enabled, only logged-in members can access the registration form.</p>
+              </div>
+
+              {/* Custom form fields (website + hybrid modes) */}
+              {(form.rsvp_mode === 'website' || form.rsvp_mode === 'hybrid') && (
+                <div className="mt-5 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <span className="text-sm font-semibold text-slate-700">Custom Registration Fields</span>
+                      <p className="text-xs text-slate-400">Add extra fields to collect on the registration form. Name, email, and phone are always included.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormFields((prev) => [...prev, { ...emptyField, sort_order: prev.length }])}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Field
+                    </button>
+                  </div>
+
+                  {formFields.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic py-2">No custom fields. The form will collect name, email, and phone only.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {formFields.map((field, i) => (
+                        <div key={i} className="flex flex-wrap items-center gap-2 bg-white rounded-lg border border-slate-200 p-2.5">
+                          <GripVertical className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                          <input
+                            type="text"
+                            placeholder="Field label (e.g. T-shirt size)"
+                            value={field.field_label}
+                            onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, field_label: e.target.value, field_name: e.target.value.replace(/\s+/g, '_').toLowerCase() } : f))}
+                            className="input !py-1.5 !text-xs flex-1 min-w-[140px]"
+                          />
+                          <select
+                            value={field.field_type}
+                            onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, field_type: e.target.value as FormFieldDef['field_type'] } : f))}
+                            className="input !py-1.5 !text-xs w-28"
+                          >
+                            <option value="text">Text</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Phone</option>
+                            <option value="number">Number</option>
+                            <option value="date">Date</option>
+                            <option value="textarea">Long text</option>
+                            <option value="select">Dropdown</option>
+                            <option value="checkbox">Checkbox</option>
+                          </select>
+                          {field.field_type === 'select' && (
+                            <input
+                              type="text"
+                              placeholder="Options (comma-separated)"
+                              value={(field.field_options ?? []).join(', ')}
+                              onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, field_options: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) } : f))}
+                              className="input !py-1.5 !text-xs flex-1 min-w-[120px]"
+                            />
+                          )}
+                          <label className="flex items-center gap-1 text-xs text-slate-600">
+                            <input
+                              type="checkbox"
+                              checked={field.is_required}
+                              onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, is_required: e.target.checked } : f))}
+                              className="w-3.5 h-3.5 rounded border-slate-300 text-primary-600"
+                            />
+                            Req
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setFormFields((prev) => prev.filter((_, j) => j !== i))}
+                            className="text-red-400 hover:text-red-600 p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Event partners (optional) */}
             {partners.length > 0 && (
               <div className="sm:col-span-2">
@@ -491,6 +697,13 @@ export default function AdminEventsClient({
                       </td>
                       <td className="table-cell">
                         <div className="flex items-center gap-2">
+                          <a
+                            href={`/admin/events/${event.id}/registrations`}
+                            className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                            title="View registrations"
+                          >
+                            <ClipboardList className="w-3.5 h-3.5" />
+                          </a>
                           <a
                             href={`/api/admin/export/events/${event.id}`}
                             className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"

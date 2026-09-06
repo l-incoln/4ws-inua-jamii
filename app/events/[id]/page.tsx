@@ -4,10 +4,11 @@ import { notFound } from 'next/navigation'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import RsvpButton from '@/components/events/RsvpButton'
+import EventQRCode from '@/components/events/EventQRCode'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
 import { getEventPartnerSettings, getEventPartners } from '@/lib/event-partners-settings'
-import { Calendar, MapPin, Users, Clock, ArrowLeft } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, ArrowLeft, ExternalLink, QrCode, Share2 } from 'lucide-react'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -18,7 +19,7 @@ async function getEvent(id: string) {
   const supabase = createPublicClient()
   const { data } = await supabase
     .from('events')
-    .select('id, title, description, location, address, event_date, start_time, end_time, image_url, category, max_attendees, status')
+    .select('id, title, description, location, address, event_date, start_time, end_time, image_url, category, max_attendees, status, rsvp_mode, external_rsvp_url, external_rsvp_label, rsvp_deadline, requires_login')
     .eq('id', id)
     .maybeSingle()
   return data
@@ -71,6 +72,28 @@ export default async function EventDetailPage({ params }: Props) {
     .eq('key', 'rsvp_enabled')
     .maybeSingle()
   const rsvpEnabled = rsvpSetting?.value !== 'false'
+
+  // Registration count from event_registrations table
+  const publicClient2 = createPublicClient()
+  const { count: regCount } = await publicClient2
+    .from('event_registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', id)
+    .neq('status', 'cancelled')
+
+  // Use the higher of rsvps and event_registrations counts
+  const totalAttendees = Math.max(attendees, regCount ?? 0)
+
+  // Registration deadline check
+  const regDeadlinePassed = event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date()
+  const rsvpMode = event.rsvp_mode || 'website'
+
+  // Build the registration URL (absolute for QR code)
+  const headersList = await import('next/headers')
+  const headers = await headersList.headers()
+  const host = headers.get('host') || '4wsinuajamii.org'
+  const protocol = headers.get('x-forwarded-proto') || 'https'
+  const registrationUrl = `${protocol}://${host}/events/${id}/register`
 
   // Optional event partners (only fetched/shown when the feature is enabled).
   const publicClient = createPublicClient()
@@ -241,21 +264,104 @@ export default async function EventDetailPage({ params }: Props) {
                 )}
               </div>
 
-              {/* RSVP */}
-              {rsvpEnabled ? (
-                <div className="card p-6">
-                  <h3 className="font-bold text-slate-900 mb-1">Reserve Your Spot</h3>
-                  <p className="text-sm text-slate-500 mb-4">
+              {/* Registration / RSVP */}
+              {rsvpEnabled && rsvpMode !== 'none' && !regDeadlinePassed ? (
+                <div className="card p-6 space-y-4">
+                  <h3 className="font-bold text-slate-900 mb-1">
+                    {rsvpMode === 'external' ? 'External Registration' : 'Reserve Your Spot'}
+                  </h3>
+                  <p className="text-sm text-slate-500 mb-3">
                     {isFull
                       ? 'This event is at capacity. Join the waitlist to be notified if a spot opens up.'
-                      : "Secure your spot — it's completely free."}
+                      : rsvpMode === 'external'
+                        ? 'Registration is handled through an external form.'
+                        : rsvpMode === 'hybrid'
+                          ? 'Register here, then complete a short external form.'
+                          : "Secure your spot — it's completely free."}
                   </p>
-                  <RsvpButton
-                    eventId={id}
-                    isLoggedIn={!!user}
-                    initialStatus={rsvpStatus}
-                    isFull={isFull}
-                  />
+
+                  {/* Primary CTA based on mode */}
+                  {rsvpMode === 'external' ? (
+                    <a
+                      href={event.external_rsvp_url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary w-full text-base py-3.5 inline-flex justify-center"
+                    >
+                      {event.external_rsvp_label || 'Register on External Form'}
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
+                  ) : rsvpMode === 'hybrid' ? (
+                    <div className="space-y-3">
+                      <Link
+                        href={`/events/${id}/register`}
+                        className="btn-primary w-full text-base py-3.5 inline-flex justify-center"
+                      >
+                        Register Here First
+                        <ExternalLink className="w-5 h-5" />
+                      </Link>
+                      {event.external_rsvp_url && (
+                        <a
+                          href={event.external_rsvp_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-center text-sm text-primary-600 hover:text-primary-700 font-semibold"
+                        >
+                          {event.external_rsvp_label || 'External Form'} →
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    /* website mode — use the new registration page as primary, legacy RSVP as secondary */
+                    <div className="space-y-3">
+                      <Link
+                        href={`/events/${id}/register`}
+                        className="btn-primary w-full text-base py-3.5 inline-flex justify-center"
+                      >
+                        Register Now
+                      </Link>
+                      {/* Legacy quick RSVP for logged-in users */}
+                      <RsvpButton
+                        eventId={id}
+                        isLoggedIn={!!user}
+                        initialStatus={rsvpStatus}
+                        isFull={isFull}
+                      />
+                    </div>
+                  )}
+
+                  {/* Shareable link + QR code */}
+                  <div className="pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Share2 className="w-4 h-4 text-slate-400" />
+                      <span className="text-xs font-semibold text-slate-600 uppercase tracking-widest">Share Registration</span>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <EventQRCode url={registrationUrl} size={120} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-500 mb-1">Share this link or QR code on posters, WhatsApp, social media:</p>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            readOnly
+                            value={registrationUrl}
+                            className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 flex-1 min-w-0 font-mono"
+                            onClick={(e) => (e.target as HTMLInputElement).select()}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : rsvpEnabled && rsvpMode === 'none' ? (
+                <div className="card p-6 text-center text-slate-500 text-sm">
+                  Registration is not available for this event.
+                </div>
+              ) : regDeadlinePassed ? (
+                <div className="card p-6 text-center text-slate-500 text-sm">
+                  Registration deadline has passed.
                 </div>
               ) : (
                 <div className="card p-6 text-center text-slate-500 text-sm">

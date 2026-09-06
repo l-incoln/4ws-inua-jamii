@@ -1,6 +1,7 @@
 ﻿'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import { createAdminClient } from '@/lib/supabase/admin-client'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -323,6 +324,13 @@ export async function saveEvent(formData: FormData, eventId?: string) {
   const max_attendees = formData.get('max_attendees') ? Number(formData.get('max_attendees')) : null
   const status       = (formData.get('status') as string) || 'upcoming'
 
+  // Registration config
+  const rsvp_mode           = (formData.get('rsvp_mode') as string) || 'website'
+  const external_rsvp_url   = (formData.get('external_rsvp_url') as string)?.trim() || null
+  const external_rsvp_label = (formData.get('external_rsvp_label') as string)?.trim() || 'Register on External Form'
+  const rsvp_deadline       = (formData.get('rsvp_deadline') as string) || null
+  const requires_login      = formData.get('requires_login') === 'true'
+
   if (!title || !location || !event_date) {
     return { error: 'Title, location, and date are required' }
   }
@@ -330,6 +338,8 @@ export async function saveEvent(formData: FormData, eventId?: string) {
   const payload = {
     title, description, location, event_date, start_time, end_time,
     image_url, category, max_attendees, status,
+    rsvp_mode, external_rsvp_url, external_rsvp_label,
+    rsvp_deadline, requires_login,
     created_by: user.id,
     slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
   }
@@ -409,7 +419,165 @@ export async function saveEventPartners(
   return { success: true }
 }
 
-// ΓöÇΓöÇΓöÇ Site Settings ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Event Registration Form Fields ─────────────────────────
+// Replaces the full set of custom form fields for an event.
+export async function saveEventFormFields(
+  eventId: string,
+  fields: { field_name: string; field_label: string; field_type: string; field_options?: string[]; is_required: boolean; sort_order: number }[],
+) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: delError } = await supabase
+    .from('event_form_fields')
+    .delete()
+    .eq('event_id', eventId)
+  if (delError) return { error: delError.message }
+
+  if (fields.length > 0) {
+    const rows = fields.map((f) => ({
+      event_id: eventId,
+      field_name: f.field_name,
+      field_label: f.field_label,
+      field_type: f.field_type,
+      field_options: f.field_options ?? null,
+      is_required: f.is_required,
+      sort_order: f.sort_order,
+    }))
+    const { error: insError } = await supabase
+      .from('event_form_fields')
+      .insert(rows)
+    if (insError) return { error: insError.message }
+  }
+
+  revalidatePath(`/events/${eventId}/register`)
+  return { success: true }
+}
+
+// ── Submit Event Registration (public) ─────────────────────
+// Called from the public registration form. Inserts a record
+// into event_registrations. For hybrid mode, the caller handles
+// the redirect to the external form after this succeeds.
+export async function submitEventRegistration(formData: FormData) {
+  const supabase = createPublicClient()
+
+  const event_id  = (formData.get('event_id') as string)?.trim()
+  const full_name = (formData.get('full_name') as string)?.trim()
+  const email     = (formData.get('email') as string)?.trim().toLowerCase()
+  const phone     = (formData.get('phone') as string)?.trim() || null
+
+  if (!event_id || !full_name || !email) {
+    return { error: 'Event ID, name, and email are required.' }
+  }
+
+  // Check deadline
+  const { data: event } = await supabase
+    .from('events')
+    .select('rsvp_deadline, max_attendees, rsvp_mode, status')
+    .eq('id', event_id)
+    .maybeSingle()
+  if (!event) return { error: 'Event not found.' }
+  if (event.status === 'cancelled') return { error: 'This event has been cancelled.' }
+
+  if (event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date()) {
+    return { error: 'Registration deadline has passed.' }
+  }
+
+  // Check capacity
+  if (event.max_attendees && event.max_attendees > 0) {
+    const { count } = await supabase
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', event_id)
+      .neq('status', 'cancelled')
+    if ((count ?? 0) >= event.max_attendees) {
+      return { error: 'This event is at full capacity.' }
+    }
+  }
+
+  // Collect custom field data from formData
+  const fieldData: Record<string, string> = {}
+  const knownKeys = ['event_id', 'full_name', 'email', 'phone']
+  for (const [key, value] of Array.from(formData.entries())) {
+    if (!knownKeys.includes(key) && typeof value === 'string') {
+      fieldData[key] = value
+    }
+  }
+
+  // Try to get user_id if logged in (best-effort, non-blocking)
+  let userId: string | null = null
+  try {
+    const serverSupabase = await (await import('@/lib/supabase/server')).createClient()
+    const { data: { user } } = await serverSupabase.auth.getUser()
+    if (user) userId = user.id
+  } catch { /* not logged in — fine */ }
+
+  const source = event.rsvp_mode === 'hybrid' ? 'hybrid' : 'website'
+
+  const { error: insError } = await supabase
+    .from('event_registrations')
+    .upsert(
+      {
+        event_id,
+        user_id: userId,
+        full_name,
+        email,
+        phone,
+        field_data: fieldData,
+        status: 'registered',
+        source,
+      },
+      { onConflict: 'event_id,email' }
+    )
+
+  if (insError) {
+    if (insError.code === '23505') {
+      return { error: 'You are already registered for this event.' }
+    }
+    return { error: insError.message }
+  }
+
+  revalidatePath(`/events/${event_id}`)
+  revalidatePath(`/admin/events/${event_id}/registrations`)
+  return { success: true }
+}
+
+// ── Update Registration Status (admin) ─────────────────────
+export async function updateRegistrationStatus(registrationId: string, status: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const validStatuses = ['pending', 'registered', 'confirmed', 'attended', 'cancelled']
+  if (!validStatuses.includes(status)) {
+    return { error: 'Invalid status.' }
+  }
+
+  const { error: dbError } = await supabase
+    .from('event_registrations')
+    .update({ status })
+    .eq('id', registrationId)
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/admin/events')
+  return { success: true }
+}
+
+// ── Delete Registration (admin) ────────────────────────────
+export async function deleteRegistration(registrationId: string) {
+  const { supabase, error } = await requireAdmin()
+  if (error || !supabase) return { error }
+
+  const { error: dbError } = await supabase
+    .from('event_registrations')
+    .delete()
+    .eq('id', registrationId)
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/admin/events')
+  return { success: true }
+}
+
+// ── Site Settings ──────────────────────────────────────────
 export async function saveSiteSettings(formData: FormData) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }

@@ -6,13 +6,14 @@ export const dynamic = 'force-dynamic'
 export default async function AdminEventsPage() {
   const supabase = await createClient()
 
-  const [eventsResult, partnersResult, linksResult] = await Promise.all([
+  const [eventsResult, partnersResult, linksResult, formFieldsResult] = await Promise.all([
     supabase
       .from('events')
       .select(`
         id, title, slug, description, location, address,
         event_date, start_time, end_time, image_url,
-        category, max_attendees, status
+        category, max_attendees, status,
+        rsvp_mode, external_rsvp_url, external_rsvp_label, rsvp_deadline, requires_login
       `)
       .order('event_date', { ascending: false }),
     // All partners (active + inactive) so admins can link any of them.
@@ -24,6 +25,11 @@ export default async function AdminEventsPage() {
     supabase
       .from('event_partners')
       .select('event_id, partner_id, contribution, sort_order'),
+    // Custom registration form fields, keyed by event id.
+    supabase
+      .from('event_form_fields')
+      .select('id, event_id, field_name, field_label, field_type, field_options, is_required, sort_order')
+      .order('sort_order', { ascending: true }),
   ])
 
   // Group links by event id for the client form.
@@ -34,11 +40,28 @@ export default async function AdminEventsPage() {
     linksByEvent[row.event_id] = list
   }
 
+  // Group form fields by event id
+  const fieldsByEvent: Record<string, any[]> = {}
+  for (const row of formFieldsResult.data ?? []) {
+    const list = fieldsByEvent[row.event_id] ?? []
+    list.push({
+      id: row.id,
+      field_name: row.field_name,
+      field_label: row.field_label,
+      field_type: row.field_type,
+      field_options: row.field_options,
+      is_required: row.is_required,
+      sort_order: row.sort_order,
+    })
+    fieldsByEvent[row.event_id] = list
+  }
+
   return (
     <AdminEventsClient
       events={eventsResult.data ?? []}
       partners={partnersResult.data ?? []}
       eventPartnerLinks={linksByEvent}
+      eventFormFields={fieldsByEvent}
     />
   )
 }
