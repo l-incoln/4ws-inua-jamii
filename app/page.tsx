@@ -15,6 +15,7 @@ import AnnouncementsTicker from '@/components/home/AnnouncementsTicker'
 import VolunteerPreview from '@/components/home/VolunteerPreview'
 import AwarenessBanner from '@/components/awareness/AwarenessBanner'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { getEventPartnerSettings, getEventPartnersForEvents } from '@/lib/event-partners-settings'
 import { getAwarenessDaysForDate, filterByMinPriority } from '@/lib/awareness'
 import type { Metadata } from 'next'
 
@@ -75,6 +76,15 @@ export default async function HomePage() {
   const rsvpCountMap: Record<string, number> = {}
   for (const r of (rsvpCounts ?? [])) {
     rsvpCountMap[r.event_id] = (rsvpCountMap[r.event_id] ?? 0) + 1
+  }
+
+  // Fetch event sponsors for the homepage event preview cards
+  const homepagePartnerSettings = await getEventPartnerSettings(supabase)
+  let homepageEventSponsors: Record<string, { id: string; name: string; logo_url: string | null; website_url: string | null; contribution: string | null }[]> = {}
+  if (homepagePartnerSettings.showEventPartnersListing && eventIds.length > 0) {
+    try {
+      homepageEventSponsors = await getEventPartnersForEvents(supabase, eventIds)
+    } catch { /* table doesn't exist yet */ }
   }
 
   // Fetch live impact metrics for ImpactStats + Hero floating cards
@@ -188,7 +198,7 @@ export default async function HomePage() {
           image_url: nextEvent.image_url,
         } : null} />
         <DonationProgress campaigns={campaigns ?? []} />
-        {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} />}
+        {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} eventSponsors={homepageEventSponsors} sponsorsLabel={homepagePartnerSettings.eventPartnersListingLabel} />}
         <GalleryPreview items={galleryItems ?? []} />
         <VolunteerPreview tasks={volunteerTasks ?? []} />
         {showOrgPartners && (partners ?? []).length > 0 && (

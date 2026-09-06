@@ -17,6 +17,14 @@ type Event = {
   status: string
 }
 
+type EventSponsor = {
+  id: string
+  name: string
+  logo_url: string | null
+  website_url: string | null
+  contribution: string | null
+}
+
 const categoryColors: Record<string, string> = {
   Health: 'badge-red',
   Economic: 'badge-gold',
@@ -24,12 +32,63 @@ const categoryColors: Record<string, string> = {
   Education: 'bg-sky-100 text-sky-800 badge',
 }
 
+function SponsorStrip({ sponsors, label }: { sponsors: EventSponsor[]; label: string }) {
+  if (sponsors.length === 0) return null
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-100">
+      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</div>
+      <div className="flex flex-wrap items-center gap-2">
+        {sponsors.map((s) => {
+          const inner = s.logo_url ? (
+            <div className="h-8 w-16 relative flex items-center justify-center rounded bg-white border border-slate-100 p-1">
+              <Image
+                src={s.logo_url}
+                alt={s.name}
+                fill
+                className="object-contain p-1"
+                unoptimized
+              />
+            </div>
+          ) : (
+            <span className="text-xs font-semibold text-slate-600 px-2 py-1 rounded bg-white border border-slate-100">
+              {s.name}
+            </span>
+          )
+          if (s.website_url) {
+            return (
+              <a
+                key={s.id}
+                href={s.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={s.contribution ? `${s.name} — ${s.contribution}` : s.name}
+                className="transition-transform hover:scale-105"
+              >
+                {inner}
+              </a>
+            )
+          }
+          return (
+            <div key={s.id} title={s.contribution ? `${s.name} — ${s.contribution}` : s.name}>
+              {inner}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function EventsPreview({
   events = [],
   rsvpCounts = {},
+  eventSponsors,
+  sponsorsLabel,
 }: {
   events?: Event[]
   rsvpCounts?: Record<string, number>
+  eventSponsors?: Record<string, EventSponsor[]>
+  sponsorsLabel?: string
 }) {
   const displayEvents = events.slice(0, 3)
 
@@ -133,6 +192,10 @@ export default function EventsPreview({
                       </div>
                     )}
                   </div>
+
+                  {eventSponsors && eventSponsors[event.id] && eventSponsors[event.id].length > 0 && (
+                    <SponsorStrip sponsors={eventSponsors[event.id]} label={sponsorsLabel || 'Sponsored by'} />
+                  )}
 
                   <div className="mt-5 flex items-center justify-between">
                     <Link
