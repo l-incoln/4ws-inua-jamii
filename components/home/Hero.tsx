@@ -71,14 +71,15 @@ export default function Hero({
   }, [images, singleImage, eventSlides])
 
   const [currentSlide, setCurrentSlide] = useState(0)
+  const slidesLength = slides.length
 
   useEffect(() => {
-    if (slides.length <= 1) return
+    if (slidesLength <= 1) return
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length)
+      setCurrentSlide((prev) => (prev + 1) % slidesLength)
     }, SLIDESHOW_INTERVAL)
     return () => clearInterval(interval)
-  }, [slides])
+  }, [slidesLength])
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden noise-overlay">
@@ -91,23 +92,19 @@ export default function Hero({
           {slides.map((slide, i) => {
             const isActive = i === currentSlide
             return (
-              <div
-                key={slide.image + i}
+              <motion.div
+                key={slide.image + '-' + i}
                 className="absolute inset-0"
-                style={{
-                  opacity: isActive ? 1 : 0,
-                  transition: 'opacity 1200ms ease-in-out',
-                  willChange: 'opacity',
-                  pointerEvents: isActive ? 'auto' : 'none',
-                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: isActive ? 1 : 0 }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
+                style={{ pointerEvents: isActive ? 'auto' : 'none' }}
               >
-                <div
+                <motion.div
                   className="absolute inset-0 overflow-hidden"
-                  style={{
-                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                    transition: `transform ${SLIDESHOW_INTERVAL + 1200}ms ease-out`,
-                    willChange: 'transform',
-                  }}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: isActive ? 1.1 : 1 }}
+                  transition={{ duration: (SLIDESHOW_INTERVAL + 1200) / 1000, ease: 'easeOut' }}
                 >
                   <Image
                     src={slide.image}
@@ -117,8 +114,8 @@ export default function Hero({
                     priority={i === 0}
                     unoptimized
                   />
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )
           })}
           {/* Dark overlay to keep text readable over photos */}
@@ -129,6 +126,7 @@ export default function Hero({
       {/* Event slide info card — shows when the current slide is an event */}
       {slides[currentSlide]?.event && (
         <motion.div
+          key={slides[currentSlide]!.event!.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
