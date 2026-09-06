@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
-import RsvpButton from '@/components/events/RsvpButton'
 import ShareRegistration from '@/components/events/ShareRegistration'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
@@ -41,55 +40,22 @@ export default async function EventDetailPage({ params }: Props) {
 
   const supabase = await createClient()
 
-  // Count confirmed RSVPs
-  const { count: rsvpCount } = await supabase
-    .from('rsvps')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', id)
-    .eq('status', 'confirmed')
-
-  const attendees = rsvpCount ?? 0
-  const maxAttendees = event.max_attendees ?? 0
-  const spotsLeft = maxAttendees - attendees
-  const progress = maxAttendees > 0 ? Math.round((attendees / maxAttendees) * 100) : 0
-  const isFull = maxAttendees > 0 && spotsLeft <= 0
-
-  // Auth + existing RSVP status
-  const { data: { user } } = await supabase.auth.getUser()
-  let rsvpStatus: 'confirmed' | 'waitlisted' | 'cancelled' | null = null
-  if (user) {
-    const { data: rsvp } = await supabase
-      .from('rsvps')
-      .select('status')
-      .eq('event_id', id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (rsvp) rsvpStatus = rsvp.status as typeof rsvpStatus
-  }
-
-  // CMS RSVP setting
-  const { data: rsvpSetting } = await supabase
-    .from('site_settings')
-    .select('value')
-    .eq('key', 'rsvp_enabled')
-    .maybeSingle()
-  const rsvpEnabled = rsvpSetting?.value !== 'false'
-
   // Registration count from event_registrations table (may not exist
-  // if phase16 migration hasn't been applied — fail gracefully).
-  let regCount: number | null = 0
+  // if phase16 migration hasn't been applied - fail gracefully).
+  let attendees = 0
   try {
-    const publicClient2 = createPublicClient()
-    const { count, error: regErr } = await publicClient2
+    const { count: regCount, error: regErr } = await supabase
       .from('event_registrations')
       .select('id', { count: 'exact', head: true })
       .eq('event_id', id)
       .neq('status', 'cancelled')
-    if (!regErr) regCount = count
+    if (!regErr) attendees = regCount ?? 0
   } catch { /* table doesn't exist yet */ }
 
-  // Use the higher of rsvps and event_registrations counts
-  const totalAttendees = Math.max(attendees, regCount ?? 0)
+  const maxAttendees = event.max_attendees ?? 0
+  const spotsLeft = maxAttendees - attendees
+  const progress = maxAttendees > 0 ? Math.round((attendees / maxAttendees) * 100) : 0
+  const isFull = maxAttendees > 0 && spotsLeft <= 0
 
   // Registration deadline check
   const regDeadlinePassed = event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date()
@@ -268,15 +234,15 @@ export default async function EventDetailPage({ params }: Props) {
                 )}
               </div>
 
-              {/* Registration / RSVP */}
-              {rsvpEnabled && rsvpMode !== 'none' && !regDeadlinePassed ? (
+              {/* Registration */}
+              {rsvpMode !== 'none' && !regDeadlinePassed ? (
                 <div className="card p-6 space-y-4">
                   <h3 className="font-bold text-slate-900 mb-1">
                     {rsvpMode === 'external' ? 'External Registration' : 'Reserve Your Spot'}
                   </h3>
                   <p className="text-sm text-slate-500 mb-3">
                     {isFull
-                      ? 'This event is at capacity. Join the waitlist to be notified if a spot opens up.'
+                      ? 'This event is at capacity. You can still register and we will notify you if a spot opens up.'
                       : rsvpMode === 'external'
                         ? 'Registration is handled through an external form.'
                         : rsvpMode === 'hybrid'
@@ -311,33 +277,24 @@ export default async function EventDetailPage({ params }: Props) {
                           rel="noopener noreferrer"
                           className="block text-center text-sm text-primary-600 hover:text-primary-700 font-semibold"
                         >
-                          {event.external_rsvp_label || 'External Form'} →
+                          {event.external_rsvp_label || 'External Form'} &rarr;
                         </a>
                       )}
                     </div>
                   ) : (
-                    /* website mode — use the new registration page as primary, legacy RSVP as secondary */
-                    <div className="space-y-3">
-                      <Link
-                        href={`/events/${id}/register`}
-                        className="btn-primary w-full text-base py-3.5 inline-flex justify-center"
-                      >
-                        Register Now
-                      </Link>
-                      {/* Legacy quick RSVP for logged-in users */}
-                      <RsvpButton
-                        eventId={id}
-                        isLoggedIn={!!user}
-                        initialStatus={rsvpStatus}
-                        isFull={isFull}
-                      />
-                    </div>
+                    /* website mode */
+                    <Link
+                      href={`/events/${id}/register`}
+                      className="btn-primary w-full text-base py-3.5 inline-flex justify-center"
+                    >
+                      Register Now
+                    </Link>
                   )}
 
                   {/* Shareable link + QR code */}
                   <ShareRegistration url={registrationUrl} />
                 </div>
-              ) : rsvpEnabled && rsvpMode === 'none' ? (
+              ) : rsvpMode === 'none' ? (
                 <div className="card p-6 text-center text-slate-500 text-sm">
                   Registration is not available for this event.
                 </div>
@@ -347,7 +304,7 @@ export default async function EventDetailPage({ params }: Props) {
                 </div>
               ) : (
                 <div className="card p-6 text-center text-slate-500 text-sm">
-                  RSVPs are currently closed. Check back soon.
+                  Registration is currently closed. Check back soon.
                 </div>
               )}
             </div>

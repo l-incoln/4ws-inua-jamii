@@ -13,6 +13,8 @@ type FormField = {
   field_options: string[] | null
   is_required: boolean
   sort_order: number
+  section_title?: string
+  section_sort_order?: number
 }
 
 export default function RegistrationForm({
@@ -170,58 +172,83 @@ export default function RegistrationForm({
         />
       </div>
 
-      {/* Custom fields */}
-      {fields.map((field) => (
-        <div key={field.id}>
-          <label className="label" htmlFor={field.field_name}>
-            {field.field_label}
-            {field.is_required && <span className="text-red-500"> *</span>}
-          </label>
-          {field.field_type === 'textarea' ? (
-            <textarea
-              id={field.field_name}
-              name={field.field_name}
-              required={field.is_required}
-              className="input mt-1 resize-none"
-              rows={3}
-            />
-          ) : field.field_type === 'select' && field.field_options ? (
-            <select
-              id={field.field_name}
-              name={field.field_name}
-              required={field.is_required}
-              className="input mt-1"
-              defaultValue=""
-            >
-              <option value="" disabled>Select an option…</option>
-              {field.field_options.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          ) : field.field_type === 'checkbox' ? (
-            <div className="mt-2">
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  name={field.field_name}
-                  value="yes"
-                  required={field.is_required}
-                  className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                />
-                {field.field_label}
-              </label>
+      {/* Custom fields grouped by section */}
+      {(() => {
+        if (fields.length === 0) return null
+        // Group fields by section_title, preserving order
+        const sectionNames: string[] = []
+        fields.forEach((f) => {
+          const s = f.section_title || 'Additional Information'
+          if (!sectionNames.includes(s)) sectionNames.push(s)
+        })
+        return sectionNames.map((sectionName) => {
+          const sectionFields = fields.filter(
+            (f) => (f.section_title || 'Additional Information') === sectionName
+          )
+          return (
+            <div key={sectionName} className="space-y-4">
+              <div className="border-t border-slate-200 pt-4">
+                <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-3">
+                  {sectionName}
+                </h4>
+                <div className="space-y-4">
+                  {sectionFields.map((field) => (
+                    <div key={field.id}>
+                      <label className="label" htmlFor={field.field_name}>
+                        {field.field_label}
+                        {field.is_required && <span className="text-red-500"> *</span>}
+                      </label>
+                      {field.field_type === 'textarea' ? (
+                        <textarea
+                          id={field.field_name}
+                          name={field.field_name}
+                          required={field.is_required}
+                          className="input mt-1 resize-none"
+                          rows={3}
+                        />
+                      ) : field.field_type === 'select' && field.field_options ? (
+                        <select
+                          id={field.field_name}
+                          name={field.field_name}
+                          required={field.is_required}
+                          className="input mt-1"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Select an option...</option>
+                          {field.field_options.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : field.field_type === 'checkbox' ? (
+                        <div className="mt-2">
+                          <label className="flex items-center gap-2 text-sm text-slate-700">
+                            <input
+                              type="checkbox"
+                              name={field.field_name}
+                              value="yes"
+                              required={field.is_required}
+                              className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            {field.field_label}
+                          </label>
+                        </div>
+                      ) : (
+                        <input
+                          id={field.field_name}
+                          name={field.field_name}
+                          type={field.field_type === 'phone' ? 'tel' : field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'}
+                          required={field.is_required}
+                          className="input mt-1"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          ) : (
-            <input
-              id={field.field_name}
-              name={field.field_name}
-              type={field.field_type === 'phone' ? 'tel' : field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'}
-              required={field.is_required}
-              className="input mt-1"
-            />
-          )}
-        </div>
-      ))}
+          )
+        })
+      })()}
 
       {/* Hybrid mode notice */}
       {rsvpMode === 'hybrid' && externalUrl && (

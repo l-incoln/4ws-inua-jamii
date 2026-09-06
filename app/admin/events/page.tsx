@@ -28,7 +28,8 @@ export default async function AdminEventsPage() {
     // Custom registration form fields, keyed by event id.
     supabase
       .from('event_form_fields')
-      .select('id, event_id, field_name, field_label, field_type, field_options, is_required, sort_order')
+      .select('id, event_id, field_name, field_label, field_type, field_options, is_required, sort_order, section_title, section_sort_order')
+      .order('section_sort_order', { ascending: true })
       .order('sort_order', { ascending: true }),
   ])
 
@@ -52,6 +53,8 @@ export default async function AdminEventsPage() {
       field_options: row.field_options,
       is_required: row.is_required,
       sort_order: row.sort_order,
+      section_title: row.section_title ?? 'Additional Information',
+      section_sort_order: row.section_sort_order ?? 0,
     })
     fieldsByEvent[row.event_id] = list
   }

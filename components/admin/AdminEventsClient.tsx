@@ -38,6 +38,8 @@ type FormFieldDef = {
   field_options: string[] | null
   is_required: boolean
   sort_order: number
+  section_title: string
+  section_sort_order: number
 }
 
 type Partner = {
@@ -69,6 +71,7 @@ const emptyForm = {
 
 const emptyField: FormFieldDef = {
   field_name: '', field_label: '', field_type: 'text', field_options: null, is_required: true, sort_order: 0,
+  section_title: 'Additional Information', section_sort_order: 0,
 }
 
 export default function AdminEventsClient({
@@ -164,16 +167,27 @@ export default function AdminEventsClient({
 
         // Save custom form fields (only for website/hybrid modes)
         if (form.rsvp_mode === 'website' || form.rsvp_mode === 'hybrid') {
+          // Compute section_sort_order based on order of unique sections
+          const sectionOrder: string[] = []
+          formFields.forEach((f) => {
+            const s = f.section_title?.trim() || 'Additional Information'
+            if (!sectionOrder.includes(s)) sectionOrder.push(s)
+          })
           const cleanFields = formFields
             .filter((f) => f.field_name.trim() && f.field_label.trim())
-            .map((f, i) => ({
-              field_name: f.field_name.trim().replace(/\s+/g, '_').toLowerCase(),
-              field_label: f.field_label.trim(),
-              field_type: f.field_type,
-              field_options: f.field_type === 'select' ? (f.field_options?.filter(Boolean) ?? undefined) : undefined,
-              is_required: f.is_required,
-              sort_order: i,
-            }))
+            .map((f, i) => {
+              const section = f.section_title?.trim() || 'Additional Information'
+              return {
+                field_name: f.field_name.trim().replace(/\s+/g, '_').toLowerCase(),
+                field_label: f.field_label.trim(),
+                field_type: f.field_type,
+                field_options: f.field_type === 'select' ? (f.field_options?.filter(Boolean) ?? undefined) : undefined,
+                is_required: f.is_required,
+                sort_order: i,
+                section_title: section,
+                section_sort_order: sectionOrder.indexOf(section),
+              }
+            })
           const fr = await saveEventFormFields(eventId, cleanFields)
           if (fr?.error) {
             showToast('error', `Event saved, but form fields failed: ${fr.error}`)
@@ -445,78 +459,174 @@ export default function AdminEventsClient({
                 <p className="text-xs text-slate-400 ml-6 mt-1">If enabled, only logged-in members can access the registration form.</p>
               </div>
 
-              {/* Custom form fields (website + hybrid modes) */}
+              {/* Custom form fields with sections (website + hybrid modes) */}
               {(form.rsvp_mode === 'website' || form.rsvp_mode === 'hybrid') && (
                 <div className="mt-5 p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <span className="text-sm font-semibold text-slate-700">Custom Registration Fields</span>
-                      <p className="text-xs text-slate-400">Add extra fields to collect on the registration form. Name, email, and phone are always included.</p>
+                      <span className="text-sm font-semibold text-slate-700">Registration Form Builder</span>
+                      <p className="text-xs text-slate-400">Organize fields into sections. Name, email, and phone are always included in the first section.</p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setFormFields((prev) => [...prev, { ...emptyField, sort_order: prev.length }])}
+                      onClick={() => {
+                        const sectionCount = new Set(formFields.map((f) => f.section_title || 'Additional Information')).size
+                        const sectionName = `Section ${sectionCount + 1}`
+                        setFormFields((prev) => [...prev, {
+                          ...emptyField,
+                          field_label: '',
+                          field_name: '',
+                          sort_order: prev.length,
+                          section_title: sectionName,
+                          section_sort_order: sectionCount,
+                        }])
+                      }}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add Field
+                      <Plus className="w-3.5 h-3.5" /> Add Section
                     </button>
                   </div>
 
                   {formFields.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic py-2">No custom fields. The form will collect name, email, and phone only.</p>
+                    <div className="text-center py-6">
+                      <p className="text-xs text-slate-400 italic mb-3">No custom fields yet. The form will collect name, email, and phone only.</p>
+                      <button
+                        type="button"
+                        onClick={() => setFormFields((prev) => [...prev, {
+                          ...emptyField,
+                          field_label: '',
+                          field_name: '',
+                          sort_order: 0,
+                          section_title: 'Additional Information',
+                          section_sort_order: 0,
+                        }])}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-300 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add First Section
+                      </button>
+                    </div>
                   ) : (
-                    <div className="space-y-2">
-                      {formFields.map((field, i) => (
-                        <div key={i} className="flex flex-wrap items-center gap-2 bg-white rounded-lg border border-slate-200 p-2.5">
-                          <GripVertical className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <input
-                            type="text"
-                            placeholder="Field label (e.g. T-shirt size)"
-                            value={field.field_label}
-                            onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, field_label: e.target.value, field_name: e.target.value.replace(/\s+/g, '_').toLowerCase() } : f))}
-                            className="input !py-1.5 !text-xs flex-1 min-w-[140px]"
-                          />
-                          <select
-                            value={field.field_type}
-                            onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, field_type: e.target.value as FormFieldDef['field_type'] } : f))}
-                            className="input !py-1.5 !text-xs w-28"
-                          >
-                            <option value="text">Text</option>
-                            <option value="email">Email</option>
-                            <option value="phone">Phone</option>
-                            <option value="number">Number</option>
-                            <option value="date">Date</option>
-                            <option value="textarea">Long text</option>
-                            <option value="select">Dropdown</option>
-                            <option value="checkbox">Checkbox</option>
-                          </select>
-                          {field.field_type === 'select' && (
-                            <input
-                              type="text"
-                              placeholder="Options (comma-separated)"
-                              value={(field.field_options ?? []).join(', ')}
-                              onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, field_options: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) } : f))}
-                              className="input !py-1.5 !text-xs flex-1 min-w-[120px]"
-                            />
-                          )}
-                          <label className="flex items-center gap-1 text-xs text-slate-600">
-                            <input
-                              type="checkbox"
-                              checked={field.is_required}
-                              onChange={(e) => setFormFields((prev) => prev.map((f, j) => j === i ? { ...f, is_required: e.target.checked } : f))}
-                              className="w-3.5 h-3.5 rounded border-slate-300 text-primary-600"
-                            />
-                            Req
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setFormFields((prev) => prev.filter((_, j) => j !== i))}
-                            className="text-red-400 hover:text-red-600 p-1"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                    <div className="space-y-3">
+                      {(() => {
+                        const sectionNames: string[] = []
+                        formFields.forEach((f) => {
+                          const s = f.section_title || 'Additional Information'
+                          if (!sectionNames.includes(s)) sectionNames.push(s)
+                        })
+                        return sectionNames.map((sectionName, sIdx) => {
+                          const sectionFields = formFields
+                            .map((f, i) => ({ f, i }))
+                            .filter(({ f }) => (f.section_title || 'Additional Information') === sectionName)
+                          return (
+                            <div key={sIdx} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                              <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100/70 border-b border-slate-200">
+                                <GripVertical className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                                <input
+                                  type="text"
+                                  value={sectionName}
+                                  onChange={(e) => {
+                                    const newName = e.target.value
+                                    setFormFields((prev) => prev.map((f) =>
+                                      (f.section_title || 'Additional Information') === sectionName
+                                        ? { ...f, section_title: newName }
+                                        : f
+                                    ))
+                                  }}
+                                  className="input !py-1 !text-sm font-semibold flex-1 !bg-transparent !border-transparent hover:!bg-white focus:!bg-white transition-colors"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormFields((prev) => [...prev, {
+                                      ...emptyField,
+                                      field_label: '',
+                                      field_name: '',
+                                      sort_order: prev.length,
+                                      section_title: sectionName,
+                                      section_sort_order: sIdx,
+                                    }])
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary-50 text-primary-700 text-xs font-semibold hover:bg-primary-100 transition-colors"
+                                >
+                                  <Plus className="w-3 h-3" /> Field
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormFields((prev) => prev.filter((f) =>
+                                      (f.section_title || 'Additional Information') !== sectionName
+                                    ))
+                                  }}
+                                  className="text-red-400 hover:text-red-600 p-1"
+                                  title="Remove section and all its fields"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="p-3 space-y-2">
+                                {sectionFields.length === 0 ? (
+                                  <p className="text-xs text-slate-400 italic py-1">No fields in this section yet.</p>
+                                ) : (
+                                  sectionFields.map(({ f, i }) => (
+                                    <div key={i} className="flex flex-wrap items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 p-2.5">
+                                      <input
+                                        type="text"
+                                        placeholder="Field label (e.g. T-shirt size)"
+                                        value={f.field_label}
+                                        onChange={(e) => setFormFields((prev) => prev.map((ff, j) => j === i ? {
+                                          ...ff,
+                                          field_label: e.target.value,
+                                          field_name: e.target.value.replace(/\s+/g, '_').toLowerCase(),
+                                        } : ff))}
+                                        className="input !py-1.5 !text-xs flex-1 min-w-[140px]"
+                                      />
+                                      <select
+                                        value={f.field_type}
+                                        onChange={(e) => setFormFields((prev) => prev.map((ff, j) => j === i ? { ...ff, field_type: e.target.value as FormFieldDef['field_type'] } : ff))}
+                                        className="input !py-1.5 !text-xs w-28"
+                                      >
+                                        <option value="text">Text</option>
+                                        <option value="email">Email</option>
+                                        <option value="phone">Phone</option>
+                                        <option value="number">Number</option>
+                                        <option value="date">Date</option>
+                                        <option value="textarea">Long text</option>
+                                        <option value="select">Dropdown</option>
+                                        <option value="checkbox">Checkbox</option>
+                                      </select>
+                                      {f.field_type === 'select' && (
+                                        <input
+                                          type="text"
+                                          placeholder="Options (comma-separated)"
+                                          value={(f.field_options ?? []).join(', ')}
+                                          onChange={(e) => setFormFields((prev) => prev.map((ff, j) => j === i ? { ...ff, field_options: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) } : ff))}
+                                          className="input !py-1.5 !text-xs flex-1 min-w-[120px]"
+                                        />
+                                      )}
+                                      <label className="flex items-center gap-1 text-xs text-slate-600">
+                                        <input
+                                          type="checkbox"
+                                          checked={f.is_required}
+                                          onChange={(e) => setFormFields((prev) => prev.map((ff, j) => j === i ? { ...ff, is_required: e.target.checked } : ff))}
+                                          className="w-3.5 h-3.5 rounded border-slate-300 text-primary-600"
+                                        />
+                                        Req
+                                      </label>
+                                      <button
+                                        type="button"
+                                        onClick={() => setFormFields((prev) => prev.filter((_, j) => j !== i))}
+                                        className="text-red-400 hover:text-red-600 p-1"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })
+                      })()}
                     </div>
                   )}
                 </div>

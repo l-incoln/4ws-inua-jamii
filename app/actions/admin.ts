@@ -421,9 +421,10 @@ export async function saveEventPartners(
 
 // ── Event Registration Form Fields ─────────────────────────
 // Replaces the full set of custom form fields for an event.
+// Each field can belong to a named section (section_title).
 export async function saveEventFormFields(
   eventId: string,
-  fields: { field_name: string; field_label: string; field_type: string; field_options?: string[]; is_required: boolean; sort_order: number }[],
+  fields: { field_name: string; field_label: string; field_type: string; field_options?: string[]; is_required: boolean; sort_order: number; section_title?: string; section_sort_order?: number }[],
 ) {
   const { supabase, user, error } = await requireAdmin()
   if (error || !supabase || !user) return { error }
@@ -443,6 +444,8 @@ export async function saveEventFormFields(
       field_options: f.field_options ?? null,
       is_required: f.is_required,
       sort_order: f.sort_order,
+      section_title: f.section_title?.trim() || 'Additional Information',
+      section_sort_order: f.section_sort_order ?? 0,
     }))
     const { error: insError } = await supabase
       .from('event_form_fields')

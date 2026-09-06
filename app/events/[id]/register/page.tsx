@@ -94,8 +94,9 @@ export default async function RegisterPage({ params }: Props) {
   try {
     const { data: ffData, error: ffErr } = await publicClient
       .from('event_form_fields')
-      .select('id, field_name, field_label, field_type, field_options, is_required, sort_order')
+      .select('id, field_name, field_label, field_type, field_options, is_required, sort_order, section_title, section_sort_order')
       .eq('event_id', id)
+      .order('section_sort_order', { ascending: true })
       .order('sort_order', { ascending: true })
     if (!ffErr && ffData) formFields = ffData
   } catch { /* table doesn't exist yet */ }
