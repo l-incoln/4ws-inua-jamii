@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import {
   Globe, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube, Linkedin,
   Wallet, BarChart3, Info, CheckCircle, AlertCircle, Edit2, Save,
@@ -155,6 +155,16 @@ export default function AdminSettingsClient({
   const [heroSlides, setHeroSlides] = useState<string[]>(
     (settings.hero_images || '').split(',').map((u: string) => u.trim()).filter(Boolean)
   )
+
+  // Sync heroSlides back into the settings state so the generic hidden
+  // input (rendered from `s` for all tabs) always carries the current
+  // slideshow list. Without this, formData.get('hero_images') returns
+  // the stale `s.hero_images` value on form submit, wiping the slideshow.
+  useEffect(() => {
+    setS((prev) =>
+      prev.hero_images === heroSlides.join(',') ? prev : { ...prev, hero_images: heroSlides.join(',') }
+    )
+  }, [heroSlides])
 
   // Gallery picker state (for volunteer section photos + story image)
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
@@ -891,9 +901,6 @@ export default function AdminSettingsClient({
                       Pick from Gallery
                     </button>
                   </div>
-
-                  {/* Hidden field to persist the list on save */}
-                  <input type="hidden" name="hero_images" value={heroSlides.join(',')} />
                 </div>
 
                 {/* Include upcoming events in the hero slideshow */}
