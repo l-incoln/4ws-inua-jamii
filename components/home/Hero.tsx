@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowRight, Play, ChevronDown, Users, Globe, Heart } from 'lucide-react'
+import { ArrowRight, Play, ChevronDown, Users, Globe, Heart, TrendingUp, Award } from 'lucide-react'
 
 type HeroSettings = {
   hero_title?:      string
@@ -14,13 +14,21 @@ type HeroSettings = {
   hero_image_url?:  string
 }
 
-const stats = [
-  { value: '5,000+', label: 'Beneficiaries', icon: Users },
-  { value: '12',     label: 'Active Programs', icon: Globe },
-  { value: '350+',   label: 'Volunteers', icon: Heart },
-]
+export type HeroStat = {
+  value: string
+  label: string
+  icon: 'users' | 'globe' | 'heart' | 'trending' | 'award'
+}
 
-export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
+const iconMap = { users: Users, globe: Globe, heart: Heart, trending: TrendingUp, award: Award }
+
+export default function Hero({
+  settings = {},
+  stats = [],
+}: {
+  settings?: HeroSettings
+  stats?: HeroStat[]
+}) {
   const badgeText  = settings.hero_badge_text || 'Transforming Communities Across Kenya'
   const heroTitle  = settings.hero_title || ''
   const subtitle   = settings.hero_subtitle  || '4W\u2019S Inua Jamii Foundation unites passionate individuals to uplift communities through health, education, economic empowerment, and environmental stewardship.'
@@ -167,27 +175,32 @@ export default function Hero({ settings = {} }: { settings?: HeroSettings }) {
             </Link>
           </motion.div>
 
-          {/* Floating stat cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-10 sm:mt-14 grid grid-cols-3 gap-2 sm:gap-4 max-w-2xl mx-auto"
-          >
-            {stats.map(({ value, label, icon: Icon }, i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
-                className="glass border border-white/10 rounded-2xl px-2 sm:px-4 py-4 sm:py-5 text-center group hover:bg-white/15 transition-colors duration-200"
-              >
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                <div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-none">{value}</div>
-                <div className="text-[10px] sm:text-[11px] text-primary-200 mt-1.5 uppercase tracking-widest leading-tight">{label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
+          {/* Floating stat cards — live from impact_metrics */}
+          {stats.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-10 sm:mt-14 grid grid-cols-3 gap-2 sm:gap-4 max-w-2xl mx-auto"
+            >
+              {stats.slice(0, 3).map(({ value, label, icon }, i) => {
+                const Icon = iconMap[icon] || Users
+                return (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
+                    className="glass border border-white/10 rounded-2xl px-2 sm:px-4 py-4 sm:py-5 text-center group hover:bg-white/15 transition-colors duration-200"
+                  >
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                    <div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-none">{value}</div>
+                    <div className="text-[10px] sm:text-[11px] text-primary-200 mt-1.5 uppercase tracking-widest leading-tight">{label}</div>
+                  </motion.div>
+                )
+              })}
+            </motion.div>
+          )}
         </div>
       </div>
 
