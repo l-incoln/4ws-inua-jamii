@@ -48,6 +48,7 @@ type Partner = {
   logo_url: string | null
   website_url: string | null
   is_active: boolean
+  partner_type?: 'organization' | 'event'
 }
 
 type PartnerLink = { partner_id: string; contribution: string | null }
@@ -638,8 +639,9 @@ export default function AdminEventsClient({
               <div className="sm:col-span-2">
                 <label className="label">Event Partners &amp; Sponsors (optional)</label>
                 <p className="text-xs text-slate-400 mb-3">
-                  Select partners to display on this event&apos;s detail page. Add an optional
-                  role/contribution label (e.g. &ldquo;Title Sponsor&rdquo;) for each. The section
+                  Select partners to display on this event&apos;s detail page and on the events
+                  listing. Add an optional role/contribution label (e.g. &ldquo;Title Sponsor&rdquo;)
+                  for each. Both organization and event-type partners can be linked. The section
                   only appears on the public page when enabled in Settings and at least one partner
                   is linked here.
                 </p>
@@ -670,6 +672,11 @@ export default function AdminEventsClient({
                           <span className="font-medium text-sm text-slate-700 truncate">
                             {p.name}
                           </span>
+                          {p.partner_type && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${p.partner_type === 'organization' ? 'bg-primary-100 text-primary-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {p.partner_type === 'organization' ? 'Org' : 'Event'}
+                            </span>
+                          )}
                           {!p.is_active && (
                             <span className="badge-gray text-[10px]">inactive</span>
                           )}

@@ -1878,10 +1878,21 @@ export async function savePartner(formData: FormData, partnerId?: string) {
   const website_url = (formData.get('website_url') as string)?.trim() || null
   const sort_order = parseInt(formData.get('sort_order') as string) || 0
   const is_active  = formData.get('is_active') !== 'false'
+  const partner_type = (formData.get('partner_type') as string)?.trim() || 'organization'
+  const valid_from  = (formData.get('valid_from') as string)?.trim() || null
+  const valid_until = (formData.get('valid_until') as string)?.trim() || null
 
   if (!name) return { error: 'Partner name is required' }
+  if (partner_type !== 'organization' && partner_type !== 'event') {
+    return { error: 'Partner type must be "organization" or "event".' }
+  }
 
-  const payload = { name, logo_url, website_url, sort_order, is_active }
+  const payload = {
+    name, logo_url, website_url, sort_order, is_active,
+    partner_type,
+    valid_from:  partner_type === 'organization' ? valid_from  : null,
+    valid_until: partner_type === 'organization' ? valid_until : null,
+  }
 
   if (partnerId) {
     const { error: dbError } = await supabase

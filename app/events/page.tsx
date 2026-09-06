@@ -4,6 +4,7 @@ import EventsGrid from '@/components/events/EventsGrid'
 import PageBackLink from '@/components/layout/PageBackLink'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { getEventPartnerSettings, getEventPartnersForEvents } from '@/lib/event-partners-settings'
 
 export const metadata: Metadata = {
   title: 'Events',
@@ -36,6 +37,15 @@ export default async function EventsPage() {
     }
   }
 
+  // Fetch event sponsors for the listing (bulk query)
+  const partnerSettings = await getEventPartnerSettings(supabase)
+  let eventSponsors: Record<string, { id: string; name: string; logo_url: string | null; website_url: string | null; contribution: string | null }[]> = {}
+  if (partnerSettings.showEventPartnersListing && events.length > 0) {
+    try {
+      eventSponsors = await getEventPartnersForEvents(supabase, events.map((e) => e.id))
+    } catch { /* table doesn't exist yet */ }
+  }
+
   const categories = Array.from(new Set(events.map((e) => e.category).filter(Boolean))) as string[]
 
   return (
@@ -60,7 +70,13 @@ export default async function EventsPage() {
         <section className="py-16 md:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <PageBackLink href="/" label="Back to Home" className="mb-6" />
-            <EventsGrid events={events} rsvpCounts={rsvpCounts} categories={categories} />
+            <EventsGrid
+              events={events}
+              rsvpCounts={rsvpCounts}
+              categories={categories}
+              eventSponsors={eventSponsors}
+              sponsorsLabel={partnerSettings.eventPartnersListingLabel}
+            />
           </div>
         </section>
       </main>

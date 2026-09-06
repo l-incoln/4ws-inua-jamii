@@ -28,13 +28,82 @@ interface EventItem {
   max_attendees?: number | null
 }
 
+type EventSponsor = {
+  id: string
+  name: string
+  logo_url: string | null
+  website_url: string | null
+  contribution: string | null
+}
+
 interface Props {
   events: EventItem[]
   rsvpCounts: Record<string, number>
   categories: string[]
+  eventSponsors?: Record<string, EventSponsor[]>
+  sponsorsLabel?: string
 }
 
-function EventCard({ event, attendees, showCompleted }: { event: EventItem; attendees: number; showCompleted?: boolean }) {
+function SponsorStrip({ sponsors, label }: { sponsors: EventSponsor[]; label: string }) {
+  if (sponsors.length === 0) return null
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-100">
+      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</div>
+      <div className="flex flex-wrap items-center gap-2">
+        {sponsors.map((s) => {
+          const inner = s.logo_url ? (
+            <div className="h-8 w-16 relative flex items-center justify-center rounded bg-white border border-slate-100 p-1">
+              <Image
+                src={s.logo_url}
+                alt={s.name}
+                fill
+                className="object-contain p-1"
+                unoptimized
+              />
+            </div>
+          ) : (
+            <span className="text-xs font-semibold text-slate-600 px-2 py-1 rounded bg-white border border-slate-100">
+              {s.name}
+            </span>
+          )
+          if (s.website_url) {
+            return (
+              <a
+                key={s.id}
+                href={s.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={s.contribution ? `${s.name} — ${s.contribution}` : s.name}
+                className="transition-transform hover:scale-105"
+              >
+                {inner}
+              </a>
+            )
+          }
+          return (
+            <div key={s.id} title={s.contribution ? `${s.name} — ${s.contribution}` : s.name}>
+              {inner}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function EventCard({
+  event,
+  attendees,
+  showCompleted,
+  sponsors,
+  sponsorsLabel,
+}: {
+  event: EventItem
+  attendees: number
+  showCompleted?: boolean
+  sponsors?: EventSponsor[]
+  sponsorsLabel?: string
+}) {
   const capacity = event.max_attendees ?? 0
   const pct = capacity > 0 ? Math.min((attendees / capacity) * 100, 100) : 0
   const timeStr = event.start_time
@@ -62,6 +131,9 @@ function EventCard({ event, attendees, showCompleted }: { event: EventItem; atte
             {new Date(event.event_date).toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
           {attendees > 0 && <div className="text-xs text-slate-400 mt-1">{attendees} attended</div>}
+          {sponsors && sponsors.length > 0 && (
+            <SponsorStrip sponsors={sponsors} label={sponsorsLabel || 'Sponsored by'} />
+          )}
         </div>
       </article>
     )
@@ -132,6 +204,10 @@ function EventCard({ event, attendees, showCompleted }: { event: EventItem; atte
           </div>
         )}
 
+        {sponsors && sponsors.length > 0 && (
+          <SponsorStrip sponsors={sponsors} label={sponsorsLabel || 'Sponsored by'} />
+        )}
+
         <div className="mt-5 flex items-center justify-between">
           <Link href={`/events/${event.id}`} className="text-sm font-semibold text-primary-600 flex items-center gap-1 hover:gap-2 transition-all">
             Details <ArrowRight className="w-3.5 h-3.5" />
@@ -145,7 +221,7 @@ function EventCard({ event, attendees, showCompleted }: { event: EventItem; atte
   )
 }
 
-export default function EventsGrid({ events, rsvpCounts, categories }: Props) {
+export default function EventsGrid({ events, rsvpCounts, categories, eventSponsors, sponsorsLabel }: Props) {
   const [activeCategory, setActiveCategory] = useState('All')
 
   const today = new Date().toISOString().split('T')[0]
@@ -206,7 +282,13 @@ export default function EventsGrid({ events, rsvpCounts, categories }: Props) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
           {filteredUpcoming.map((event) => (
-            <EventCard key={event.id} event={event} attendees={rsvpCounts[event.id] ?? 0} />
+            <EventCard
+              key={event.id}
+              event={event}
+              attendees={rsvpCounts[event.id] ?? 0}
+              sponsors={eventSponsors?.[event.id]}
+              sponsorsLabel={sponsorsLabel}
+            />
           ))}
         </div>
       )}
@@ -217,7 +299,14 @@ export default function EventsGrid({ events, rsvpCounts, categories }: Props) {
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Past Events</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCompleted.map((event) => (
-              <EventCard key={event.id} event={event} attendees={rsvpCounts[event.id] ?? 0} showCompleted />
+              <EventCard
+                key={event.id}
+                event={event}
+                attendees={rsvpCounts[event.id] ?? 0}
+                showCompleted
+                sponsors={eventSponsors?.[event.id]}
+                sponsorsLabel={sponsorsLabel}
+              />
             ))}
           </div>
         </div>

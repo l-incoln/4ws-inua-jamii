@@ -19,7 +19,7 @@ export default async function AdminEventsPage() {
     // All partners (active + inactive) so admins can link any of them.
     supabase
       .from('partners')
-      .select('id, name, logo_url, website_url, is_active')
+      .select('id, name, logo_url, website_url, is_active, partner_type')
       .order('name', { ascending: true }),
     // Existing event↔partner links, keyed by event id.
     supabase

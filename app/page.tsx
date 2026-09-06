@@ -113,12 +113,14 @@ export default async function HomePage() {
     minPriority,
   )
 
-  // Fetch active partners for homepage strip
-  const { data: partners } = showPartners
+  // Fetch active organization partners for homepage (event-only sponsors excluded)
+  const showOrgPartners = showPartners && allSettings.show_organization_partners !== 'false'
+  const { data: partners } = showOrgPartners
     ? await supabase
         .from('partners')
-        .select('id, name, logo_url, website_url')
+        .select('id, name, logo_url, website_url, description, valid_from, valid_until')
         .eq('is_active', true)
+        .eq('partner_type', 'organization')
         .order('sort_order', { ascending: true })
     : { data: [] }
 
@@ -189,10 +191,10 @@ export default async function HomePage() {
         {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} />}
         <GalleryPreview items={galleryItems ?? []} />
         <VolunteerPreview tasks={volunteerTasks ?? []} />
-        {showPartners && (partners ?? []).length > 0 && (
+        {showOrgPartners && (partners ?? []).length > 0 && (
           <PartnersSection
-            partners={(partners ?? []) as { id: string; name: string; logo_url: string | null; website_url: string | null }[]}
-            title={allSettings.partners_section_title || 'Our Partners & Supporters'}
+            partners={(partners ?? []) as { id: string; name: string; logo_url: string | null; website_url: string | null; description: string | null; valid_from: string | null; valid_until: string | null }[]}
+            title={allSettings.organization_partners_title || allSettings.partners_section_title || 'Our Partners & Sponsors'}
           />
         )}
         <NewsletterSignup />

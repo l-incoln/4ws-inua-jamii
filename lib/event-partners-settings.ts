@@ -11,13 +11,22 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 // `getEventPartnerSettings()` reader that site_settings keys resolve through.
 // ---------------------------------------------------------------------------
 
-const KEYS = ['show_event_partners', 'event_partners_title'] as const
+const KEYS = [
+  'show_event_partners',
+  'event_partners_title',
+  'show_event_partners_listing',
+  'event_partners_listing_label',
+] as const
 
 export interface EventPartnerSettings {
-  /** Master switch. Default off so the section is invisible until enabled. */
+  /** Master switch for event detail page partner strip. Default off. */
   showEventPartners: boolean
   /** Heading shown above the partner logos on the event detail page. */
   eventPartnersTitle: string
+  /** Master switch for event sponsors on the /events listing page. Default on. */
+  showEventPartnersListing: boolean
+  /** Label shown above sponsor logos on each event card in the listing. */
+  eventPartnersListingLabel: string
 }
 
 export async function getEventPartnerSettings(
@@ -35,6 +44,8 @@ export async function getEventPartnerSettings(
   return {
     showEventPartners: values.show_event_partners === 'true',
     eventPartnersTitle: values.event_partners_title?.trim() || 'Supported by',
+    showEventPartnersListing: values.show_event_partners_listing !== 'false',
+    eventPartnersListingLabel: values.event_partners_listing_label?.trim() || 'Sponsored by',
   }
 }
 
@@ -95,4 +106,60 @@ export async function getEventPartners(
       } as EventPartner
     })
     .filter((p): p is EventPartner => p !== null)
+}
+
+/**
+ * Bulk-fetch event partners for multiple events at once.
+ * Returns a map of event_id -> EventPartner[].
+ * Useful for the events listing page to avoid N+1 queries.
+ */
+export async function getEventPartnersForEvents(
+  supabase: SupabaseClient,
+  eventIds: string[],
+): Promise<Record<string, EventPartner[]>> {
+  if (eventIds.length === 0) return {}
+
+  const { data, error } = await supabase
+    .from('event_partners')
+    .select(
+      `
+      event_id,
+      contribution,
+      sort_order,
+      partner:partners (
+        id, name, logo_url, website_url, description, is_active
+      )
+    `,
+    )
+    .in('event_id', eventIds)
+    .order('sort_order', { ascending: true })
+
+  if (error || !data) return {}
+
+  const map: Record<string, EventPartner[]> = {}
+  for (const row of data) {
+    const partner = row.partner as unknown as
+      | {
+          id: string
+          name: string
+          logo_url: string | null
+          website_url: string | null
+          description: string | null
+          is_active: boolean
+        }
+      | null
+    if (!partner || !partner.is_active) continue
+    const eventId = row.event_id as string
+    if (!map[eventId]) map[eventId] = []
+    map[eventId].push({
+      id: partner.id,
+      name: partner.name,
+      logo_url: partner.logo_url,
+      website_url: partner.website_url,
+      description: partner.description,
+      contribution: row.contribution,
+    })
+  }
+
+  return map
 }

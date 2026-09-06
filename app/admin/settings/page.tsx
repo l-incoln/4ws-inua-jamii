@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
     supabase.from('leadership_team').select('id, name, role, bio, image_url, sort_order, is_active').order('sort_order'),
     supabase.from('gallery_items').select('id, image_url, title').not('image_url', 'is', null).order('created_at', { ascending: false }).limit(100),
     supabase.from('media_assets').select('id, url, title, file_name').eq('file_type', 'image').order('created_at', { ascending: false }).limit(200),
-    supabase.from('partners').select('id, name, logo_url, website_url, sort_order, is_active').order('sort_order'),
+    supabase.from('partners').select('id, name, logo_url, website_url, sort_order, is_active, partner_type, valid_from, valid_until').order('sort_order'),
     supabase.from('awareness_days').select('id, name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active').order('month', { ascending: true }).order('day', { ascending: true }),
   ])
 

@@ -41,6 +41,9 @@ type Partner = {
   website_url: string | null
   sort_order: number
   is_active: boolean
+  partner_type: 'organization' | 'event'
+  valid_from: string | null
+  valid_until: string | null
 }
 
 type AwarenessDay = {
@@ -171,7 +174,7 @@ export default function AdminSettingsClient({
   const [partnerList, setPartnerList] = useState<Partner[]>(partners)
   const [showPartnerForm, setShowPartnerForm] = useState(false)
   const [editPartnerId, setEditPartnerId] = useState<string | null>(null)
-  const [partnerForm, setPartnerForm] = useState({ name: '', logo_url: '', website_url: '', sort_order: '0', is_active: 'true' })
+  const [partnerForm, setPartnerForm] = useState({ name: '', logo_url: '', website_url: '', sort_order: '0', is_active: 'true', partner_type: 'organization', valid_from: '', valid_until: '' })
   const [partnerSaving, setPartnerSaving] = useState(false)
   const [partnerDeleteId, setPartnerDeleteId] = useState<string | null>(null)
 
@@ -1001,17 +1004,70 @@ export default function AdminSettingsClient({
         {/* ── Partners & Sponsors (inside form for show_partners_section toggle) ── */}
         {tab === 'Partners & Sponsors' && (
           <div className="space-y-4">
-            <Section icon={<Link2 />} title="Partners Section Settings">
+            <Section icon={<Link2 />} title="Organization Partners (Homepage & Site-wide)">
+              <p className="text-xs text-slate-500 -mt-1 mb-3">
+                Organization partners are long-term supporters of the foundation. They appear
+                prominently on the homepage and other site-wide zones. They can also be linked
+                to individual events, but their primary display is site-wide.
+              </p>
               <ToggleField
-                label="Show Partners Section on Homepage"
-                description="Displays logos of partner organisations and sponsors in a strip on the homepage."
-                value={s.show_partners_section !== 'false'}
-                onToggle={() => toggle('show_partners_section')}
-                name="show_partners_section"
+                label="Show Organization Partners on Homepage"
+                description="Displays organization partner logos in a prominent zone on the homepage."
+                value={s.show_organization_partners !== 'false' && s.show_partners_section !== 'false'}
+                onToggle={() => toggle('show_organization_partners')}
+                name="show_organization_partners"
               />
-              <Field label="Section Title">
-                <input name="partners_section_title" className="input" value={s.partners_section_title ?? ''} onChange={(e) => set('partners_section_title', e.target.value)} placeholder="Our Partners & Supporters" />
+              <Field label="Homepage Section Title">
+                <input name="organization_partners_title" className="input" value={s.organization_partners_title ?? ''} onChange={(e) => set('organization_partners_title', e.target.value)} placeholder="Our Partners & Sponsors" />
               </Field>
+            </Section>
+            <Section icon={<Calendar />} title="Event Sponsors (Per-event)">
+              <p className="text-xs text-slate-500 -mt-1 mb-3">
+                Event sponsors are partners tied to specific events only. They appear on the
+                event detail page and on the events listing page (visible without clicking
+                into details). They never appear on the homepage partner strip.
+              </p>
+              <ToggleField
+                label="Show Event Sponsors on Event Detail Pages"
+                description="When on, sponsors linked to an event appear at the bottom of that event's detail page."
+                value={s.show_event_partners === 'true'}
+                onToggle={() => toggle('show_event_partners')}
+                name="show_event_partners"
+              />
+              <Field label="Event Detail Heading">
+                <input
+                  name="event_partners_title"
+                  type="text"
+                  className="input"
+                  placeholder="Supported by"
+                  value={s.event_partners_title ?? 'Supported by'}
+                  onChange={(e) => set('event_partners_title', e.target.value)}
+                />
+                <p className="text-xs text-slate-400 mt-1">Small label shown above the sponsor logos on each event detail page.</p>
+              </Field>
+              <ToggleField
+                label="Show Event Sponsors on Events Listing Page"
+                description="When on, sponsor logos appear on each event card in the /events grid — visible without clicking into details."
+                value={s.show_event_partners_listing !== 'false'}
+                onToggle={() => toggle('show_event_partners_listing')}
+                name="show_event_partners_listing"
+              />
+              <Field label="Events Listing Label">
+                <input
+                  name="event_partners_listing_label"
+                  type="text"
+                  className="input"
+                  placeholder="Sponsored by"
+                  value={s.event_partners_listing_label ?? 'Sponsored by'}
+                  onChange={(e) => set('event_partners_listing_label', e.target.value)}
+                />
+                <p className="text-xs text-slate-400 mt-1">Small label shown above sponsor logos on each event card in the listing.</p>
+              </Field>
+              <p className="text-xs text-slate-400">
+                Tip: link sponsors to individual events from the <strong>Events</strong> admin —
+                open an event and use the &ldquo;Event Partners &amp; Sponsors&rdquo; picker.
+                Partners themselves are managed on this page below.
+              </p>
             </Section>
             <SaveBar isPending={isPending} />
           </div>
@@ -1086,33 +1142,6 @@ export default function AdminSettingsClient({
                   </div>
                   <p className="text-xs text-slate-400 mt-1">How many days in advance reminder emails are sent to confirmed attendees.</p>
                 </Field>
-              </div>
-            </Section>
-            <Section icon={<Calendar />} title="Event Partners & Sponsors">
-              <div className="space-y-4">
-                <ToggleField
-                  label="Show Event Partners on Detail Pages"
-                  description="When on, partners linked to an event (from the Events admin) appear at the bottom of that event's detail page. When off, the section is hidden everywhere even if partners are linked."
-                  value={s.show_event_partners === 'true'}
-                  onToggle={() => toggle('show_event_partners')}
-                  name="show_event_partners"
-                />
-                <Field label="Partners Section Heading">
-                  <input
-                    name="event_partners_title"
-                    type="text"
-                    className="input"
-                    placeholder="Supported by"
-                    value={s.event_partners_title ?? 'Supported by'}
-                    onChange={(e) => set('event_partners_title', e.target.value)}
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Small label shown above the partner logos on each event page.</p>
-                </Field>
-                <p className="text-xs text-slate-400">
-                  Tip: link partners to individual events from the <strong>Events</strong> admin —
-                  open an event and use the &ldquo;Event Partners &amp; Sponsors&rdquo; picker. Partners
-                  themselves are managed on this page under the <strong>Partners &amp; Sponsors</strong> tab.
-                </p>
               </div>
             </Section>
             <SaveBar isPending={isPending} />
@@ -1887,7 +1916,7 @@ export default function AdminSettingsClient({
               type="button"
               onClick={() => {
                 setEditPartnerId(null)
-                setPartnerForm({ name: '', logo_url: '', website_url: '', sort_order: String(partnerList.length), is_active: 'true' })
+                setPartnerForm({ name: '', logo_url: '', website_url: '', sort_order: String(partnerList.length), is_active: 'true', partner_type: 'organization', valid_from: '', valid_until: '' })
                 setShowPartnerForm(true)
               }}
               className="btn-primary text-xs flex items-center gap-1.5"
@@ -1895,7 +1924,11 @@ export default function AdminSettingsClient({
               <Plus className="w-3.5 h-3.5" /> Add Partner
             </button>
           </div>
-          <p className="text-sm text-slate-500">Add partners whose logos will be displayed on the homepage strip.</p>
+          <p className="text-sm text-slate-500">
+            Add and manage all partners here. <strong>Organization partners</strong> appear on the
+            homepage and site-wide zones. <strong>Event sponsors</strong> only appear on events
+            they are linked to. Use the type selector when adding a partner to choose.
+          </p>
 
           {showPartnerForm && (
             <div className="card p-5 border-2 border-primary-200 bg-primary-50/30 space-y-3">
@@ -1909,6 +1942,22 @@ export default function AdminSettingsClient({
                   <input className="input text-sm" value={partnerForm.name} onChange={(e) => setPartnerForm((p) => ({ ...p, name: e.target.value }))} placeholder="ACME Corp" />
                 </div>
                 <div>
+                  <label className="label text-xs">Partner Type *</label>
+                  <select
+                    className="input text-sm"
+                    value={partnerForm.partner_type}
+                    onChange={(e) => setPartnerForm((p) => ({ ...p, partner_type: e.target.value as 'organization' | 'event' }))}
+                  >
+                    <option value="organization">Organization Partner (homepage + site-wide)</option>
+                    <option value="event">Event Sponsor (tied to specific events only)</option>
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {partnerForm.partner_type === 'organization'
+                      ? 'Shows on the homepage partner zone and other site-wide areas. Can also be linked to events.'
+                      : 'Only visible on events it is linked to. Never appears on the homepage partner strip.'}
+                  </p>
+                </div>
+                <div>
                   <label className="label text-xs">Website URL</label>
                   <input className="input text-sm" type="url" value={partnerForm.website_url} onChange={(e) => setPartnerForm((p) => ({ ...p, website_url: e.target.value }))} placeholder="https://..." />
                 </div>
@@ -1916,13 +1965,29 @@ export default function AdminSettingsClient({
                   <label className="label text-xs">Logo URL</label>
                   <input className="input text-sm" value={partnerForm.logo_url} onChange={(e) => setPartnerForm((p) => ({ ...p, logo_url: e.target.value }))} placeholder="https://..." />
                 </div>
+                {partnerForm.partner_type === 'organization' && (
+                  <>
+                    <div>
+                      <label className="label text-xs">Valid From (optional)</label>
+                      <input type="date" className="input text-sm" value={partnerForm.valid_from} onChange={(e) => setPartnerForm((p) => ({ ...p, valid_from: e.target.value }))} />
+                      <p className="text-xs text-slate-400 mt-1">Start of partnership period. Leave blank for no start date.</p>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Valid Until (optional)</label>
+                      <input type="date" className="input text-sm" value={partnerForm.valid_until} onChange={(e) => setPartnerForm((p) => ({ ...p, valid_until: e.target.value }))} />
+                      <p className="text-xs text-slate-400 mt-1">End of partnership period. Leave blank for lifetime/ongoing.</p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="label text-xs">Display Order</label>
                   <input type="number" className="input text-sm" value={partnerForm.sort_order} onChange={(e) => setPartnerForm((p) => ({ ...p, sort_order: e.target.value }))} />
                 </div>
                 <div className="flex items-center gap-2 pt-5">
                   <input type="checkbox" id="partner_active" checked={partnerForm.is_active === 'true'} onChange={(e) => setPartnerForm((p) => ({ ...p, is_active: e.target.checked ? 'true' : 'false' }))} className="w-4 h-4 accent-primary-600" />
-                  <label htmlFor="partner_active" className="text-sm text-slate-700">Visible on homepage</label>
+                  <label htmlFor="partner_active" className="text-sm text-slate-700">
+                    {partnerForm.partner_type === 'organization' ? 'Active & visible' : 'Active & available to link'}
+                  </label>
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
@@ -1947,6 +2012,9 @@ export default function AdminSettingsClient({
                         website_url: partnerForm.website_url || null,
                         sort_order: parseInt(partnerForm.sort_order) || 0,
                         is_active: partnerForm.is_active === 'true',
+                        partner_type: partnerForm.partner_type as 'organization' | 'event',
+                        valid_from: partnerForm.partner_type === 'organization' ? (partnerForm.valid_from || null) : null,
+                        valid_until: partnerForm.partner_type === 'organization' ? (partnerForm.valid_until || null) : null,
                       }
                       if (!editPartnerId) {
                         setPartnerList((prev) => [...prev, newPartner])
@@ -1980,8 +2048,13 @@ export default function AdminSettingsClient({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm text-slate-900 truncate">{partner.name}</div>
-                  {partner.website_url && <div className="text-xs text-primary-600 truncate">{partner.website_url}</div>}
-                  {!partner.is_active && <span className="text-xs text-slate-400">(hidden)</span>}
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${partner.partner_type === 'organization' ? 'bg-primary-100 text-primary-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {partner.partner_type === 'organization' ? 'Organization' : 'Event'}
+                    </span>
+                    {!partner.is_active && <span className="text-xs text-slate-400">(hidden)</span>}
+                  </div>
+                  {partner.website_url && <div className="text-xs text-primary-600 truncate mt-0.5">{partner.website_url}</div>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <button
@@ -1994,6 +2067,9 @@ export default function AdminSettingsClient({
                         website_url: partner.website_url ?? '',
                         sort_order: String(partner.sort_order),
                         is_active: partner.is_active ? 'true' : 'false',
+                        partner_type: partner.partner_type ?? 'organization',
+                        valid_from: partner.valid_from ?? '',
+                        valid_until: partner.valid_until ?? '',
                       })
                       setShowPartnerForm(true)
                     }}
