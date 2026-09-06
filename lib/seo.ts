@@ -61,15 +61,20 @@ export interface SeoSettings {
  * / structured-data calls in the same render share one DB round trip.
  */
 export const fetchSeoSettings = cache(async (): Promise<SeoSettings> => {
-  const supabase = createPublicClient()
-  const { data } = await supabase
-    .from('site_settings')
-    .select('key, value')
-    .in('key', SEO_KEYS)
+  let map: Record<string, string> = {}
 
-  const map: Record<string, string> = {}
-  for (const row of data ?? []) {
-    if (row.value != null) map[row.key] = row.value
+  try {
+    const supabase = createPublicClient()
+    const { data } = await supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', SEO_KEYS)
+
+    for (const row of data ?? []) {
+      if (row.value != null) map[row.key] = row.value
+    }
+  } catch {
+    // DB unavailable (e.g. during build without env vars) — use defaults.
   }
 
   const get = (k: string) => map[k] || null

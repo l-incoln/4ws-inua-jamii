@@ -1,13 +1,25 @@
 import type { MetadataRoute } from 'next'
-import { fetchSeoSettings } from '@/lib/seo'
+import { fetchSeoSettings, DEFAULT_SITE_NAME, DEFAULT_DESCRIPTION } from '@/lib/seo'
+
+// Manifest pulls from the database at request time — never prerender at build.
+export const dynamic = 'force-dynamic'
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
-  const seo = await fetchSeoSettings()
+  let siteName = DEFAULT_SITE_NAME
+  let description = DEFAULT_DESCRIPTION
+
+  try {
+    const seo = await fetchSeoSettings()
+    siteName = seo.siteName
+    description = seo.metaDescription
+  } catch {
+    // DB unavailable (e.g. during build) — use defaults.
+  }
 
   return {
-    name: seo.siteName,
+    name: siteName,
     short_name: '4WS Inua Jamii',
-    description: seo.metaDescription,
+    description,
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
