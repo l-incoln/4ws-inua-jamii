@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic'
 export default async function HomePage() {
   const supabase = createPublicClient()
 
-  // Fetch site settings for hero and identity
+  // ── Phase 1: Fetch settings first (determines which queries to run) ──
   const { data: settingsRows } = await supabase
     .from('site_settings')
     .select('key, value')
@@ -39,36 +39,140 @@ export default async function HomePage() {
       'show_impact_stats', 'show_events_preview',
       'show_partners_section', 'partners_section_title',
       'show_awareness_banner', 'awareness_min_priority',
+      'show_organization_partners', 'organization_partners_title',
     ])
 
-  const allSettings    = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
-  const heroSettings   = allSettings
-  const showStats      = allSettings.show_impact_stats   !== 'false'
-  const showEventsPreview = allSettings.show_events_preview !== 'false'
-  const showPartners   = allSettings.show_partners_section !== 'false'
-  const showBanner     = allSettings.show_awareness_banner !== 'false'
-  const minPriority    = (allSettings.awareness_min_priority as 'high' | 'medium' | 'low') || 'medium'
+  const allSettings       = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
+  const heroSettings      = allSettings
+  const showStats         = allSettings.show_impact_stats      !== 'false'
+  const showEventsPreview = allSettings.show_events_preview    !== 'false'
+  const showPartners      = allSettings.show_partners_section  !== 'false'
+  const showBanner        = allSettings.show_awareness_banner  !== 'false'
+  const minPriority       = (allSettings.awareness_min_priority as 'high' | 'medium' | 'low') || 'medium'
   const heroIncludeEvents = allSettings.hero_include_events === 'true'
+  const showOrgPartners   = showPartners && allSettings.show_organization_partners !== 'false'
 
-  // Parse hero slideshow images (comma-separated URLs in site_settings)
   const heroImages: string[] = (allSettings.hero_images || '')
     .split(',')
     .map((u: string) => u.trim())
     .filter(Boolean)
 
-  // Fetch real upcoming events for the homepage preview
-  // (also used for hero slideshow event slides when enabled)
-  const { data: upcomingEvents } = await supabase
-    .from('events')
-    .select('id, title, description, location, event_date, start_time, image_url, category, max_attendees, status')
-    .in('status', ['upcoming', 'ongoing'])
-    .gte('event_date', new Date().toISOString().split('T')[0])
-    .order('event_date', { ascending: true })
-    .limit(4)
+  // ── Phase 2: Fetch all data in parallel ──
+  const today = new Date().toISOString().split('T')[0]
 
-  // Build event slides for the hero slideshow (only when setting is enabled)
+  const [
+    eventsResult,
+    impactResult,
+    programsResult,
+    awarenessResult,
+    partnersResult,
+    storiesResult,
+    campaignsResult,
+    galleryResult,
+    announcementsResult,
+    volunteerResult,
+    partnerSettingsResult,
+  ] = await Promise.all([
+    // Upcoming events (also used for hero slideshow + countdown)
+    supabase
+      .from('events')
+      .select('id, title, description, location, event_date, start_time, image_url, category, max_attendees, status')
+      .in('status', ['upcoming', 'ongoing'])
+      .gte('event_date', today)
+      .order('event_date', { ascending: true })
+      .limit(4),
+    // Impact metrics
+    supabase
+      .from('impact_metrics')
+      .select('id, label, value, unit, icon')
+      .order('sort_order', { ascending: true }),
+    // Program images
+    supabase
+      .from('programs')
+      .select('slug, image_url')
+      .not('image_url', 'is', null),
+    // Awareness days (only if banner is enabled)
+    showBanner
+      ? supabase
+          .from('awareness_days')
+          .select('id, name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active')
+          .eq('is_active', true)
+      : Promise.resolve({ data: [] as any[] }),
+    // Organization partners (only if enabled)
+    showOrgPartners
+      ? supabase
+          .from('partners')
+          .select('id, name, logo_url, website_url, description, valid_from, valid_until')
+          .eq('is_active', true)
+          .eq('partner_type', 'organization')
+          .order('sort_order', { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
+    // Success stories
+    supabase
+      .from('blog_posts')
+      .select('id, slug, title, excerpt, image_url, category, published_at, read_time')
+      .eq('status', 'published')
+      .in('category', ['Stories', 'Impact', 'Success Story'])
+      .order('published_at', { ascending: false })
+      .limit(3),
+    // Donation campaigns
+    supabase
+      .from('donation_campaigns')
+      .select('id, slug, title, description, goal, raised, image_url, deadline')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(3),
+    // Gallery items
+    supabase
+      .from('gallery_items')
+      .select('id, title, image_url, category, event_name')
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(8),
+    // Announcements
+    supabase
+      .from('announcements')
+      .select('id, title, body, is_pinned, created_at')
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(5),
+    // Volunteer tasks
+    supabase
+      .from('volunteer_tasks')
+      .select('id, title, description, skills_required, deadline, status')
+      .eq('status', 'open')
+      .order('deadline', { ascending: true, nullsFirst: false })
+      .limit(3),
+    // Event partner settings
+    getEventPartnerSettings(supabase),
+  ])
+
+  const upcomingEvents = eventsResult.data ?? []
+  const eventIds = upcomingEvents.map((e) => e.id)
+
+  // ── Phase 3: Dependent queries (need eventIds) ──
+  const [rsvpResult, eventSponsorsResult] = await Promise.all([
+    eventIds.length > 0
+      ? supabase
+          .from('rsvps')
+          .select('event_id')
+          .in('event_id', eventIds)
+          .eq('status', 'confirmed')
+      : Promise.resolve({ data: [] as any[] }),
+    partnerSettingsResult.showEventPartnersListing && eventIds.length > 0
+      ? getEventPartnersForEvents(supabase, eventIds).catch(() => ({} as Record<string, any[]>))
+      : Promise.resolve({} as Record<string, any[]>),
+  ])
+
+  // ── Build derived data ──
+  const rsvpCountMap: Record<string, number> = {}
+  for (const r of (rsvpResult.data ?? [])) {
+    rsvpCountMap[r.event_id] = (rsvpCountMap[r.event_id] ?? 0) + 1
+  }
+
   const heroEventSlides = heroIncludeEvents
-    ? (upcomingEvents ?? [])
+    ? upcomingEvents
         .filter((e) => e.image_url)
         .slice(0, 4)
         .map((e) => ({
@@ -80,132 +184,34 @@ export default async function HomePage() {
         }))
     : []
 
-  // Fetch RSVP counts for those events
-  const eventIds = (upcomingEvents ?? []).map((e) => e.id)
-  const { data: rsvpCounts } = eventIds.length > 0
-    ? await supabase
-        .from('rsvps')
-        .select('event_id')
-        .in('event_id', eventIds)
-        .eq('status', 'confirmed')
-    : { data: [] }
-
-  const rsvpCountMap: Record<string, number> = {}
-  for (const r of (rsvpCounts ?? [])) {
-    rsvpCountMap[r.event_id] = (rsvpCountMap[r.event_id] ?? 0) + 1
-  }
-
-  // Fetch event sponsors for the homepage event preview cards
-  const homepagePartnerSettings = await getEventPartnerSettings(supabase)
-  let homepageEventSponsors: Record<string, { id: string; name: string; logo_url: string | null; website_url: string | null; contribution: string | null }[]> = {}
-  if (homepagePartnerSettings.showEventPartnersListing && eventIds.length > 0) {
-    try {
-      homepageEventSponsors = await getEventPartnersForEvents(supabase, eventIds)
-    } catch { /* table doesn't exist yet */ }
-  }
-
-  // Fetch live impact metrics for ImpactStats + Hero floating cards
-  const { data: impactMetrics } = await supabase
-    .from('impact_metrics')
-    .select('id, label, value, unit, icon')
-    .order('sort_order', { ascending: true })
-
-  // Build hero stats from live impact_metrics (first 3)
-  const heroStats: HeroStat[] = (impactMetrics ?? []).slice(0, 3).map((m) => ({
+  const heroStats: HeroStat[] = (impactResult.data ?? []).slice(0, 3).map((m) => ({
     value: `${m.value}${m.unit || ''}`,
     label: m.label,
     icon: (m.icon as HeroStat['icon']) || 'users',
   }))
 
-  // Fetch program images from DB (override hardcoded fallbacks)
-  const { data: dbProgramImages } = await supabase
-    .from('programs')
-    .select('slug, image_url')
-    .not('image_url', 'is', null)
-
   const programDbImages: Record<string, string> = {}
-  for (const p of dbProgramImages ?? []) {
+  for (const p of (programsResult.data ?? [])) {
     if (p.slug && p.image_url) programDbImages[p.slug] = p.image_url
   }
 
-  // Fetch today's awareness days for homepage banner
-  const { data: allAwarenessDays } = showBanner
-    ? await supabase
-        .from('awareness_days')
-        .select('id, name, description, month, day, specific_date, category, priority, icon_emoji, theme_color, banner_message, link_url, link_label, is_active')
-        .eq('is_active', true)
-    : { data: [] }
   const todaysDays = filterByMinPriority(
-    getAwarenessDaysForDate(allAwarenessDays ?? [], new Date()),
+    getAwarenessDaysForDate(awarenessResult.data ?? [], new Date()),
     minPriority,
   )
 
-  // Fetch active organization partners for homepage (event-only sponsors excluded)
-  const showOrgPartners = showPartners && allSettings.show_organization_partners !== 'false'
-  const { data: partners } = showOrgPartners
-    ? await supabase
-        .from('partners')
-        .select('id, name, logo_url, website_url, description, valid_from, valid_until')
-        .eq('is_active', true)
-        .eq('partner_type', 'organization')
-        .order('sort_order', { ascending: true })
-    : { data: [] }
-
-  // Fetch latest success stories / impact posts
-  const { data: stories } = await supabase
-    .from('blog_posts')
-    .select('id, slug, title, excerpt, image_url, category, published_at, read_time')
-    .eq('status', 'published')
-    .in('category', ['Stories', 'Impact', 'Success Story'])
-    .order('published_at', { ascending: false })
-    .limit(3)
-
-  // Fetch active donation campaigns with progress
-  const { data: campaigns } = await supabase
-    .from('donation_campaigns')
-    .select('id, slug, title, description, goal, raised, image_url, deadline')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(3)
-
-  // Fetch recent gallery items
-  const { data: galleryItems } = await supabase
-    .from('gallery_items')
-    .select('id, title, image_url, category, event_name')
-    .eq('is_active', true)
-    .not('image_url', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(8)
-
-  // Fetch recent announcements (pinned first, then most recent)
-  const { data: announcements } = await supabase
-    .from('announcements')
-    .select('id, title, body, is_pinned, created_at')
-    .order('is_pinned', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(5)
-
-  // Fetch open volunteer tasks
-  const { data: volunteerTasks } = await supabase
-    .from('volunteer_tasks')
-    .select('id, title, description, skills_required, deadline, status')
-    .eq('status', 'open')
-    .order('deadline', { ascending: true, nullsFirst: false })
-    .limit(3)
-
-  // Next event for countdown (first upcoming)
-  const nextEvent = (upcomingEvents ?? [])[0] ?? null
+  const nextEvent = upcomingEvents[0] ?? null
 
   return (
     <>
       <Navbar />
       <main>
         <Hero settings={heroSettings} stats={heroStats} images={heroImages} eventSlides={heroEventSlides} />
-        <AnnouncementsTicker announcements={announcements ?? []} />
+        <AnnouncementsTicker announcements={announcementsResult.data ?? []} />
         {showBanner && <AwarenessBanner days={todaysDays} />}
-        {showStats && <ImpactStats metrics={impactMetrics ?? []} />}
+        {showStats && <ImpactStats metrics={impactResult.data ?? []} />}
         <ProgramsOverview dbImages={programDbImages} />
-        <SuccessStories stories={stories ?? []} />
+        <SuccessStories stories={storiesResult.data ?? []} />
         <EventCountdown event={nextEvent ? {
           id: nextEvent.id,
           title: nextEvent.title,
@@ -214,13 +220,13 @@ export default async function HomePage() {
           location: nextEvent.location,
           image_url: nextEvent.image_url,
         } : null} />
-        <DonationProgress campaigns={campaigns ?? []} />
-        {showEventsPreview && <EventsPreview events={upcomingEvents ?? []} rsvpCounts={rsvpCountMap} eventSponsors={homepageEventSponsors} sponsorsLabel={homepagePartnerSettings.eventPartnersListingLabel} />}
-        <GalleryPreview items={galleryItems ?? []} />
-        <VolunteerPreview tasks={volunteerTasks ?? []} />
-        {showOrgPartners && (partners ?? []).length > 0 && (
+        <DonationProgress campaigns={campaignsResult.data ?? []} />
+        {showEventsPreview && <EventsPreview events={upcomingEvents} rsvpCounts={rsvpCountMap} eventSponsors={eventSponsorsResult} sponsorsLabel={partnerSettingsResult.eventPartnersListingLabel} />}
+        <GalleryPreview items={galleryResult.data ?? []} />
+        <VolunteerPreview tasks={volunteerResult.data ?? []} />
+        {showOrgPartners && (partnersResult.data ?? []).length > 0 && (
           <PartnersSection
-            partners={(partners ?? []) as { id: string; name: string; logo_url: string | null; website_url: string | null; description: string | null; valid_from: string | null; valid_until: string | null }[]}
+            partners={(partnersResult.data ?? []) as { id: string; name: string; logo_url: string | null; website_url: string | null; description: string | null; valid_from: string | null; valid_until: string | null }[]}
             title={allSettings.organization_partners_title || allSettings.partners_section_title || 'Our Partners & Sponsors'}
           />
         )}

@@ -44,6 +44,11 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  reactStrictMode: true,
+  compiler: {
+    // Strip console.log in production (keeps console.error/warn)
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
   async headers() {
     return [
       {

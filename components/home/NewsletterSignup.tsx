@@ -4,9 +4,8 @@ import { Mail, Bell } from 'lucide-react'
 export default function NewsletterSignup() {
   return (
     <section className="py-16 md:py-20 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 relative overflow-hidden">
-      {/* Decorative orbs */}
-      <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-[120px] opacity-20" style={{ background: 'radial-gradient(circle, #4FA3D1 0%, transparent 70%)' }} />
-      <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full blur-[100px] opacity-15" style={{ background: 'radial-gradient(circle, #F59E0B 0%, transparent 70%)' }} />
+      {/* Decorative orb — single, smaller for performance */}
+      <div className="hidden sm:block absolute top-0 right-0 w-72 h-72 rounded-full blur-[80px] opacity-15" style={{ background: 'radial-gradient(circle, #4FA3D1 0%, transparent 70%)' }} />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <div className="inline-flex items-center gap-2.5 glass border border-white/20 rounded-full px-5 py-2.5 text-sm text-white/90 mb-6">

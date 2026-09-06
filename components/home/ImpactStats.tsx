@@ -68,15 +68,10 @@ export default function ImpactStats({ metrics = [] }: { metrics?: Metric[] }) {
       {/* Dark gradient background */}
       <div className="absolute inset-0 bg-cta-gradient" />
 
-      {/* Background orbs — hidden on mobile for performance */}
+      {/* Background orb — single, smaller for performance */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="hidden sm:block absolute top-0 left-1/4 w-96 h-96 rounded-full blur-[120px] opacity-20"
+        <div className="hidden sm:block absolute top-0 left-1/4 w-72 h-72 rounded-full blur-[80px] opacity-15"
           style={{ background: 'radial-gradient(circle, #4FA3D1, transparent 70%)' }} />
-        <div className="hidden sm:block absolute bottom-0 right-1/4 w-80 h-80 rounded-full blur-[100px] opacity-15"
-          style={{ background: 'radial-gradient(circle, #6DBE45, transparent 70%)' }} />
-        {/* Dot grid */}
-        <div className="absolute inset-0 opacity-[0.05]"
-          style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)', backgroundSize: '36px 36px' }} />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

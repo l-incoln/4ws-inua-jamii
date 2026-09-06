@@ -54,13 +54,19 @@ export default function Navbar({
   const supabase = createClient()
 
   useEffect(() => {
+    let ticking = false
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-      const el = document.documentElement
-      const pct = (window.scrollY / (el.scrollHeight - el.clientHeight)) * 100
-      setScrollPct(Math.min(100, Math.max(0, pct)))
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 20)
+        const el = document.documentElement
+        const pct = (window.scrollY / (el.scrollHeight - el.clientHeight)) * 100
+        setScrollPct(Math.min(100, Math.max(0, pct)))
+        ticking = false
+      })
     }
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -72,20 +78,9 @@ export default function Navbar({
     return () => subscription.unsubscribe()
   }, [supabase.auth])
 
-  // Fetch site identity from settings
-  useEffect(() => {
-    supabase
-      .from('site_settings')
-      .select('key, value')
-      .in('key', ['logo_url', 'site_name', 'logo_size'])
-      .then(({ data }) => {
-        const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value ?? '']))
-        if (map.logo_url) setLogoUrl(map.logo_url)
-        if (map.site_name) setSiteName(map.site_name)
-        if (map.logo_size) setLogoSize(parseInt(map.logo_size) || 52)
-      })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Site identity (logo, name, size) is pre-fetched by the server
+  // wrapper (NavbarWrapper.tsx) and passed as initial props — no need
+  // to re-fetch on the client.
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
