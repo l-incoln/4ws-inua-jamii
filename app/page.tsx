@@ -92,11 +92,13 @@ export default async function HomePage() {
       .from('impact_metrics')
       .select('id, label, value, unit, icon')
       .order('sort_order', { ascending: true }),
-    // Program images
+    // Programs (full data for homepage preview)
     supabase
       .from('programs')
-      .select('slug, image_url')
-      .not('image_url', 'is', null),
+      .select('id, slug, title, description, icon, image_url, beneficiaries')
+      .eq('is_active', true)
+      .order('created_at', { ascending: true })
+      .limit(8),
     // Awareness days (only if banner is enabled)
     showBanner
       ? supabase
@@ -196,11 +198,6 @@ export default async function HomePage() {
     icon: (m.icon as HeroStat['icon']) || 'users',
   }))
 
-  const programDbImages: Record<string, string> = {}
-  for (const p of (programsResult.data ?? [])) {
-    if (p.slug && p.image_url) programDbImages[p.slug] = p.image_url
-  }
-
   const todaysDays = filterByMinPriority(
     getAwarenessDaysForDate(awarenessResult.data ?? [], new Date()),
     minPriority,
@@ -218,7 +215,7 @@ export default async function HomePage() {
         <AnnouncementsTicker announcements={announcementsResult.data ?? []} />
         {showBanner && <AwarenessBanner days={todaysDays} />}
         {showStats && <ImpactStats metrics={impactResult.data ?? []} />}
-        <ProgramsOverview dbImages={programDbImages} />
+        <ProgramsOverview programs={(programsResult.data ?? []) as any} />
         <SuccessStories stories={storiesResult.data ?? []} />
         <EventCountdown event={nextEvent ? {
           id: nextEvent.id,
