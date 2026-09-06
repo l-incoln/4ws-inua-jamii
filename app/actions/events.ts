@@ -50,7 +50,7 @@ export async function rsvpForEvent(eventId: string): Promise<{ error?: string; s
   // Notify admins about the new event registration
   try {
     const [{ data: event }, { data: profile }, settings] = await Promise.all([
-      supabase.from('events').select('title, start_date').eq('id', eventId).single(),
+      supabase.from('events').select('title, event_date').eq('id', eventId).single(),
       supabase.from('profiles').select('full_name').eq('id', user.id).single(),
       getEmailSettings(supabase),
     ])
@@ -67,7 +67,7 @@ export async function rsvpForEvent(eventId: string): Promise<{ error?: string; s
           type: 'New Event Registration',
           name: profile?.full_name ?? 'Member',
           eventTitle: event.title,
-          date: event.start_date ? new Date(event.start_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD',
+          date: event.event_date ? new Date(event.event_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD',
           eventId,
         }),
       }).catch(() => {})
@@ -190,9 +190,9 @@ export async function sendEventReminders() {
 
   const { data: events } = await supabase
     .from('events')
-    .select('id, title, start_date, location')
-    .gte('start_date', todayStr)
-    .lte('start_date', targetDateStr)
+    .select('id, title, event_date, location')
+    .gte('event_date', todayStr)
+    .lte('event_date', targetDateStr)
     .neq('status', 'cancelled')
 
   if (!events || events.length === 0) return { sent: 0 }
@@ -238,7 +238,7 @@ export async function sendEventReminders() {
         user_id: profile.id,
         type: 'general',
         title: `Event reminder: ${event.title}`,
-        body: `This is a reminder that "${event.title}" is coming up on ${new Date(event.start_date).toLocaleDateString('en-KE', { weekday: 'long', month: 'long', day: 'numeric' })}.${event.location ? ` Location: ${event.location}.` : ''} event_reminder:${event.id}`,
+        body: `This is a reminder that "${event.title}" is coming up on ${new Date(event.event_date).toLocaleDateString('en-KE', { weekday: 'long', month: 'long', day: 'numeric' })}.${event.location ? ` Location: ${event.location}.` : ''} event_reminder:${event.id}`,
         link: `/events/${event.id}`,
       })
 
@@ -252,7 +252,7 @@ export async function sendEventReminders() {
           html: eventReminderHtml(
             profile.full_name ?? 'Member',
             event.title,
-            new Date(event.start_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            new Date(event.event_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
             event.location ?? null,
             event.id
           ),

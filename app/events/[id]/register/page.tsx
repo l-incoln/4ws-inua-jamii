@@ -12,13 +12,24 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 
-async function getEvent(id: string) {
+async function getEvent(id: string): Promise<any> {
   const supabase = createPublicClient()
-  const { data } = await supabase
+  // Try with new registration columns; fall back if migration not applied
+  const { data, error } = await supabase
     .from('events')
     .select('id, title, description, location, event_date, start_time, end_time, image_url, category, max_attendees, status, rsvp_mode, external_rsvp_url, external_rsvp_label, rsvp_deadline, requires_login')
     .eq('id', id)
     .maybeSingle()
+
+  if (error && error.message?.includes('column')) {
+    const { data: fallback } = await supabase
+      .from('events')
+      .select('id, title, description, location, event_date, start_time, end_time, image_url, category, max_attendees, status')
+      .eq('id', id)
+      .maybeSingle()
+    return fallback
+  }
+
   return data
 }
 
@@ -88,13 +99,17 @@ export default async function RegisterPage({ params }: Props) {
   // Check deadline
   const deadlinePassed = event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date()
 
-  // Fetch custom form fields
+  // Fetch custom form fields (table may not exist if migration not applied)
   const publicClient = createPublicClient()
-  const { data: formFields } = await publicClient
-    .from('event_form_fields')
-    .select('id, field_name, field_label, field_type, field_options, is_required, sort_order')
-    .eq('event_id', id)
-    .order('sort_order', { ascending: true })
+  let formFields: any[] = []
+  try {
+    const { data: ffData, error: ffErr } = await publicClient
+      .from('event_form_fields')
+      .select('id, field_name, field_label, field_type, field_options, is_required, sort_order')
+      .eq('event_id', id)
+      .order('sort_order', { ascending: true })
+    if (!ffErr && ffData) formFields = ffData
+  } catch { /* table doesn't exist yet */ }
 
   // Check if user is logged in (for prefill + login requirement)
   const serverSupabase = await createClient()
@@ -111,12 +126,16 @@ export default async function RegisterPage({ params }: Props) {
     prefillEmail = profile?.email || user.email || ''
   }
 
-  // Count current registrations
-  const { count: regCount } = await publicClient
-    .from('event_registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', id)
-    .neq('status', 'cancelled')
+  // Count current registrations (table may not exist yet)
+  let regCount: number | null = 0
+  try {
+    const { count, error: rcErr } = await publicClient
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', id)
+      .neq('status', 'cancelled')
+    if (!rcErr) regCount = count
+  } catch { /* table doesn't exist yet */ }
 
   const isFull = event.max_attendees && event.max_attendees > 0 && (regCount ?? 0) >= event.max_attendees
 

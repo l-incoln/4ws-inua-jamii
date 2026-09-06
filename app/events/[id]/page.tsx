@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import RsvpButton from '@/components/events/RsvpButton'
@@ -15,13 +16,26 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 
-async function getEvent(id: string) {
+async function getEvent(id: string): Promise<any> {
   const supabase = createPublicClient()
-  const { data } = await supabase
+  // Try with new registration columns first; fall back to base columns
+  // if the phase16 migration hasn't been applied yet.
+  const { data, error } = await supabase
     .from('events')
     .select('id, title, description, location, address, event_date, start_time, end_time, image_url, category, max_attendees, status, rsvp_mode, external_rsvp_url, external_rsvp_label, rsvp_deadline, requires_login')
     .eq('id', id)
     .maybeSingle()
+
+  if (error && error.message?.includes('column')) {
+    // New columns don't exist yet — query without them
+    const { data: fallback } = await supabase
+      .from('events')
+      .select('id, title, description, location, address, event_date, start_time, end_time, image_url, category, max_attendees, status')
+      .eq('id', id)
+      .maybeSingle()
+    return fallback
+  }
+
   return data
 }
 
@@ -73,13 +87,18 @@ export default async function EventDetailPage({ params }: Props) {
     .maybeSingle()
   const rsvpEnabled = rsvpSetting?.value !== 'false'
 
-  // Registration count from event_registrations table
-  const publicClient2 = createPublicClient()
-  const { count: regCount } = await publicClient2
-    .from('event_registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', id)
-    .neq('status', 'cancelled')
+  // Registration count from event_registrations table (may not exist
+  // if phase16 migration hasn't been applied — fail gracefully).
+  let regCount: number | null = 0
+  try {
+    const publicClient2 = createPublicClient()
+    const { count, error: regErr } = await publicClient2
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', id)
+      .neq('status', 'cancelled')
+    if (!regErr) regCount = count
+  } catch { /* table doesn't exist yet */ }
 
   // Use the higher of rsvps and event_registrations counts
   const totalAttendees = Math.max(attendees, regCount ?? 0)
@@ -89,10 +108,9 @@ export default async function EventDetailPage({ params }: Props) {
   const rsvpMode = event.rsvp_mode || 'website'
 
   // Build the registration URL (absolute for QR code)
-  const headersList = await import('next/headers')
-  const headers = await headersList.headers()
-  const host = headers.get('host') || '4wsinuajamii.org'
-  const protocol = headers.get('x-forwarded-proto') || 'https'
+  const headerList = await headers()
+  const host = headerList.get('host') || '4wsinuajamii.org'
+  const protocol = headerList.get('x-forwarded-proto') || 'https'
   const registrationUrl = `${protocol}://${host}/events/${id}/register`
 
   // Optional event partners (only fetched/shown when the feature is enabled).
