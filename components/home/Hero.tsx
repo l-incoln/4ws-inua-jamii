@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -44,11 +44,11 @@ export default function Hero({
 
   // Build the slideshow list: multiple images take priority, fall back to
   // the single hero_image_url, then empty (gradient-only).
-  const slideshowImages = images.length > 0
-    ? images
-    : singleImage
-      ? [singleImage]
-      : []
+  const slideshowImages = useMemo(() => {
+    if (images.length > 0) return images
+    if (singleImage) return [singleImage]
+    return []
+  }, [images, singleImage])
 
   const [currentSlide, setCurrentSlide] = useState(0)
 
@@ -58,7 +58,7 @@ export default function Hero({
       setCurrentSlide((prev) => (prev + 1) % slideshowImages.length)
     }, SLIDESHOW_INTERVAL)
     return () => clearInterval(interval)
-  }, [slideshowImages.length])
+  }, [slideshowImages])
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden noise-overlay">
@@ -68,52 +68,66 @@ export default function Hero({
       {/* Slideshow background images with smooth crossfade + Ken Burns zoom */}
       {slideshowImages.length > 0 && (
         <div className="absolute inset-0">
-          {slideshowImages.map((img, i) => (
-            <div
-              key={img}
-              className="absolute inset-0 transition-opacity ease-in-out will-change-[opacity]"
-              style={{
-                opacity: i === currentSlide ? 1 : 0,
-                transitionDuration: '1200ms',
-              }}
-            >
+          {slideshowImages.map((img, i) => {
+            const isActive = i === currentSlide
+            return (
               <div
-                className="absolute inset-0 transition-transform ease-out"
+                key={img}
+                className="absolute inset-0"
                 style={{
-                  transform: i === currentSlide ? 'scale(1.08)' : 'scale(1)',
-                  transitionDuration: `${SLIDESHOW_INTERVAL + 1200}ms`,
+                  opacity: isActive ? 1 : 0,
+                  transition: 'opacity 1200ms ease-in-out',
+                  willChange: 'opacity',
+                  pointerEvents: isActive ? 'auto' : 'none',
                 }}
               >
-                <Image
-                  src={img}
-                  alt="Hero background"
-                  fill
-                  className="object-cover object-[center_25%]"
-                  priority={i === 0}
-                  unoptimized
-                />
+                <div
+                  className="absolute inset-0 overflow-hidden"
+                  style={{
+                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                    transition: `transform ${SLIDESHOW_INTERVAL + 1200}ms ease-out`,
+                    willChange: 'transform',
+                  }}
+                >
+                  <Image
+                    src={img}
+                    alt="Hero background"
+                    fill
+                    className="object-cover object-[center_25%]"
+                    priority={i === 0}
+                    unoptimized
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
           {/* Dark overlay to keep text readable over photos */}
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 via-slate-900/30 to-slate-900/70" />
         </div>
       )}
 
-      {/* Slideshow indicators */}
+      {/* Slideshow indicators with progress bar */}
       {slideshowImages.length > 1 && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
           {slideshowImages.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === currentSlide
-                  ? 'w-8 bg-white/90'
-                  : 'w-2 bg-white/30 hover:bg-white/50'
-              }`}
+              className="group relative h-2 rounded-full overflow-hidden bg-white/20"
+              style={{ width: i === currentSlide ? '40px' : '12px', transition: 'width 400ms ease' }}
               aria-label={`Slide ${i + 1}`}
-            />
+            >
+              {i === currentSlide && (
+                <div
+                  key={currentSlide}
+                  className="absolute inset-0 bg-white rounded-full origin-left"
+                  style={{
+                    transformOrigin: 'left center',
+                    animation: `hero-progress ${SLIDESHOW_INTERVAL}ms linear forwards`,
+                  }}
+                />
+              )}
+            </button>
           ))}
         </div>
       )}

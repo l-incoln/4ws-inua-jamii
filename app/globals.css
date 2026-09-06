@@ -386,6 +386,12 @@
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-8px); }
 }
+
+/* ── Hero slideshow progress bar ─────────────────────────── */
+@keyframes hero-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
 .animate-bounce-gentle { animation: bounceGentle 2.2s ease-in-out infinite; }
 
 /* ── Scroll reveal ───────────────────────────────────────── */

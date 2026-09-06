@@ -811,7 +811,7 @@ export default function AdminSettingsClient({
                 <div className="space-y-3">
                   <label className="label">Hero Background Slideshow</label>
                   <p className="text-xs text-slate-500">
-                    Upload multiple images to create a rotating slideshow in the hero. They crossfade every 6 seconds.
+                    Upload multiple images to create a rotating slideshow in the hero. They crossfade every 5 seconds with a smooth zoom effect.
                     {heroSlides.length === 0 && ' If empty, falls back to the single hero image below, or the animated gradient.'}
                   </p>
 
