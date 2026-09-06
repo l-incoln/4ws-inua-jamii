@@ -3,6 +3,7 @@ import { Inter, Sora } from 'next/font/google'
 import './globals.css'
 import AnalyticsInjector from '@/components/layout/AnalyticsInjector'
 import CookieConsentBanner from '@/components/layout/CookieConsentBanner'
+import { buildRootMetadata } from '@/lib/seo'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -24,36 +25,8 @@ export const dynamic = 'force-dynamic'
 
 export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }
 
-export const metadata: Metadata = {
-  title: {
-    default: '4W\'S Inua Jamii Foundation',
-    template: '%s | 4W\'S Inua Jamii Foundation',
-  },
-  description:
-    'Empowering communities through unity, service, and sustainable impact. Join us in building a better tomorrow across Kenya.',
-  keywords: ['foundation', 'community', 'Kenya', 'social impact', 'charity', 'empowerment'],
-  authors: [{ name: '4W\'S Inua Jamii Foundation' }],
-  icons: {
-    icon: [
-      { url: '/icon', sizes: '32x32', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-icon', sizes: '180x180', type: 'image/png' },
-    ],
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'en_KE',
-    url: 'https://4wsinuajamii.org',
-    siteName: '4W\'S Inua Jamii Foundation',
-    title: '4W\'S Inua Jamii Foundation',
-    description: 'Empowering communities through unity, service, and sustainable impact.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: '4W\'S Inua Jamii Foundation',
-    description: 'Empowering communities through unity, service, and sustainable impact.',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  return buildRootMetadata()
 }
 
 export default function RootLayout({

@@ -6,6 +6,8 @@ import { Calendar, Clock, ArrowLeft, Tag } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
+import { buildPageMetadata, SITE_URL } from '@/lib/seo'
+import JsonLd from '@/components/seo/JsonLd'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import BlogComments from '@/components/blog/BlogComments'
@@ -29,7 +31,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const post = await getPost(slug)
   if (!post) return { title: 'Post Not Found' }
-  return { title: post.title, description: post.excerpt }
+  const authorName = (post.profiles as any)?.full_name
+  return buildPageMetadata({
+    title: post.title,
+    description: post.excerpt ?? post.title,
+    path: `/blog/${slug}`,
+    image: post.image_url ?? undefined,
+    type: 'article',
+    publishedTime: post.published_at,
+    authors: authorName ? [authorName] : undefined,
+  })
 }
 
 export default async function BlogPostPage({ params }: Props) {
@@ -63,6 +74,26 @@ export default async function BlogPostPage({ params }: Props) {
 
   return (
     <>
+      <JsonLd
+        type="article"
+        data={{
+          headline: post.title,
+          image: post.image_url ?? undefined,
+          datePublished: post.published_at,
+          author: author?.full_name,
+          url: `${SITE_URL}/blog/${slug}`,
+        }}
+      />
+      <JsonLd
+        type="breadcrumb"
+        data={{
+          items: [
+            { name: 'Home', url: SITE_URL },
+            { name: 'Blog', url: `${SITE_URL}/blog` },
+            { name: post.title, url: `${SITE_URL}/blog/${slug}` },
+          ],
+        }}
+      />
       <Navbar />
       <div className="min-h-screen bg-white">
       {/* Hero */}

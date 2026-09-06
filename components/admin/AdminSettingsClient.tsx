@@ -6,7 +6,7 @@ import {
   Wallet, BarChart3, Info, CheckCircle, AlertCircle, Edit2, Save,
   Search, Users, Bell, Home, Calendar, CalendarDays, Scale, CreditCard,
   Upload, ImageIcon, Loader2, Plus, Trash2, X, Link2, Heart,
-  Trophy, Star, CalendarCheck, TrendingUp,
+  Trophy, Star, CalendarCheck, TrendingUp, ShieldCheck,
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -618,6 +618,21 @@ export default function AdminSettingsClient({
                 <input name="og_image_url" type="url" className="input" value={s.og_image_url ?? ''} onChange={(e) => set('og_image_url', e.target.value)} placeholder="https://…/og-image.jpg" />
                 <p className="text-xs text-slate-400 mt-1">Shown when pages are shared on social media. Recommended: 1200×630px.</p>
               </Field>
+            </Section>
+            <Section icon={<ShieldCheck />} title="Search Engine Verification">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Google Search Console Verification">
+                  <input name="google_site_verification" className="input font-mono text-sm" value={s.google_site_verification ?? ''} onChange={(e) => set('google_site_verification', e.target.value)} placeholder="e.g. abc123def456…" />
+                  <p className="text-xs text-slate-400 mt-1">Paste the content value from Google Search Console &gt; Settings &gt; Ownership verification &gt; HTML tag.</p>
+                </Field>
+                <Field label="Bing Webmaster Verification">
+                  <input name="bing_site_verification" className="input font-mono text-sm" value={s.bing_site_verification ?? ''} onChange={(e) => set('bing_site_verification', e.target.value)} placeholder="e.g. abc123def456…" />
+                  <p className="text-xs text-slate-400 mt-1">Paste the content value from Bing Webmaster Tools &gt; Settings &gt; Verification.</p>
+                </Field>
+              </div>
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700">
+                Verification codes are injected as meta tags automatically. The sitemap is available at <code className="font-mono">/sitemap.xml</code> and robots at <code className="font-mono">/robots.txt</code>.
+              </div>
             </Section>
             <Section icon={<BarChart3 />} title="Analytics & Tracking">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

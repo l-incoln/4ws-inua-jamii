@@ -3,13 +3,17 @@ import Footer from '@/components/layout/Footer'
 import BlogGrid from '@/components/blog/BlogGrid'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 import { Heart, Sparkles } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = {
-  title: 'Success & Impact Stories | 4W\'S Inua Jamii Foundation',
-  description: 'Real stories of lives transformed through our programs — success stories and impact stories from the communities we serve.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Success & Impact Stories',
+    description: 'Real stories of lives transformed through our programs — success stories and impact stories from the communities we serve across Kenya.',
+    path: '/stories',
+  })
 }
 
 const STORY_CATEGORIES = ['Stories', 'Impact', 'Success Story']

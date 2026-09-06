@@ -8,6 +8,8 @@ import ShareRegistration from '@/components/events/ShareRegistration'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
 import { getEventPartnerSettings, getEventPartners } from '@/lib/event-partners-settings'
+import { buildPageMetadata, SITE_URL } from '@/lib/seo'
+import JsonLd from '@/components/seo/JsonLd'
 import { Calendar, MapPin, Users, Clock, ArrowLeft, ExternalLink } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -31,7 +33,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const event = await getEvent(id)
   if (!event) return { title: 'Event Not Found' }
-  return { title: event.title, description: event.description }
+  return buildPageMetadata({
+    title: event.title,
+    description: event.description ?? `Join us for ${event.title} on ${event.event_date ?? 'the scheduled date'}${event.location ? ` at ${event.location}` : ''}.`,
+    path: `/events/${id}`,
+    image: event.image_url ?? undefined,
+  })
 }
 
 export default async function EventDetailPage({ params }: Props) {
@@ -86,6 +93,28 @@ export default async function EventDetailPage({ params }: Props) {
 
   return (
     <>
+      <JsonLd
+        type="event"
+        data={{
+          name: event.title,
+          startDate: event.event_date ? new Date(event.event_date).toISOString() : '',
+          endDate: event.end_time ? `${event.event_date}T${event.end_time}` : undefined,
+          location: event.location,
+          description: event.description ?? event.title,
+          image: event.image_url ?? undefined,
+          url: `${SITE_URL}/events/${id}`,
+        }}
+      />
+      <JsonLd
+        type="breadcrumb"
+        data={{
+          items: [
+            { name: 'Home', url: SITE_URL },
+            { name: 'Events', url: `${SITE_URL}/events` },
+            { name: event.title, url: `${SITE_URL}/events/${id}` },
+          ],
+        }}
+      />
       <Navbar />
       <main className="pt-20">
         {/* Hero */}

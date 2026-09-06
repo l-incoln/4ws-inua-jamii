@@ -8,6 +8,7 @@ import { Heart, BookOpen, Sprout, DollarSign, Users, Globe, ArrowLeft, ArrowRigh
 import type { LucideIcon } from 'lucide-react'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 import ProgramApplySection from '@/components/programs/ProgramApplySection'
 
@@ -34,7 +35,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const program = await getProgram(slug)
   if (!program) return { title: 'Program Not Found' }
-  return { title: program.title, description: program.description }
+  return buildPageMetadata({
+    title: program.title,
+    description: program.description ?? `Learn about ${program.title} and how 4W'S Inua Jamii Foundation is making an impact.`,
+    path: `/programs/${slug}`,
+    image: program.image_url ?? undefined,
+  })
 }
 
 export default async function ProgramDetailPage({ params }: Props) {

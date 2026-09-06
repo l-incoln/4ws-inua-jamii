@@ -17,13 +17,19 @@ import AwarenessBanner from '@/components/awareness/AwarenessBanner'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { getEventPartnerSettings, getEventPartnersForEvents } from '@/lib/event-partners-settings'
 import { getAwarenessDaysForDate, filterByMinPriority } from '@/lib/awareness'
+import { buildPageMetadata } from '@/lib/seo'
+import JsonLd from '@/components/seo/JsonLd'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: '4W\'S Inua Jamii Foundation — Empowering Communities Across Kenya',
-}
-
 export const dynamic = 'force-dynamic'
+
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: undefined, // use root default — homepage is the brand page
+    description: "Empowering communities through unity, service, and sustainable impact. Join 4W'S Inua Jamii Foundation in building a better tomorrow across Kenya.",
+    path: '/',
+  })
+}
 
 export default async function HomePage() {
   const supabase = createPublicClient()
@@ -204,6 +210,8 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd type="organization" />
+      <JsonLd type="website" />
       <Navbar />
       <main>
         <Hero settings={heroSettings} stats={heroStats} images={heroImages} eventSlides={heroEventSlides} />

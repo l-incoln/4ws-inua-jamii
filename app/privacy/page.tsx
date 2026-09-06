@@ -3,10 +3,14 @@ import Footer from '@/components/layout/Footer'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ShieldCheck } from 'lucide-react'
+import { buildPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy | 4W\'S Inua Jamii Foundation',
-  description: 'How we collect, use, and protect your personal information.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Privacy Policy',
+    description: "How 4W'S Inua Jamii Foundation collects, uses, and protects your personal information.",
+    path: '/privacy',
+  })
 }
 
 const LAST_UPDATED = 'May 5, 2026'

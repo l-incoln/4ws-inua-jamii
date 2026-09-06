@@ -5,14 +5,18 @@ import Footer from '@/components/layout/Footer'
 import PartnersSection from '@/components/home/PartnersSection'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { Target, Eye, Heart, Users, ArrowRight, CheckCircle2, HandHeart, Leaf, BookOpen, Stethoscope, ClipboardList, Megaphone, Zap, Shield, Globe } from 'lucide-react'
-import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { buildPageMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'About Us',
-  description: 'Learn about the mission, vision, and leadership of 4W\'S Inua Jamii Foundation.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'About Us',
+    description: "Learn about the mission, vision, and leadership of 4W'S Inua Jamii Foundation — a community-driven non-profit transforming lives across Kenya.",
+    path: '/about',
+  })
 }
 
 // Icon set for CMS core values (positional fallback)

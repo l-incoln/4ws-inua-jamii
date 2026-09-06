@@ -3,13 +3,17 @@ import Footer from '@/components/layout/Footer'
 import GalleryGrid from '@/components/gallery/GalleryGrid'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Gallery',
-  description: "Photos from 4W'S Inua Jamii Foundation events and community activities.",
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Gallery',
+    description: "Photos from 4W'S Inua Jamii Foundation events, outreach activities, and community programs across Kenya.",
+    path: '/gallery',
+  })
 }
 
 export default async function GalleryPage() {

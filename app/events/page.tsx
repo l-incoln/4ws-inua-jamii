@@ -5,10 +5,14 @@ import PageBackLink from '@/components/layout/PageBackLink'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { getEventPartnerSettings, getEventPartnersForEvents } from '@/lib/event-partners-settings'
+import { buildPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Events',
-  description: 'Join 4W\'S Inua Jamii Foundation events and be part of the change.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Events',
+    description: "Join 4W'S Inua Jamii Foundation events — community drives, outreach activities, workshops, and volunteer opportunities across Kenya.",
+    path: '/events',
+  })
 }
 
 export default async function EventsPage() {

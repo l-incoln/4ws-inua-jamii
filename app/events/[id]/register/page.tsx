@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer'
 import RegistrationForm from '@/components/events/RegistrationForm'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
+import { buildPageMetadata } from '@/lib/seo'
 import { Calendar, MapPin, Clock, ArrowLeft, ExternalLink } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -27,7 +28,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const event = await getEvent(id)
   if (!event) return { title: 'Event Not Found' }
-  return { title: `Register — ${event.title}` }
+  return buildPageMetadata({
+    title: `Register — ${event.title}`,
+    description: `Register to attend ${event.title}${event.event_date ? ` on ${event.event_date}` : ''}${event.location ? ` at ${event.location}` : ''}. Secure your spot today.`,
+    path: `/events/${id}/register`,
+    image: event.image_url ?? undefined,
+    noIndex: true,
+  })
 }
 
 export default async function RegisterPage({ params }: Props) {

@@ -4,10 +4,14 @@ import PageBackLink from '@/components/layout/PageBackLink'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { FileText } from 'lucide-react'
+import { buildPageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Terms & Conditions | 4W\'S Inua Jamii Foundation',
-  description: 'The terms and conditions governing membership and use of our platform.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Terms & Conditions',
+    description: "The terms and conditions governing membership and use of 4W'S Inua Jamii Foundation's platform.",
+    path: '/terms',
+  })
 }
 
 const LAST_UPDATED = 'May 5, 2026'

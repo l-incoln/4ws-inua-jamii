@@ -6,14 +6,18 @@ import PaymentsComingSoon from '@/components/payments/PaymentsComingSoon'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { createClient } from '@/lib/supabase/server'
 import { isPaymentsEnabled } from '@/lib/payments'
+import { buildPageMetadata } from '@/lib/seo'
 import { Heart, Shield, Zap, Users2 } from 'lucide-react'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Donate',
-  description: 'Support 4W\'S Inua Jamii Foundation and help transform communities across Kenya.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Donate',
+    description: "Support 4W'S Inua Jamii Foundation with a donation. Every shilling is invested directly into programs that change lives across Kenya. 100% transparent, 100% impactful.",
+    path: '/donate',
+  })
 }
 
 const defaultImpactAmounts = [

@@ -2,15 +2,19 @@ import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 import { Video } from 'lucide-react'
 import LazyVideoCard from '@/components/videos/LazyVideoCard'
 import { getYouTubeEmbed, getYouTubeThumb } from '@/lib/video-utils'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = {
-  title: 'Videos | 4W\'S Inua Jamii Foundation',
-  description: 'Watch videos of our community impact, events, and outreach activities.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Videos',
+    description: "Watch videos of 4W'S Inua Jamii Foundation's community impact, events, and outreach activities across Kenya.",
+    path: '/videos',
+  })
 }
 
 export default async function VideosPage() {

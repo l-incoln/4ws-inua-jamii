@@ -6,11 +6,15 @@ import PageBackLink from '@/components/layout/PageBackLink'
 import { ArrowRight, Heart, BookOpen, Sprout, DollarSign, Users, Globe } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Programs',
-  description: "Explore 4W'S Inua Jamii Foundation's comprehensive programs transforming communities.",
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Programs',
+    description: "Explore 4W'S Inua Jamii Foundation's comprehensive programs — education, health, environment, economic empowerment, and community outreach.",
+    path: '/programs',
+  })
 }
 
 const iconMap: Record<string, LucideIcon> = {

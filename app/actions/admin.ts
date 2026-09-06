@@ -599,6 +599,7 @@ export async function saveSiteSettings(formData: FormData) {
     // SEO & Metadata
     'meta_description', 'og_image_url',
     'google_analytics_id', 'google_tag_manager_id', 'facebook_pixel_id',
+    'google_site_verification', 'bing_site_verification',
     // Membership (including duration years)
     'membership_fee_basic', 'membership_fee_active', 'membership_fee_champion',
     'membership_currency', 'new_signups_enabled', 'auto_approve_members',

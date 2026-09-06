@@ -3,15 +3,19 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import PageBackLink from '@/components/layout/PageBackLink'
+import { buildPageMetadata } from '@/lib/seo'
 import {
   Users, CalendarCheck, Heart, Package, Globe, TrendingUp,
   Award, ArrowRight, MapPin,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = {
-  title: 'Impact Dashboard | 4W\'S Inua Jamii Foundation',
-  description: 'Transparency in action — real-time data on beneficiaries reached, donations received, events conducted, and community impact.',
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Impact Dashboard',
+    description: 'Transparency in action — real-time data on beneficiaries reached, donations received, events conducted, and community impact by 4W\u2019S Inua Jamii Foundation.',
+    path: '/impact',
+  })
 }
 
 interface DistributionRecord {

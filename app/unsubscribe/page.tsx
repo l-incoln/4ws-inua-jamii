@@ -1,8 +1,14 @@
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import UnsubscribeForm from './UnsubscribeForm'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Unsubscribe',
+  robots: { index: false, follow: false },
+}
 
 export default async function UnsubscribePage({
   searchParams,

@@ -4,11 +4,15 @@ import BlogGrid from '@/components/blog/BlogGrid'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { BookOpen } from 'lucide-react'
 import { createPublicClient } from '@/lib/supabase/public-client'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Blog & Stories',
-  description: "Impact stories, updates, and insights from 4W'S Inua Jamii Foundation.",
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Blog & Stories',
+    description: "Impact stories, updates, and insights from 4W'S Inua Jamii Foundation's community work across Kenya.",
+    path: '/blog',
+  })
 }
 
 export default async function BlogPage() {

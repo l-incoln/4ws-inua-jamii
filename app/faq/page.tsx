@@ -5,12 +5,16 @@ import { createPublicClient } from '@/lib/supabase/public-client'
 import { ChevronDown, HelpCircle } from 'lucide-react'
 import type { Metadata } from 'next'
 import FaqAccordion from '@/components/faq/FaqAccordion'
+import { buildPageMetadata } from '@/lib/seo'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'FAQs',
-  description: "Frequently asked questions about 4W'S Inua Jamii Foundation — membership, donations, programs, and more.",
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'FAQs',
+    description: "Frequently asked questions about 4W'S Inua Jamii Foundation — membership, donations, programs, volunteering, and more.",
+    path: '/faq',
+  })
 }
 
 export default async function FaqPage() {

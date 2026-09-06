@@ -2,8 +2,18 @@ import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import ContactContent from './ContactContent'
 import { createClient } from '@/lib/supabase/server'
+import { buildPageMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
+
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: 'Contact Us',
+    description: "Get in touch with 4W'S Inua Jamii Foundation — partnerships, volunteering, media enquiries, or general questions. We'd love to hear from you.",
+    path: '/contact',
+  })
+}
 
 export default async function ContactPage() {
   const supabase = await createClient()
