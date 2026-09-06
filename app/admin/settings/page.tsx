@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import AdminSettingsClient from '@/components/admin/AdminSettingsClient'
-import { saveSiteSettings, saveImpactMetric, uploadSiteImage, saveLeadershipMember, deleteLeadershipMember, savePartner, deletePartner, saveAwarenessDay, deleteAwarenessDay } from '@/app/actions/admin'
+import { saveSiteSettings, saveImpactMetric, uploadSiteImage, saveLeadershipMember, deleteLeadershipMember, savePartner, deletePartner, saveAwarenessDay, deleteAwarenessDay, uploadHeroImage, removeHeroImage } from '@/app/actions/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +43,8 @@ export default async function AdminSettingsPage() {
       deletePartner={deletePartner}
       saveAwarenessDay={saveAwarenessDay}
       deleteAwarenessDay={deleteAwarenessDay}
+      uploadHeroImageAction={uploadHeroImage}
+      removeHeroImageAction={removeHeroImage}
     />
   )
 }

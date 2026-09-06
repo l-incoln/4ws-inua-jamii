@@ -1,8 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Play, ChevronDown, Users, Globe, Heart, TrendingUp, Award } from 'lucide-react'
 
 type HeroSettings = {
@@ -22,34 +23,92 @@ export type HeroStat = {
 
 const iconMap = { users: Users, globe: Globe, heart: Heart, trending: TrendingUp, award: Award }
 
+const SLIDESHOW_INTERVAL = 6000 // ms between slides
+
 export default function Hero({
   settings = {},
   stats = [],
+  images = [],
 }: {
   settings?: HeroSettings
   stats?: HeroStat[]
+  images?: string[]
 }) {
   const badgeText  = settings.hero_badge_text || 'Transforming Communities Across Kenya'
   const heroTitle  = settings.hero_title || ''
   const subtitle   = settings.hero_subtitle  || '4W\u2019S Inua Jamii Foundation unites passionate individuals to uplift communities through health, education, economic empowerment, and environmental stewardship.'
   const ctaLabel   = settings.hero_cta_label || 'Join the Movement'
   const ctaUrl     = settings.hero_cta_url   || '/auth/signup'
-  const imageUrl   = settings.hero_image_url || ''
+  const singleImage = settings.hero_image_url || ''
+
+  // Build the slideshow list: multiple images take priority, fall back to
+  // the single hero_image_url, then empty (gradient-only).
+  const slideshowImages = images.length > 0
+    ? images
+    : singleImage
+      ? [singleImage]
+      : []
+
+  const [currentSlide, setCurrentSlide] = useState(0)
+
+  useEffect(() => {
+    if (slideshowImages.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slideshowImages.length)
+    }, SLIDESHOW_INTERVAL)
+    return () => clearInterval(interval)
+  }, [slideshowImages.length])
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden noise-overlay">
       {/* Deep layered background */}
       <div className="absolute inset-0 bg-hero-gradient" />
 
-      {/* Optional hero background image */}
-      {imageUrl && (
-        <Image
-          src={imageUrl}
-          alt="Hero background"
-          fill
-          className="object-cover object-[center_25%] opacity-20"
-          priority
-          unoptimized
-        />
+      {/* Slideshow background images with crossfade */}
+      {slideshowImages.length > 0 && (
+        <div className="absolute inset-0">
+          <AnimatePresence mode="sync">
+            {slideshowImages.map((img, i) => (
+              <motion.div
+                key={img}
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: i === currentSlide ? 0.25 : 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.5, ease: 'easeInOut' }}
+              >
+                <Image
+                  src={img}
+                  alt="Hero background"
+                  fill
+                  className="object-cover object-[center_25%]"
+                  priority={i === 0}
+                  unoptimized
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {/* Dark overlay to keep text readable over photos */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/20 to-slate-900/60" />
+        </div>
+      )}
+
+      {/* Slideshow indicators */}
+      {slideshowImages.length > 1 && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+          {slideshowImages.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentSlide(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentSlide
+                  ? 'w-8 bg-white/90'
+                  : 'w-2 bg-white/30 hover:bg-white/50'
+              }`}
+              aria-label={`Slide ${i + 1}`}
+            />
+          ))}
+        </div>
       )}
 
       {/* Animated glow orbs */}

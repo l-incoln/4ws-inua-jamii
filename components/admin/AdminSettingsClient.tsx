@@ -100,6 +100,8 @@ export default function AdminSettingsClient({
   deletePartner,
   saveAwarenessDay,
   deleteAwarenessDay,
+  uploadHeroImageAction,
+  removeHeroImageAction,
 }: {
   settings: Record<string, string>
   metrics: Metric[]
@@ -111,6 +113,8 @@ export default function AdminSettingsClient({
   saveSiteSettings: (fd: FormData) => Promise<{ error?: unknown; success?: boolean }>
   saveImpactMetric: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => Promise<{ error?: unknown; url?: string }>
+  uploadHeroImageAction: (fd: FormData) => Promise<{ error?: unknown; url?: string; images?: string[] }>
+  removeHeroImageAction: (url: string) => Promise<{ error?: unknown; images?: string[] }>
   saveLeadershipMember: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   deleteLeadershipMember: (id: string) => Promise<{ error?: unknown; success?: boolean }>
   savePartner: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
@@ -133,14 +137,21 @@ export default function AdminSettingsClient({
   // Image upload state
   const [logoUploading, setLogoUploading]     = useState(false)
   const [heroUploading, setHeroUploading]     = useState(false)
+  const [heroSlideUploading, setHeroSlideUploading] = useState(false)
   const [vol1Uploading, setVol1Uploading]     = useState(false)
   const [vol2Uploading, setVol2Uploading]     = useState(false)
   const [vol3Uploading, setVol3Uploading]     = useState(false)
   const logoInputRef  = useRef<HTMLInputElement>(null)
   const heroInputRef  = useRef<HTMLInputElement>(null)
+  const heroSlideInputRef = useRef<HTMLInputElement>(null)
   const vol1InputRef  = useRef<HTMLInputElement>(null)
   const vol2InputRef  = useRef<HTMLInputElement>(null)
   const vol3InputRef  = useRef<HTMLInputElement>(null)
+
+  // Hero slideshow images (parsed from hero_images comma-separated setting)
+  const [heroSlides, setHeroSlides] = useState<string[]>(
+    (settings.hero_images || '').split(',').map((u: string) => u.trim()).filter(Boolean)
+  )
 
   // Gallery picker state (for volunteer section photos + story image)
   const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
@@ -189,6 +200,32 @@ export default function AdminSettingsClient({
     } else if (result?.url) {
       set(key, result.url)
       showToast({ type: 'success', msg: 'Image updated successfully.' })
+    }
+  }
+
+  // Upload a new hero slideshow image (appends to the list)
+  const handleHeroSlideUpload = async (file: File) => {
+    setHeroSlideUploading(true)
+    const fd = new FormData()
+    fd.set('file', file)
+    const result = await uploadHeroImageAction(fd)
+    setHeroSlideUploading(false)
+    if (result?.error) {
+      showToast({ type: 'error', msg: result.error as string })
+    } else if (result?.images) {
+      setHeroSlides(result.images)
+      showToast({ type: 'success', msg: 'Hero image added to slideshow.' })
+    }
+  }
+
+  // Remove a hero slideshow image
+  const handleHeroSlideRemove = async (url: string) => {
+    const result = await removeHeroImageAction(url)
+    if (result?.error) {
+      showToast({ type: 'error', msg: result.error as string })
+    } else if (result?.images) {
+      setHeroSlides(result.images)
+      showToast({ type: 'success', msg: 'Image removed from slideshow.' })
     }
   }
 
@@ -767,9 +804,65 @@ export default function AdminSettingsClient({
           <div className="space-y-4">
             <Section icon={<Home />} title="Hero Section">
               <div className="grid grid-cols-1 gap-4">
-                {/* Hero Background Image */}
-                <div className="space-y-2">
-                  <label className="label">Hero Background Image</label>
+                {/* Hero Slideshow Images */}
+                <div className="space-y-3">
+                  <label className="label">Hero Background Slideshow</label>
+                  <p className="text-xs text-slate-500">
+                    Upload multiple images to create a rotating slideshow in the hero. They crossfade every 6 seconds.
+                    {heroSlides.length === 0 && ' If empty, falls back to the single hero image below, or the animated gradient.'}
+                  </p>
+
+                  {/* Slideshow image grid */}
+                  {heroSlides.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {heroSlides.map((url, i) => (
+                        <div key={url} className="relative group rounded-xl border border-slate-200 overflow-hidden bg-slate-50 aspect-video">
+                          <Image src={url} alt={`Hero slide ${i + 1}`} fill className="object-cover" unoptimized />
+                          <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-bold rounded px-1.5 py-0.5">
+                            {i + 1}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleHeroSlideRemove(url)}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            aria-label="Remove image"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload button */}
+                  <input
+                    ref={heroSlideInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleHeroSlideUpload(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={heroSlideUploading}
+                    onClick={() => heroSlideInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
+                  >
+                    {heroSlideUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                    {heroSlideUploading ? 'Uploading…' : 'Add Slideshow Image'}
+                  </button>
+
+                  {/* Hidden field to persist the list on save */}
+                  <input type="hidden" name="hero_images" value={heroSlides.join(',')} />
+                </div>
+
+                {/* Legacy single hero image (fallback when no slideshow) */}
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="label text-slate-400">Single Hero Image (fallback)</label>
                   <div className="flex items-start gap-4">
                     <div className="w-32 h-20 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden flex-shrink-0">
                       {s.hero_image_url ? (
@@ -779,7 +872,7 @@ export default function AdminSettingsClient({
                       )}
                     </div>
                     <div className="flex-1 space-y-2">
-                      <p className="text-xs text-slate-500">Optional background image for the hero section. Leave empty for the default animated gradient.</p>
+                      <p className="text-xs text-slate-400">Used only when no slideshow images are set above.</p>
                       <input
                         ref={heroInputRef}
                         type="file"
@@ -794,7 +887,7 @@ export default function AdminSettingsClient({
                         type="button"
                         disabled={heroUploading}
                         onClick={() => heroInputRef.current?.click()}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-600 text-white text-xs font-semibold hover:bg-slate-700 transition-colors disabled:opacity-60"
                       >
                         {heroUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                         {heroUploading ? 'Uploading…' : 'Upload Image'}

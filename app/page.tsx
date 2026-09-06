@@ -33,7 +33,7 @@ export default async function HomePage() {
     .select('key, value')
     .in('key', [
       'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
-      'hero_badge_text', 'hero_image_url',
+      'hero_badge_text', 'hero_image_url', 'hero_images',
       'show_impact_stats', 'show_events_preview',
       'show_partners_section', 'partners_section_title',
       'show_awareness_banner', 'awareness_min_priority',
@@ -46,6 +46,12 @@ export default async function HomePage() {
   const showPartners   = allSettings.show_partners_section !== 'false'
   const showBanner     = allSettings.show_awareness_banner !== 'false'
   const minPriority    = (allSettings.awareness_min_priority as 'high' | 'medium' | 'low') || 'medium'
+
+  // Parse hero slideshow images (comma-separated URLs in site_settings)
+  const heroImages: string[] = (allSettings.hero_images || '')
+    .split(',')
+    .map((u: string) => u.trim())
+    .filter(Boolean)
 
   // Fetch real upcoming events for the homepage preview
   const { data: upcomingEvents } = await supabase
@@ -165,7 +171,7 @@ export default async function HomePage() {
     <>
       <Navbar />
       <main>
-        <Hero settings={heroSettings} stats={heroStats} />
+        <Hero settings={heroSettings} stats={heroStats} images={heroImages} />
         <AnnouncementsTicker announcements={announcements ?? []} />
         {showBanner && <AwarenessBanner days={todaysDays} />}
         {showStats && <ImpactStats metrics={impactMetrics ?? []} />}

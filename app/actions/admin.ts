@@ -444,7 +444,7 @@ export async function saveSiteSettings(formData: FormData) {
     // Homepage (including partners)
     'show_events_preview', 'show_impact_stats', 'show_partners_section',
     'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
-    'hero_image_url', 'hero_badge_text',
+    'hero_image_url', 'hero_badge_text', 'hero_images',
     'partners_section_title',
     // Awareness Calendar
     'show_awareness_banner', 'awareness_min_priority',
@@ -584,6 +584,79 @@ export async function uploadSiteImage(
   revalidatePath('/', 'layout')
   revalidatePath('/admin/settings')
   return { url: publicUrl }
+}
+
+// Upload a hero slideshow image and append it to the hero_images setting
+// (comma-separated list of URLs). Returns the full updated list.
+export async function uploadHeroImage(formData: FormData) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const file = formData.get('file') as File
+  if (!file || file.size === 0) return { error: 'No file provided' }
+
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(file.type)) return { error: 'Only JPEG, PNG, WebP and GIF images are allowed' }
+  if (file.size > 5 * 1024 * 1024) return { error: 'Image must be under 5 MB' }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const storagePath = `site/hero-slideshow-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('uploads')
+    .upload(storagePath, file, { contentType: file.type, upsert: false })
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+
+  // Read the current hero_images list and append
+  const { data: existing } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'hero_images')
+    .maybeSingle()
+
+  const currentList = (existing?.value ?? '')
+    .split(',')
+    .map((u: string) => u.trim())
+    .filter(Boolean)
+  const updatedList = [...currentList, publicUrl].join(',')
+
+  const { error: dbError } = await supabase
+    .from('site_settings')
+    .upsert({ key: 'hero_images', value: updatedList, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/', 'layout')
+  revalidatePath('/admin/settings')
+  return { url: publicUrl, images: updatedList.split(',') }
+}
+
+// Remove a single image from the hero_images slideshow list
+export async function removeHeroImage(urlToRemove: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { data: existing } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'hero_images')
+    .maybeSingle()
+
+  const currentList = (existing?.value ?? '')
+    .split(',')
+    .map((u: string) => u.trim())
+    .filter(Boolean)
+  const updatedList = currentList.filter((u: string) => u !== urlToRemove).join(',')
+
+  const { error: dbError } = await supabase
+    .from('site_settings')
+    .upsert({ key: 'hero_images', value: updatedList, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/', 'layout')
+  revalidatePath('/admin/settings')
+  return { images: updatedList.split(',').filter(Boolean) }
 }
 
 // ΓöÇΓöÇΓöÇ Impact Metrics ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
