@@ -616,6 +616,7 @@ export async function saveSiteSettings(formData: FormData) {
     'show_events_preview', 'show_impact_stats', 'show_partners_section',
     'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
     'hero_image_url', 'hero_badge_text', 'hero_images',
+    'hero_include_events',
     'partners_section_title',
     // Awareness Calendar
     'show_awareness_banner', 'awareness_min_priority',

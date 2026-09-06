@@ -35,6 +35,7 @@ export default async function HomePage() {
     .in('key', [
       'hero_title', 'hero_subtitle', 'hero_cta_label', 'hero_cta_url',
       'hero_badge_text', 'hero_image_url', 'hero_images',
+      'hero_include_events',
       'show_impact_stats', 'show_events_preview',
       'show_partners_section', 'partners_section_title',
       'show_awareness_banner', 'awareness_min_priority',
@@ -47,6 +48,7 @@ export default async function HomePage() {
   const showPartners   = allSettings.show_partners_section !== 'false'
   const showBanner     = allSettings.show_awareness_banner !== 'false'
   const minPriority    = (allSettings.awareness_min_priority as 'high' | 'medium' | 'low') || 'medium'
+  const heroIncludeEvents = allSettings.hero_include_events === 'true'
 
   // Parse hero slideshow images (comma-separated URLs in site_settings)
   const heroImages: string[] = (allSettings.hero_images || '')
@@ -55,6 +57,7 @@ export default async function HomePage() {
     .filter(Boolean)
 
   // Fetch real upcoming events for the homepage preview
+  // (also used for hero slideshow event slides when enabled)
   const { data: upcomingEvents } = await supabase
     .from('events')
     .select('id, title, description, location, event_date, start_time, image_url, category, max_attendees, status')
@@ -62,6 +65,20 @@ export default async function HomePage() {
     .gte('event_date', new Date().toISOString().split('T')[0])
     .order('event_date', { ascending: true })
     .limit(4)
+
+  // Build event slides for the hero slideshow (only when setting is enabled)
+  const heroEventSlides = heroIncludeEvents
+    ? (upcomingEvents ?? [])
+        .filter((e) => e.image_url)
+        .slice(0, 4)
+        .map((e) => ({
+          id: e.id,
+          title: e.title,
+          image_url: e.image_url as string,
+          event_date: e.event_date,
+          location: e.location,
+        }))
+    : []
 
   // Fetch RSVP counts for those events
   const eventIds = (upcomingEvents ?? []).map((e) => e.id)
@@ -183,7 +200,7 @@ export default async function HomePage() {
     <>
       <Navbar />
       <main>
-        <Hero settings={heroSettings} stats={heroStats} images={heroImages} />
+        <Hero settings={heroSettings} stats={heroStats} images={heroImages} eventSlides={heroEventSlides} />
         <AnnouncementsTicker announcements={announcements ?? []} />
         {showBanner && <AwarenessBanner days={todaysDays} />}
         {showStats && <ImpactStats metrics={impactMetrics ?? []} />}

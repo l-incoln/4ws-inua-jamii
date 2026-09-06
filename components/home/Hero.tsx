@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowRight, Play, ChevronDown, Users, Globe, Heart, TrendingUp, Award } from 'lucide-react'
+import { ArrowRight, Play, ChevronDown, Users, Globe, Heart, TrendingUp, Award, Calendar, MapPin } from 'lucide-react'
 
 type HeroSettings = {
   hero_title?:      string
@@ -21,6 +21,19 @@ export type HeroStat = {
   icon: 'users' | 'globe' | 'heart' | 'trending' | 'award'
 }
 
+export type HeroEventSlide = {
+  id: string
+  title: string
+  image_url: string
+  event_date: string
+  location?: string | null
+}
+
+type Slide = {
+  image: string
+  event?: HeroEventSlide
+}
+
 const iconMap = { users: Users, globe: Globe, heart: Heart, trending: TrendingUp, award: Award }
 
 const SLIDESHOW_INTERVAL = 5000 // ms between slides
@@ -30,10 +43,12 @@ export default function Hero({
   settings = {},
   stats = [],
   images = [],
+  eventSlides = [],
 }: {
   settings?: HeroSettings
   stats?: HeroStat[]
   images?: string[]
+  eventSlides?: HeroEventSlide[]
 }) {
   const badgeText  = settings.hero_badge_text || 'Transforming Communities Across Kenya'
   const heroTitle  = settings.hero_title || ''
@@ -42,23 +57,28 @@ export default function Hero({
   const ctaUrl     = settings.hero_cta_url   || '/auth/signup'
   const singleImage = settings.hero_image_url || ''
 
-  // Build the slideshow list: multiple images take priority, fall back to
-  // the single hero_image_url, then empty (gradient-only).
-  const slideshowImages = useMemo(() => {
-    if (images.length > 0) return images
-    if (singleImage) return [singleImage]
+  // Build the slideshow list: event slides + uploaded hero images,
+  // then fall back to the single hero_image_url, then empty (gradient-only).
+  const slides: Slide[] = useMemo(() => {
+    const eventImgs: Slide[] = eventSlides
+      .filter((e) => e.image_url)
+      .map((e) => ({ image: e.image_url, event: e }))
+    const heroImgs: Slide[] = images.map((url) => ({ image: url }))
+    const combined = [...eventImgs, ...heroImgs]
+    if (combined.length > 0) return combined
+    if (singleImage) return [{ image: singleImage }]
     return []
-  }, [images, singleImage])
+  }, [images, singleImage, eventSlides])
 
   const [currentSlide, setCurrentSlide] = useState(0)
 
   useEffect(() => {
-    if (slideshowImages.length <= 1) return
+    if (slides.length <= 1) return
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slideshowImages.length)
+      setCurrentSlide((prev) => (prev + 1) % slides.length)
     }, SLIDESHOW_INTERVAL)
     return () => clearInterval(interval)
-  }, [slideshowImages])
+  }, [slides])
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden noise-overlay">
@@ -66,13 +86,13 @@ export default function Hero({
       <div className="absolute inset-0 bg-hero-gradient" />
 
       {/* Slideshow background images with smooth crossfade + Ken Burns zoom */}
-      {slideshowImages.length > 0 && (
+      {slides.length > 0 && (
         <div className="absolute inset-0">
-          {slideshowImages.map((img, i) => {
+          {slides.map((slide, i) => {
             const isActive = i === currentSlide
             return (
               <div
-                key={img}
+                key={slide.image + i}
                 className="absolute inset-0"
                 style={{
                   opacity: isActive ? 1 : 0,
@@ -90,8 +110,8 @@ export default function Hero({
                   }}
                 >
                   <Image
-                    src={img}
-                    alt="Hero background"
+                    src={slide.image}
+                    alt={slide.event?.title || 'Hero background'}
                     fill
                     className="object-cover object-[center_25%]"
                     priority={i === 0}
@@ -106,10 +126,50 @@ export default function Hero({
         </div>
       )}
 
+      {/* Event slide info card — shows when the current slide is an event */}
+      {slides[currentSlide]?.event && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="absolute bottom-32 left-4 sm:left-8 lg:left-12 z-20 max-w-sm"
+        >
+          <Link
+            href={`/events/${slides[currentSlide]!.event!.id}`}
+            className="block glass border border-white/20 rounded-2xl p-4 sm:p-5 hover:bg-white/15 transition-colors group"
+          >
+            <div className="flex items-center gap-2 text-sky-300 text-xs font-semibold uppercase tracking-widest mb-2">
+              <Calendar className="w-3.5 h-3.5" />
+              Upcoming Event
+            </div>
+            <h3 className="text-white font-bold text-base sm:text-lg leading-snug line-clamp-2 group-hover:text-sky-200 transition-colors">
+              {slides[currentSlide]!.event!.title}
+            </h3>
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-white/80">
+                <Calendar className="w-3 h-3" />
+                {new Date(slides[currentSlide]!.event!.event_date).toLocaleDateString('en-KE', {
+                  weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+                })}
+              </div>
+              {slides[currentSlide]!.event!.location && (
+                <div className="flex items-center gap-1.5 text-xs text-white/80">
+                  <MapPin className="w-3 h-3" />
+                  <span className="line-clamp-1">{slides[currentSlide]!.event!.location}</span>
+                </div>
+              )}
+            </div>
+            <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-sky-300 group-hover:gap-2 transition-all">
+              View Event <ArrowRight className="w-3 h-3" />
+            </div>
+          </Link>
+        </motion.div>
+      )}
+
       {/* Slideshow indicators with progress bar */}
-      {slideshowImages.length > 1 && (
+      {slides.length > 1 && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-          {slideshowImages.map((_, i) => (
+          {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}

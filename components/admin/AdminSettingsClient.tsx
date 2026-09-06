@@ -863,6 +863,29 @@ export default function AdminSettingsClient({
                   <input type="hidden" name="hero_images" value={heroSlides.join(',')} />
                 </div>
 
+                {/* Include upcoming events in the hero slideshow */}
+                <div className="flex items-start gap-3 pt-3 border-t border-slate-100">
+                  <input
+                    type="checkbox"
+                    id="hero_include_events"
+                    name="hero_include_events"
+                    checked={s.hero_include_events === 'true'}
+                    onChange={(e) => set('hero_include_events', e.target.checked ? 'true' : 'false')}
+                    className="w-4 h-4 mt-0.5 accent-primary-600"
+                  />
+                  <div>
+                    <label htmlFor="hero_include_events" className="text-sm font-semibold text-slate-700 cursor-pointer">
+                      Show upcoming events in the hero slideshow
+                    </label>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      When enabled, the hero background slideshow will also rotate through images of
+                      upcoming events (up to 4). Each event slide shows a clickable info card with
+                      the event title, date, and location. Event slides appear first, followed by
+                      your uploaded hero images.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Legacy single hero image (fallback when no slideshow) */}
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <label className="label text-slate-400">Single Hero Image (fallback)</label>
