@@ -105,6 +105,7 @@ export default function AdminSettingsClient({
   deleteAwarenessDay,
   uploadHeroImageAction,
   removeHeroImageAction,
+  addHeroImageUrlAction,
 }: {
   settings: Record<string, string>
   metrics: Metric[]
@@ -118,6 +119,7 @@ export default function AdminSettingsClient({
   uploadSiteImage: (fd: FormData, key: 'logo_url' | 'hero_image_url' | 'og_image_url' | 'volunteer_photo_1' | 'volunteer_photo_2' | 'volunteer_photo_3') => Promise<{ error?: unknown; url?: string }>
   uploadHeroImageAction: (fd: FormData) => Promise<{ error?: unknown; url?: string; images?: string[] }>
   removeHeroImageAction: (url: string) => Promise<{ error?: unknown; images?: string[] }>
+  addHeroImageUrlAction: (url: string) => Promise<{ error?: unknown; images?: string[] }>
   saveLeadershipMember: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
   deleteLeadershipMember: (id: string) => Promise<{ error?: unknown; success?: boolean }>
   savePartner: (fd: FormData, id?: string) => Promise<{ error?: unknown; success?: boolean }>
@@ -294,14 +296,25 @@ export default function AdminSettingsClient({
   )
 
   // Handle gallery picker selection — supports appending to hero slideshow
-  const handlePickerSelect = (url: string) => {
+  const handlePickerSelect = async (url: string) => {
     if (galleryPickerKey === 'hero_slides') {
-      // Append to hero slideshow list (avoid duplicates)
-      setHeroSlides((prev) => prev.includes(url) ? prev : [...prev, url])
+      // Save immediately to DB (like the upload button does)
+      setGalleryPickerOpen(false)
+      setHeroSlideUploading(true) // reuse the spinner state
+      const result = await addHeroImageUrlAction(url)
+      setHeroSlideUploading(false)
+      if (result?.error && result.error !== 'Image already in slideshow') {
+        showToast({ type: 'error', msg: result.error as string })
+      } else if (result?.images) {
+        setHeroSlides(result.images)
+        showToast({ type: 'success', msg: 'Image added to slideshow.' })
+      }
     } else if (galleryPickerKey) {
       set(galleryPickerKey, url)
+      setGalleryPickerOpen(false)
+    } else {
+      setGalleryPickerOpen(false)
     }
-    setGalleryPickerOpen(false)
   }
 
   return (

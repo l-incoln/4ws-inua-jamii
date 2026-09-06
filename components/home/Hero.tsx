@@ -187,6 +187,10 @@ export default function Hero({
               )}
             </button>
           ))}
+          {/* Slide counter */}
+          <span className="ml-2 text-xs text-white/70 font-medium tabular-nums">
+            {currentSlide + 1} / {slides.length}
+          </span>
         </div>
       )}
 

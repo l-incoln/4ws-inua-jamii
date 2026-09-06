@@ -834,7 +834,45 @@ export async function removeHeroImage(urlToRemove: string) {
   return { images: updatedList.split(',').filter(Boolean) }
 }
 
-// ΓöÇΓöÇΓöÇ Impact Metrics ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// Append an existing URL (from media library or gallery) to the
+// hero_images slideshow list. Saves immediately to the DB so the
+// image persists without needing a separate form Save click.
+export async function addHeroImageUrl(url: string) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const cleanUrl = (url || '').trim()
+  if (!cleanUrl) return { error: 'No URL provided' }
+
+  // Read the current hero_images list and append (avoid duplicates)
+  const { data: existing } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'hero_images')
+    .maybeSingle()
+
+  const currentList = (existing?.value ?? '')
+    .split(',')
+    .map((u: string) => u.trim())
+    .filter(Boolean)
+
+  if (currentList.includes(cleanUrl)) {
+    return { images: currentList, error: 'Image already in slideshow' }
+  }
+
+  const updatedList = [...currentList, cleanUrl].join(',')
+
+  const { error: dbError } = await supabase
+    .from('site_settings')
+    .upsert({ key: 'hero_images', value: updatedList, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+  if (dbError) return { error: dbError.message }
+
+  revalidatePath('/', 'layout')
+  revalidatePath('/admin/settings')
+  return { images: updatedList.split(',').filter(Boolean) }
+}
+
+// ── Impact Metrics ──────────────────────────────────────────
 export async function saveImpactMetric(formData: FormData, metricId?: string) {
   const { supabase, error } = await requireAdmin()
   if (error || !supabase) return { error }
