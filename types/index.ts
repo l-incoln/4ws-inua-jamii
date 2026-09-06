@@ -1,4 +1,4 @@
-﻿// â”€â”€â”€ USER / AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- USER / AUTH ---
 export type UserRole = 'member' | 'volunteer' | 'admin'
 export type MembershipTier = 'basic' | 'active' | 'champion'
 export type MembershipStatus = 'pending' | 'approved' | 'rejected'
@@ -34,7 +34,7 @@ export interface Profile {
   updated_at: string
 }
 
-// â”€â”€â”€ PROGRAMS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- PROGRAM ---
 export interface Program {
   id: string
   slug: string
@@ -47,7 +47,7 @@ export interface Program {
   created_at: string
 }
 
-// â”€â”€â”€ EVENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- EVENT ---
 export type EventStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
 
 export interface Event {
@@ -65,7 +65,7 @@ export interface Event {
   created_at: string
 }
 
-// â”€â”€â”€ RSVPs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- RSVPs ---
 export interface RSVP {
   id: string
   event_id: string
@@ -73,7 +73,7 @@ export interface RSVP {
   created_at: string
 }
 
-// â”€â”€â”€ BLOG / CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- BLOG ---
 export type BlogStatus = 'draft' | 'published' | 'scheduled'
 
 export interface BlogPost {
@@ -81,7 +81,7 @@ export interface BlogPost {
   slug: string
   title: string
   excerpt: string | null
-  body: string | null          // NOT "content" â€” the column is "body"
+  body: string | null          // NOT "content" -- the column is "body"
   image_url: string | null
   category: string | null
   tags: string[] | null
@@ -93,7 +93,7 @@ export interface BlogPost {
   created_at: string
 }
 
-// â”€â”€â”€ ANNOUNCEMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- ANNOUNCEMENT ---
 export interface Announcement {
   id: string
   title: string
@@ -104,7 +104,7 @@ export interface Announcement {
   created_at: string
 }
 
-// â”€â”€â”€ DONATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- DONATION ---
 export type DonationStatus = 'pending' | 'completed' | 'failed' | 'refunded'
 
 export interface DonationCampaign {
@@ -134,7 +134,7 @@ export interface Donation {
   created_at: string
 }
 
-// â”€â”€â”€ IMPACT METRICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- IMPACT ---
 export interface ImpactMetric {
   id: string
   label: string
@@ -144,7 +144,7 @@ export interface ImpactMetric {
   sort_order: number
 }
 
-// â”€â”€â”€ CONTACT MESSAGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- MESSAGE ---
 export interface ContactMessage {
   id: string
   name: string
@@ -155,14 +155,14 @@ export interface ContactMessage {
   created_at: string
 }
 
-// â”€â”€â”€ SITE SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- SETTING ---
 export interface SiteSetting {
   key: string
   value: string
   updated_at: string
 }
 
-// â”€â”€â”€ API HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- API HELPERS ---
 export interface ApiResponse<T> {
   data: T | null
   error: string | null
@@ -177,7 +177,7 @@ export interface PaginatedResponse<T> {
   total_pages: number
 }
 
-// ─── DOCUMENTS ─────────────────────────────────────────────────────────────────
+// --- DOCUMENT ---
 export type DocumentCategory = 'constitution' | 'report' | 'policy' | 'guide' | 'general'
 
 export interface Document {
@@ -195,7 +195,7 @@ export interface Document {
   updated_at: string
 }
 
-// ─── BADGES / ACHIEVEMENTS ─────────────────────────────────────────────────────
+// --- ACHIEVEMENT ---
 export interface MemberBadge {
   id: string
   user_id: string
@@ -217,7 +217,7 @@ export interface ImpactScore {
   total_score: number
 }
 
-// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+// --- NOTIFICATION ---
 export interface Notification {
   id: string
   user_id: string
@@ -229,8 +229,8 @@ export interface Notification {
   created_at: string
 }
 
-// ─── VOLUNTEER TASKS ──────────────────────────────────────────────────────────
+// --- VOLUNTEER ---
 export type TaskStatus = 'open' | 'claimed' | 'completed' | 'cancelled'
 
-// ─── PROGRAM APPLICATIONS ─────────────────────────────────────────────────────
+// --- PROGRAM ---
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected'

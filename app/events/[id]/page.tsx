@@ -1,15 +1,14 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { headers } from 'next/headers'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import RsvpButton from '@/components/events/RsvpButton'
-import EventQRCode from '@/components/events/EventQRCode'
+import ShareRegistration from '@/components/events/ShareRegistration'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import { createClient } from '@/lib/supabase/server'
 import { getEventPartnerSettings, getEventPartners } from '@/lib/event-partners-settings'
-import { Calendar, MapPin, Users, Clock, ArrowLeft, ExternalLink, QrCode, Share2 } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, ArrowLeft, ExternalLink } from 'lucide-react'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -96,11 +95,9 @@ export default async function EventDetailPage({ params }: Props) {
   const regDeadlinePassed = event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date()
   const rsvpMode = event.rsvp_mode || 'website'
 
-  // Build the registration URL (absolute for QR code)
-  const headerList = await headers()
-  const host = headerList.get('host') || '4wsinuajamii.org'
-  const protocol = headerList.get('x-forwarded-proto') || 'https'
-  const registrationUrl = `${protocol}://${host}/events/${id}/register`
+  // Build the registration URL (relative path — the QR code component
+  // will use window.location.origin on the client side).
+  const registrationUrl = `/events/${id}/register`
 
   // Optional event partners (only fetched/shown when the feature is enabled).
   const publicClient = createPublicClient()
@@ -338,29 +335,7 @@ export default async function EventDetailPage({ params }: Props) {
                   )}
 
                   {/* Shareable link + QR code */}
-                  <div className="pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Share2 className="w-4 h-4 text-slate-400" />
-                      <span className="text-xs font-semibold text-slate-600 uppercase tracking-widest">Share Registration</span>
-                    </div>
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0">
-                        <EventQRCode url={registrationUrl} size={120} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-500 mb-1">Share this link or QR code on posters, WhatsApp, social media:</p>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="text"
-                            readOnly
-                            value={registrationUrl}
-                            className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 flex-1 min-w-0 font-mono"
-                            onClick={(e) => (e.target as HTMLInputElement).select()}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <ShareRegistration url={registrationUrl} />
                 </div>
               ) : rsvpEnabled && rsvpMode === 'none' ? (
                 <div className="card p-6 text-center text-slate-500 text-sm">

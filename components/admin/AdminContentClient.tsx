@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
@@ -257,7 +257,7 @@ export default function AdminContentClient({
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               className="input pl-10"
-              placeholder="Search postsâ€¦"
+              placeholder="Search posts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
