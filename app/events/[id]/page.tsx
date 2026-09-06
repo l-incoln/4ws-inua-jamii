@@ -18,24 +18,13 @@ type Props = { params: Promise<{ id: string }> }
 
 async function getEvent(id: string): Promise<any> {
   const supabase = createPublicClient()
-  // Try with new registration columns first; fall back to base columns
-  // if the phase16 migration hasn't been applied yet.
-  const { data, error } = await supabase
+  // Use select('*') to avoid errors if new columns don't exist yet.
+  // PostgREST returns whatever columns exist in the table.
+  const { data } = await supabase
     .from('events')
-    .select('id, title, description, location, address, event_date, start_time, end_time, image_url, category, max_attendees, status, rsvp_mode, external_rsvp_url, external_rsvp_label, rsvp_deadline, requires_login')
+    .select('*')
     .eq('id', id)
     .maybeSingle()
-
-  if (error && error.message?.includes('column')) {
-    // New columns don't exist yet — query without them
-    const { data: fallback } = await supabase
-      .from('events')
-      .select('id, title, description, location, address, event_date, start_time, end_time, image_url, category, max_attendees, status')
-      .eq('id', id)
-      .maybeSingle()
-    return fallback
-  }
-
   return data
 }
 

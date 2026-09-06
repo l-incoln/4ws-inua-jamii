@@ -6,165 +6,173 @@ import { getEmailSettings, senderFor } from '@/lib/email-settings'
 import { revalidatePath } from 'next/cache'
 
 export async function rsvpForEvent(eventId: string): Promise<{ error?: string; success?: boolean }> {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return { error: 'You must be signed in to RSVP.' }
-  }
-
-  // Check capacity
-  const { data: event } = await supabase
-    .from('events')
-    .select('max_attendees')
-    .eq('id', eventId)
-    .single()
-
-  if (event?.max_attendees) {
-    const { count } = await supabase
-      .from('rsvps')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .eq('status', 'confirmed')
-
-    if (count !== null && count >= event.max_attendees) {
-      // Add to waitlist instead
-      const { error } = await supabase.from('rsvps').upsert(
-        { event_id: eventId, user_id: user.id, status: 'waitlisted' },
-        { onConflict: 'event_id,user_id' }
-      )
-      if (error) return { error: error.message }
-      revalidatePath(`/events/${eventId}`)
-      revalidatePath('/dashboard/events')
-      return { success: true }
-    }
-  }
-
-  const { error } = await supabase.from('rsvps').upsert(
-    { event_id: eventId, user_id: user.id, status: 'confirmed' },
-    { onConflict: 'event_id,user_id' }
-  )
-
-  if (error) return { error: error.message }
-
-  // Notify admins about the new event registration
   try {
-    const [{ data: event }, { data: profile }, settings] = await Promise.all([
-      supabase.from('events').select('title, event_date').eq('id', eventId).single(),
-      supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-      getEmailSettings(supabase),
-    ])
-    if (settings.adminEmails.length && event) {
-      // Admin coordination alert → sent from no-reply@ (automation) to admin@,
-      // reply-to the member so an admin can respond.
-      const noReply = senderFor(settings, 'no-reply')
-      await sendEmail({
-        to: settings.adminEmails,
-        from: noReply.from,
-        replyTo: user.email,
-        subject: `[Event RSVP] ${profile?.full_name ?? 'Member'} registered for "${event.title}"`,
-        html: adminEventAlertHtml({
-          type: 'New Event Registration',
-          name: profile?.full_name ?? 'Member',
-          eventTitle: event.title,
-          date: event.event_date ? new Date(event.event_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD',
-          eventId,
-        }),
-      }).catch(() => {})
-    }
-  } catch {}
+    const supabase = await createClient()
 
-  revalidatePath(`/events/${eventId}`)
-  revalidatePath('/dashboard/events')
-  return { success: true }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: 'You must be signed in to RSVP.' }
+    }
+
+    // Check capacity
+    const { data: event } = await supabase
+      .from('events')
+      .select('max_attendees')
+      .eq('id', eventId)
+      .maybeSingle()
+
+    if (event?.max_attendees) {
+      const { count } = await supabase
+        .from('rsvps')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .eq('status', 'confirmed')
+
+      if (count !== null && count >= event.max_attendees) {
+        // Add to waitlist instead
+        const { error } = await supabase.from('rsvps').upsert(
+          { event_id: eventId, user_id: user.id, status: 'waitlisted' },
+          { onConflict: 'event_id,user_id' }
+        )
+        if (error) return { error: error.message }
+        revalidatePath(`/events/${eventId}`)
+        revalidatePath('/dashboard/events')
+        return { success: true }
+      }
+    }
+
+    const { error } = await supabase.from('rsvps').upsert(
+      { event_id: eventId, user_id: user.id, status: 'confirmed' },
+      { onConflict: 'event_id,user_id' }
+    )
+
+    if (error) return { error: error.message }
+
+    // Notify admins about the new event registration
+    try {
+      const [{ data: evt }, { data: profile }, settings] = await Promise.all([
+        supabase.from('events').select('title, event_date').eq('id', eventId).maybeSingle(),
+        supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+        getEmailSettings(supabase),
+      ])
+      if (settings.adminEmails.length && evt) {
+        const noReply = senderFor(settings, 'no-reply')
+        await sendEmail({
+          to: settings.adminEmails,
+          from: noReply.from,
+          replyTo: user.email,
+          subject: `[Event RSVP] ${profile?.full_name ?? 'Member'} registered for "${evt.title}"`,
+          html: adminEventAlertHtml({
+            type: 'New Event Registration',
+            name: profile?.full_name ?? 'Member',
+            eventTitle: evt.title,
+            date: evt.event_date ? new Date(evt.event_date).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD',
+            eventId,
+          }),
+        }).catch(() => {})
+      }
+    } catch {}
+
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath('/dashboard/events')
+    return { success: true }
+  } catch (err) {
+    console.error('[rsvpForEvent] Unhandled error:', err)
+    return { error: 'Something went wrong while processing your RSVP. Please try again.' }
+  }
 }
 
 export async function cancelRsvp(eventId: string): Promise<{ error?: string; success?: boolean }> {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return { error: 'You must be signed in.' }
-  }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: 'You must be signed in.' }
+    }
 
-  // Cancel this user's RSVP
-  const { error } = await supabase
-    .from('rsvps')
-    .update({ status: 'cancelled' })
-    .eq('event_id', eventId)
-    .eq('user_id', user.id)
-
-  if (error) return { error: error.message }
-
-  // Auto-promote the next waitlisted person if the event has a capacity limit
-  const { data: event } = await supabase
-    .from('events')
-    .select('max_attendees, title')
-    .eq('id', eventId)
-    .single()
-
-  if (event?.max_attendees) {
-    const { count } = await supabase
+    // Cancel this user's RSVP
+    const { error } = await supabase
       .from('rsvps')
-      .select('id', { count: 'exact', head: true })
+      .update({ status: 'cancelled' })
       .eq('event_id', eventId)
-      .eq('status', 'confirmed')
+      .eq('user_id', user.id)
 
-    if (count !== null && count < event.max_attendees) {
-      // Find the earliest waitlisted RSVP
-      const { data: nextWaitlisted } = await supabase
+    if (error) return { error: error.message }
+
+    // Auto-promote the next waitlisted person if the event has a capacity limit
+    const { data: event } = await supabase
+      .from('events')
+      .select('max_attendees, title')
+      .eq('id', eventId)
+      .maybeSingle()
+
+    if (event?.max_attendees) {
+      const { count } = await supabase
         .from('rsvps')
-        .select('user_id')
+        .select('id', { count: 'exact', head: true })
         .eq('event_id', eventId)
-        .eq('status', 'waitlisted')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
+        .eq('status', 'confirmed')
 
-      if (nextWaitlisted) {
-        // Promote to confirmed
-        await supabase
+      if (count !== null && count < event.max_attendees) {
+        // Find the earliest waitlisted RSVP
+        const { data: nextWaitlisted } = await supabase
           .from('rsvps')
-          .update({ status: 'confirmed' })
+          .select('user_id')
           .eq('event_id', eventId)
-          .eq('user_id', nextWaitlisted.user_id)
+          .eq('status', 'waitlisted')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
 
-        // Notify the promoted user in-app
-        await supabase.from('notifications').insert({
-          user_id: nextWaitlisted.user_id,
-          type: 'general',
-          title: 'You\'re in! Spot confirmed',
-          body: `A spot opened up for "${event.title}" and you've been promoted from the waitlist. See you there!`,
-          link: `/events/${eventId}`,
-        }).then(() => {})
+        if (nextWaitlisted) {
+          // Promote to confirmed
+          await supabase
+            .from('rsvps')
+            .update({ status: 'confirmed' })
+            .eq('event_id', eventId)
+            .eq('user_id', nextWaitlisted.user_id)
 
-        // Send email notification
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, email')
-          .eq('id', nextWaitlisted.user_id)
-          .single()
+          // Notify the promoted user in-app
+          await supabase.from('notifications').insert({
+            user_id: nextWaitlisted.user_id,
+            type: 'general',
+            title: 'You\'re in! Spot confirmed',
+            body: `A spot opened up for "${event.title}" and you've been promoted from the waitlist. See you there!`,
+            link: `/events/${eventId}`,
+          }).then(() => {})
 
-        if (profile?.email) {
-          // Member communication → sent from membership@ (member relations).
-          const promoSettings = await getEmailSettings(supabase)
-          const membership = senderFor(promoSettings, 'membership')
-          await sendEmail({
-            to: profile.email,
-            from: membership.from,
-            replyTo: membership.replyTo,
-            subject: `You're in! Spot confirmed for "${event.title}"`,
-            html: eventPromotionHtml(profile.full_name ?? 'Member', event.title, eventId),
-            template: 'event_waitlist_promotion',
-          }).catch(() => {})
+          // Send email notification
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', nextWaitlisted.user_id)
+            .maybeSingle()
+
+          if (profile?.email) {
+            // Member communication → sent from membership@ (member relations).
+            const promoSettings = await getEmailSettings(supabase)
+            const membership = senderFor(promoSettings, 'membership')
+            await sendEmail({
+              to: profile.email,
+              from: membership.from,
+              replyTo: membership.replyTo,
+              subject: `You're in! Spot confirmed for "${event.title}"`,
+              html: eventPromotionHtml(profile.full_name ?? 'Member', event.title, eventId),
+              template: 'event_waitlist_promotion',
+            }).catch(() => {})
+          }
         }
       }
     }
-  }
 
-  revalidatePath(`/events/${eventId}`)
-  revalidatePath('/dashboard/events')
-  return { success: true }
+    revalidatePath(`/events/${eventId}`)
+    revalidatePath('/dashboard/events')
+    return { success: true }
+  } catch (err) {
+    console.error('[cancelRsvp] Unhandled error:', err)
+    return { error: 'Something went wrong while cancelling your RSVP. Please try again.' }
+  }
 }
 
 // ---------------------------------------------------------------------------
