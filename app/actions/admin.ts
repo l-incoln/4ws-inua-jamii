@@ -623,6 +623,9 @@ export async function saveSiteSettings(formData: FormData) {
     'rsvp_enabled', 'rsvp_require_login', 'event_reminder_days',
     // Event partners (optional per-event sponsors)
     'show_event_partners', 'event_partners_title',
+    // Partner type distinction (organization vs event)
+    'show_organization_partners', 'organization_partners_title',
+    'show_event_partners_listing', 'event_partners_listing_label',
     // Legal / Footer
     'privacy_policy_url', 'terms_url', 'registration_number', 'footer_tagline',
     // About Page
