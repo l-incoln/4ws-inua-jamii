@@ -75,7 +75,6 @@ export default function SiteLogoClient({
           height={logoSize}
           className={`object-contain transition-[filter] duration-200${invert ? ' brightness-0 invert' : ''}`}
           style={{ height: logoSize, width: 'auto', maxWidth: logoSize * 6 }}
-          unoptimized
         />
       ) : ready ? (
         // DB fetch complete but no logo configured — show icon fallback

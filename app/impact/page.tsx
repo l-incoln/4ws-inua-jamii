@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import PageBackLink from '@/components/layout/PageBackLink'
 import {
   Users, CalendarCheck, Heart, Package, Globe, TrendingUp,
@@ -298,7 +299,9 @@ export default async function ImpactDashboardPage() {
               {outreachActivities.map((a) => (
                 <div key={a.id} className="card p-5">
                   {a.image_url && (
-                    <img src={a.image_url} alt={a.title} className="w-full h-32 object-cover rounded-xl mb-3" />
+                    <div className="relative w-full h-32 mb-3">
+                      <Image src={a.image_url} alt={a.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover rounded-xl" />
+                    </div>
                   )}
                   <div className="flex items-center gap-2 mb-2">
                     <span className="badge-gray text-xs">{OUTREACH_TYPE_LABELS[a.activity_type] ?? a.activity_type}</span>

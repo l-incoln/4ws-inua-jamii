@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import { Calendar, Clock, ArrowLeft, Tag } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createPublicClient } from '@/lib/supabase/public-client'
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ slug: string }> }
 
-async function getPost(slug: string) {
+const getPost = cache(async (slug: string) => {
   const supabase = createPublicClient()
   const { data } = await supabase
     .from('blog_posts')
@@ -22,7 +23,7 @@ async function getPost(slug: string) {
     .eq('status', 'published')
     .maybeSingle()
   return data
-}
+})
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
@@ -67,7 +68,7 @@ export default async function BlogPostPage({ params }: Props) {
       {/* Hero */}
       <div className="relative h-80 sm:h-96 lg:h-[28rem]">
         {post.image_url ? (
-          <Image src={post.image_url} alt={post.title} fill className="object-cover" priority />
+          <Image src={post.image_url} alt={post.title} fill sizes="100vw" className="object-cover" priority />
         ) : (
           <div className="absolute inset-0 bg-primary-900" />
         )}
@@ -94,7 +95,7 @@ export default async function BlogPostPage({ params }: Props) {
             <div className="flex items-center gap-2">
               {author.avatar_url ? (
                 <div className="relative w-8 h-8 rounded-full overflow-hidden">
-                  <Image src={author.avatar_url} alt={author.full_name} fill className="object-cover" />
+                  <Image src={author.avatar_url} alt={author.full_name} fill sizes="32px" className="object-cover" />
                 </div>
               ) : (
                 <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm">

@@ -180,6 +180,7 @@ export default async function AboutPage() {
                   src={sv.about_story_image || 'https://images.pexels.com/photos/937783/pexels-photo-937783.jpeg'}
                   alt="Community impact"
                   fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary-900/50 to-transparent" />
@@ -346,14 +347,14 @@ export default async function AboutPage() {
                   <div className="space-y-4">
                     <div className="rounded-3xl overflow-hidden h-44 relative bg-primary-100">
                       {volunteerPhotos[0] ? (
-                        <Image src={volunteerPhotos[0]} alt="Volunteer photo 1" fill className="object-cover" />
+                        <Image src={volunteerPhotos[0]} alt="Volunteer photo 1" fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200" />
                       )}
                     </div>
                     <div className="rounded-3xl overflow-hidden h-56 relative bg-primary-100">
                       {volunteerPhotos[1] ? (
-                        <Image src={volunteerPhotos[1]} alt="Volunteer photo 2" fill className="object-cover" />
+                        <Image src={volunteerPhotos[1]} alt="Volunteer photo 2" fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-sky-100 to-sky-200" />
                       )}
@@ -362,7 +363,7 @@ export default async function AboutPage() {
                   <div className="space-y-4 mt-8">
                     <div className="rounded-3xl overflow-hidden h-56 relative bg-primary-100">
                       {volunteerPhotos[2] ? (
-                        <Image src={volunteerPhotos[2]} alt="Volunteer photo 3" fill className="object-cover" />
+                        <Image src={volunteerPhotos[2]} alt="Volunteer photo 3" fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-green-100 to-green-200" />
                       )}

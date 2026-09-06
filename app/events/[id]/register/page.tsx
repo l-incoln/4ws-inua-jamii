@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import RegistrationForm from '@/components/events/RegistrationForm'
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 
-async function getEvent(id: string): Promise<any> {
+const getEvent = cache(async (id: string): Promise<any> => {
   const supabase = createPublicClient()
   const { data } = await supabase
     .from('events')
@@ -20,7 +21,7 @@ async function getEvent(id: string): Promise<any> {
     .eq('id', id)
     .maybeSingle()
   return data
-}
+})
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
@@ -88,22 +89,42 @@ export default async function RegisterPage({ params }: Props) {
   // Check deadline
   const deadlinePassed = event.rsvp_deadline && new Date(event.rsvp_deadline) < new Date()
 
-  // Fetch custom form fields (table may not exist if migration not applied)
+  // Fetch custom form fields, auth/profile, and registration count concurrently.
   const publicClient = createPublicClient()
-  let formFields: any[] = []
-  try {
-    const { data: ffData, error: ffErr } = await publicClient
-      .from('event_form_fields')
-      .select('id, field_name, field_label, field_type, field_options, is_required, sort_order, section_title, section_sort_order')
-      .eq('event_id', id)
-      .order('section_sort_order', { ascending: true })
-      .order('sort_order', { ascending: true })
-    if (!ffErr && ffData) formFields = ffData
-  } catch { /* table doesn't exist yet */ }
-
-  // Check if user is logged in (for prefill + login requirement)
   const serverSupabase = await createClient()
-  const { data: { user } } = await serverSupabase.auth.getUser()
+
+  const [formFieldsResult, authResult, regCountResult] = await Promise.all([
+    // Custom form fields (table may not exist if migration not applied)
+    (async () => {
+      try {
+        const { data, error } = await publicClient
+          .from('event_form_fields')
+          .select('id, field_name, field_label, field_type, field_options, is_required, sort_order, section_title, section_sort_order')
+          .eq('event_id', id)
+          .order('section_sort_order', { ascending: true })
+          .order('sort_order', { ascending: true })
+        if (!error && data) return data
+      } catch { /* table doesn't exist yet */ }
+      return [] as any[]
+    })(),
+    // Check if user is logged in (for prefill + login requirement)
+    serverSupabase.auth.getUser(),
+    // Count current registrations (table may not exist yet)
+    (async () => {
+      try {
+        const { count, error } = await publicClient
+          .from('event_registrations')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', id)
+          .neq('status', 'cancelled')
+        if (!error) return count
+      } catch { /* table doesn't exist yet */ }
+      return 0
+    })(),
+  ])
+
+  const formFields = formFieldsResult
+  const user = authResult.data.user
   let prefillName = ''
   let prefillEmail = ''
   if (user) {
@@ -116,17 +137,7 @@ export default async function RegisterPage({ params }: Props) {
     prefillEmail = profile?.email || user.email || ''
   }
 
-  // Count current registrations (table may not exist yet)
-  let regCount: number | null = 0
-  try {
-    const { count, error: rcErr } = await publicClient
-      .from('event_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', id)
-      .neq('status', 'cancelled')
-    if (!rcErr) regCount = count
-  } catch { /* table doesn't exist yet */ }
-
+  const regCount = regCountResult
   const isFull = event.max_attendees && event.max_attendees > 0 && (regCount ?? 0) >= event.max_attendees
 
   const eventDate = event.event_date

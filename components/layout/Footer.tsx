@@ -116,7 +116,6 @@ export default async function Footer() {
                   height={logoSize}
                   className="rounded-xl object-contain brightness-0 invert"
                   style={{ width: logoSize, height: logoSize }}
-                  unoptimized
                 />
               ) : (
                 <div

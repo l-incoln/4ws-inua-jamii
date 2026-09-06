@@ -45,8 +45,8 @@ function SponsorStrip({ sponsors, label }: { sponsors: EventSponsor[]; label: st
                 src={s.logo_url}
                 alt={s.name}
                 fill
+                sizes="64px"
                 className="object-contain p-1"
-                unoptimized
               />
             </div>
           ) : (
@@ -144,6 +144,7 @@ export default function EventsPreview({
                       src={event.image_url}
                       alt={event.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
                       className="object-contain group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (

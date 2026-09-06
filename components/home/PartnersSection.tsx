@@ -40,8 +40,8 @@ export default function PartnersSection({
                   src={partner.logo_url}
                   alt={partner.name}
                   fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 300px"
                   className="object-contain p-5 transition-transform duration-300 hover:scale-105"
-                  unoptimized
                 />
               </div>
             ) : (

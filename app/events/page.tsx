@@ -19,26 +19,31 @@ export default async function EventsPage() {
     .select('id, title, description, event_date, start_time, end_time, location, image_url, category, status, max_attendees')
     .in('status', ['upcoming', 'ongoing', 'completed'])
     .order('event_date', { ascending: true })
+    .limit(60)
 
   const events = data ?? []
 
+  // Fetch RSVP counts and event partner settings concurrently.
+  const [rsvpsResult, partnerSettings] = await Promise.all([
+    events.length > 0
+      ? supabase
+          .from('rsvps')
+          .select('event_id')
+          .in('event_id', events.map((e) => e.id))
+          .eq('status', 'confirmed')
+      : Promise.resolve({ data: null, error: null, count: null, status: 0, statusText: '' }),
+    getEventPartnerSettings(supabase),
+  ])
+
   // Count confirmed RSVPs per event
-  let rsvpCounts: Record<string, number> = {}
-  if (events.length > 0) {
-    const { data: rsvps } = await supabase
-      .from('rsvps')
-      .select('event_id')
-      .in('event_id', events.map((e) => e.id))
-      .eq('status', 'confirmed')
-    if (rsvps) {
-      for (const r of rsvps) {
-        rsvpCounts[r.event_id] = (rsvpCounts[r.event_id] || 0) + 1
-      }
+  const rsvpCounts: Record<string, number> = {}
+  if (rsvpsResult.data) {
+    for (const r of rsvpsResult.data) {
+      rsvpCounts[r.event_id] = (rsvpCounts[r.event_id] || 0) + 1
     }
   }
 
   // Fetch event sponsors for the listing (bulk query)
-  const partnerSettings = await getEventPartnerSettings(supabase)
   let eventSponsors: Record<string, { id: string; name: string; logo_url: string | null; website_url: string | null; contribution: string | null }[]> = {}
   if (partnerSettings.showEventPartnersListing && events.length > 0) {
     try {

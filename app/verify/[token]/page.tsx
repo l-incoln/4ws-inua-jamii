@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin-client'
 import { Shield, Star, Award, CheckCircle, XCircle, Calendar, Clock, ShieldAlert } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { isExpired, formatMembershipId } from '@/lib/membership'
 import { verifyTokenSignature } from '@/lib/membership-server'
 
@@ -133,11 +134,15 @@ export default async function VerifyMembershipPage({ params, searchParams }: Pro
           <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/5 blur-2xl" />
           <div className="relative z-10">
             {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt=""
-                className="w-20 h-20 rounded-full object-cover border-4 border-white/30 mx-auto mb-3"
-              />
+              <div className="relative w-20 h-20 mx-auto mb-3">
+                <Image
+                  src={profile.avatar_url}
+                  alt=""
+                  fill
+                  sizes="80px"
+                  className="rounded-full object-cover border-4 border-white/30"
+                />
+              </div>
             ) : (
               <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
                 <TierIcon className="w-8 h-8 text-white" />

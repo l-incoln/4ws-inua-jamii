@@ -27,23 +27,25 @@ const defaultImpactAmounts = [
 export default async function DonatePage() {
   const supabase = await createClient()
 
-  const { data: campaigns } = await supabase
-    .from('donation_campaigns')
-    .select('id, title, description, goal, raised, image_url, deadline')
-    .eq('is_active', true)
-    .order('created_at', { ascending: true })
+  // Fetch campaigns, settings, and payment status concurrently.
+  const [campaignsResult, settingsResult, paymentsEnabled] = await Promise.all([
+    supabase
+      .from('donation_campaigns')
+      .select('id, title, description, goal, raised, image_url, deadline')
+      .eq('is_active', true)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', [
+        'mpesa_paybill', 'mpesa_account', 'min_donation_amount', 'donation_thank_you_message', 'donation_currency',
+        'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
+      ]),
+    isPaymentsEnabled(supabase),
+  ])
 
-  const { data: settingsRows } = await supabase
-    .from('site_settings')
-    .select('key, value')
-    .in('key', [
-      'mpesa_paybill', 'mpesa_account', 'min_donation_amount', 'donation_thank_you_message', 'donation_currency',
-      'donate_hero_title', 'donate_hero_subtitle', 'donate_impact_amounts',
-    ])
-
-  // Online payments can be paused site-wide (site_settings.payments_enabled).
-  // Defaults to disabled so the site can launch before payment details are live.
-  const paymentsEnabled = await isPaymentsEnabled(supabase)
+  const { data: campaigns } = campaignsResult
+  const { data: settingsRows } = settingsResult
 
   const sv = Object.fromEntries((settingsRows ?? []).map((r) => [r.key, r.value ?? '']))
 
@@ -121,7 +123,7 @@ export default async function DonatePage() {
                       <div key={campaign.id} className="card overflow-hidden">
                         <div className="relative h-48 bg-gray-100">
                           {campaign.image_url && (
-                            <Image src={campaign.image_url} alt={campaign.title} fill className="object-cover" />
+                            <Image src={campaign.image_url} alt={campaign.title} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                           {daysLeft !== null && (

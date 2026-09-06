@@ -66,6 +66,7 @@ export default function DonationProgress({ campaigns = [] }: { campaigns?: Campa
                       src={campaign.image_url}
                       alt={campaign.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, 400px"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (

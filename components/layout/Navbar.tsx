@@ -122,7 +122,6 @@ export default function Navbar({
                 height={logoSize}
                 className={`object-contain group-hover:scale-105 transition-transform${!scrolled && isHomePage ? ' brightness-0 invert' : ''}`}
                 style={{ height: logoSize, width: 'auto', maxWidth: logoSize * 6 }}
-                unoptimized
               />
             ) : (
               <div

@@ -57,8 +57,8 @@ function SponsorStrip({ sponsors, label }: { sponsors: EventSponsor[]; label: st
                 src={s.logo_url}
                 alt={s.name}
                 fill
+                sizes="64px"
                 className="object-contain p-1"
-                unoptimized
               />
             </div>
           ) : (
@@ -115,7 +115,7 @@ function EventCard({
       <article className="card group opacity-80">
         <div className="relative h-40 overflow-hidden grayscale bg-gray-100">
           {event.image_url ? (
-            <Image src={event.image_url} alt={event.title} fill className="object-contain" />
+            <Image src={event.image_url} alt={event.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain" />
           ) : (
             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
               <Calendar className="w-10 h-10 text-gray-400" />
@@ -147,6 +147,7 @@ function EventCard({
             src={event.image_url}
             alt={event.title}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
             className="object-contain group-hover:scale-105 transition-transform duration-500"
           />
         ) : (

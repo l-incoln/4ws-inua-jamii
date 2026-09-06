@@ -83,6 +83,7 @@ export default function BlogGrid({ posts, categories }: Props) {
                     src={featured.image_url || PLACEHOLDER_IMG}
                     alt={featured.title}
                     fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent lg:block hidden" />
@@ -142,6 +143,7 @@ export default function BlogGrid({ posts, categories }: Props) {
                       src={post.image_url || PLACEHOLDER_IMG}
                       alt={post.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

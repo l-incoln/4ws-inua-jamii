@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin-client'
 import { Shield, Star, Award, Search, CheckCircle, XCircle, Clock, Mail, CreditCard } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { isExpired, formatMembershipId } from '@/lib/membership'
 
@@ -190,7 +191,9 @@ export default async function VerifyHubPage({ searchParams }: PageProps) {
                   </div>
                   <div className="p-5 flex items-center gap-4">
                     {result.avatar ? (
-                      <img src={result.avatar} alt="" className="w-16 h-16 rounded-full object-cover flex-shrink-0" />
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <Image src={result.avatar} alt="" fill sizes="64px" className="rounded-full object-cover" />
+                      </div>
                     ) : (
                       <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
                         <TierIcon className={`w-7 h-7 ${cfg.color}`} />

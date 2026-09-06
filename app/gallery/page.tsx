@@ -21,6 +21,7 @@ export default async function GalleryPage() {
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
+    .limit(120)
 
   const items = (data ?? []).filter((i) => !!i.image_url)
   const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean))) as string[]

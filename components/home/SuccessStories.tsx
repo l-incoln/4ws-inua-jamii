@@ -49,6 +49,7 @@ export default function SuccessStories({ stories = [] }: { stories?: Story[] }) 
                   src={stories[0].image_url}
                   alt={stories[0].title}
                   fill
+                  sizes="(max-width: 1024px) 100vw, 66vw"
                   className="object-cover group-hover:scale-105 transition-transform duration-700"
                 />
               ) : (
@@ -91,6 +92,7 @@ export default function SuccessStories({ stories = [] }: { stories?: Story[] }) 
                       src={story.image_url}
                       alt={story.title}
                       fill
+                      sizes="96px"
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (

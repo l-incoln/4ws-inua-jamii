@@ -110,9 +110,9 @@ export default function Hero({
                     src={slide.image}
                     alt={slide.event?.title || 'Hero background'}
                     fill
+                    sizes="100vw"
                     className="object-cover object-[center_25%]"
                     priority={i === 0}
-                    unoptimized
                   />
                 </motion.div>
               </motion.div>

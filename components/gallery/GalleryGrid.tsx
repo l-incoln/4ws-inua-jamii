@@ -155,7 +155,6 @@ export default function GalleryGrid({ items, categories, adminMode, onReorder }:
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
                     style={{ objectPosition: `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%` }}
-                    unoptimized
                   />
                   {/* Brand-tinted gradient overlay — deep navy fading up */}
                   <div className="absolute inset-x-0 bottom-0 h-4/5 bg-gradient-to-t from-primary-900/95 via-primary-800/40 to-transparent pointer-events-none rounded-b-xl transition-all duration-300 group-hover:from-primary-900/[0.98] group-hover:via-primary-800/50" />
@@ -224,8 +223,8 @@ export default function GalleryGrid({ items, categories, adminMode, onReorder }:
                 width={1200}
                 height={800}
                 priority
+                sizes="(max-width: 1024px) 100vw, 1024px"
                 className="w-full max-h-[72vh] object-contain rounded-lg"
-                unoptimized
               />
               <div className="mt-3 px-1">
                 <h3 className="text-white font-bold text-base sm:text-lg">{current.title}</h3>

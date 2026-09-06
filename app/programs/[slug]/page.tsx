@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import { Heart, BookOpen, Sprout, DollarSign, Users, Globe, ArrowLeft, ArrowRight } from 'lucide-react'
@@ -18,7 +19,7 @@ const iconMap: Record<string, LucideIcon> = {
   Heart, BookOpen, Sprout, DollarSign, Users, Globe,
 }
 
-async function getProgram(slug: string) {
+const getProgram = cache(async (slug: string) => {
   const supabase = createPublicClient()
   const { data } = await supabase
     .from('programs')
@@ -27,7 +28,7 @@ async function getProgram(slug: string) {
     .eq('is_active', true)
     .maybeSingle()
   return data
-}
+})
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
@@ -65,7 +66,7 @@ export default async function ProgramDetailPage({ params }: Props) {
         {/* Hero */}
         <div className="relative h-72 md:h-96">
           {program.image_url ? (
-            <Image src={program.image_url} alt={program.title} fill className="object-cover" />
+            <Image src={program.image_url} alt={program.title} fill sizes="100vw" className="object-cover" />
           ) : (
             <div className="absolute inset-0 bg-primary-900 flex items-center justify-center">
               <Icon className="w-24 h-24 text-white/20" />

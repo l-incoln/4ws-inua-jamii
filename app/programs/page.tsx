@@ -75,7 +75,7 @@ export default async function ProgramsPage() {
                       <div className="relative h-52 bg-gray-100">
                         {program.image_url ? (
                           <>
-                            <Image src={program.image_url} alt={program.title} fill className="object-cover" />
+                            <Image src={program.image_url} alt={program.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                           </>
                         ) : (

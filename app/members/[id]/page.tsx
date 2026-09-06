@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import { Shield, Star, Award, CalendarDays, Users, MapPin, ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,17 +12,22 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
+const getMemberProfile = cache(async (id: string) => {
   const supabase = await createClient()
   const { data } = await supabase
     .from('profiles')
-    .select('full_name')
+    .select('id, full_name, bio, avatar_url, location, tier, role, created_at, membership_status')
     .eq('id', id)
     .eq('membership_status', 'approved')
     .maybeSingle()
+  return data
+})
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  const profile = await getMemberProfile(id)
   return {
-    title: data?.full_name ? `${data.full_name} | Member Profile` : 'Member Profile',
+    title: profile?.full_name ? `${profile.full_name} | Member Profile` : 'Member Profile',
   }
 }
 
@@ -32,33 +39,30 @@ const TIER_CONFIG: Record<string, { label: string; icon: React.ElementType; grad
 
 export default async function PublicMemberProfilePage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, full_name, bio, avatar_url, location, tier, role, created_at')
-    .eq('id', id)
-    .eq('membership_status', 'approved')
-    .maybeSingle()
-
+  const profile = await getMemberProfile(id)
   if (!profile) notFound()
 
-  // Count RSVPs (event participation)
-  const { count: eventsCount } = await supabase
-    .from('rsvps')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', id)
-    .eq('status', 'confirmed')
+  const supabase = await createClient()
 
-  // Active membership term
-  const { data: activeTerm } = await supabase
-    .from('membership_terms')
-    .select('tier, valid_from, valid_until')
-    .eq('user_id', id)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // Run RSVP count and active membership term concurrently.
+  const [eventsCountResult, activeTermResult] = await Promise.all([
+    supabase
+      .from('rsvps')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', id)
+      .eq('status', 'confirmed'),
+    supabase
+      .from('membership_terms')
+      .select('tier, valid_from, valid_until')
+      .eq('user_id', id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  const eventsCount = eventsCountResult.count ?? 0
+  const activeTerm = activeTermResult.data
 
   const config = TIER_CONFIG[profile.tier] ?? TIER_CONFIG.basic
   const TierIcon = config.icon
@@ -85,11 +89,15 @@ export default async function PublicMemberProfilePage({ params }: Props) {
         </Link>
         <div className="max-w-2xl mx-auto text-center relative">
           {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt=""
-              className="w-24 h-24 rounded-full object-cover border-4 border-white/40 mx-auto mb-4 shadow-xl"
-            />
+            <div className="relative w-24 h-24 mx-auto mb-4">
+              <Image
+                src={profile.avatar_url}
+                alt=""
+                fill
+                sizes="96px"
+                className="rounded-full object-cover border-4 border-white/40 shadow-xl"
+              />
+            </div>
           ) : (
             <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
               <TierIcon className="w-10 h-10 text-white" />

@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import Navbar from '@/components/layout/NavbarWrapper'
 import Footer from '@/components/layout/Footer'
 import ShareRegistration from '@/components/events/ShareRegistration'
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 
-async function getEvent(id: string): Promise<any> {
+const getEvent = cache(async (id: string): Promise<any> => {
   const supabase = createPublicClient()
   // Use select('*') to avoid errors if new columns don't exist yet.
   // PostgREST returns whatever columns exist in the table.
@@ -24,7 +25,7 @@ async function getEvent(id: string): Promise<any> {
     .eq('id', id)
     .maybeSingle()
   return data
-}
+})
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
@@ -39,19 +40,27 @@ export default async function EventDetailPage({ params }: Props) {
   if (!event) notFound()
 
   const supabase = await createClient()
+  const publicClient = createPublicClient()
 
-  // Registration count from event_registrations table (may not exist
-  // if phase16 migration hasn't been applied - fail gracefully).
-  let attendees = 0
-  try {
-    const { count: regCount, error: regErr } = await supabase
-      .from('event_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', id)
-      .neq('status', 'cancelled')
-    if (!regErr) attendees = regCount ?? 0
-  } catch { /* table doesn't exist yet */ }
+  // Run registration count and partner settings concurrently.
+  const [regResult, partnerSettings] = await Promise.all([
+    // Registration count from event_registrations table (may not exist
+    // if phase16 migration hasn't been applied - fail gracefully).
+    (async () => {
+      try {
+        const { count, error } = await supabase
+          .from('event_registrations')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', id)
+          .neq('status', 'cancelled')
+        if (!error) return count ?? 0
+      } catch { /* table doesn't exist yet */ }
+      return 0
+    })(),
+    getEventPartnerSettings(publicClient),
+  ])
 
+  const attendees = regResult
   const maxAttendees = event.max_attendees ?? 0
   const spotsLeft = maxAttendees - attendees
   const progress = maxAttendees > 0 ? Math.round((attendees / maxAttendees) * 100) : 0
@@ -66,8 +75,6 @@ export default async function EventDetailPage({ params }: Props) {
   const registrationUrl = `/events/${id}/register`
 
   // Optional event partners (only fetched/shown when the feature is enabled).
-  const publicClient = createPublicClient()
-  const partnerSettings = await getEventPartnerSettings(publicClient)
   const eventPartners = partnerSettings.showEventPartners
     ? await getEventPartners(publicClient, id)
     : []
@@ -84,7 +91,7 @@ export default async function EventDetailPage({ params }: Props) {
         {/* Hero */}
         <div className="relative h-80 md:h-[28rem] bg-slate-900">
           {event.image_url ? (
-            <Image src={event.image_url} alt={event.title} fill className="object-contain" />
+            <Image src={event.image_url} alt={event.title} fill sizes="100vw" className="object-contain" />
           ) : (
             <div className="absolute inset-0 bg-primary-900" />
           )}
@@ -118,8 +125,8 @@ export default async function EventDetailPage({ params }: Props) {
                           src={partner.logo_url}
                           alt={partner.name}
                           fill
+                          sizes="128px"
                           className="object-contain transition-transform duration-300 hover:scale-105"
-                          unoptimized
                         />
                       </div>
                     ) : (

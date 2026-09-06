@@ -3,24 +3,14 @@ import Footer from '@/components/layout/Footer'
 import PageBackLink from '@/components/layout/PageBackLink'
 import { createPublicClient } from '@/lib/supabase/public-client'
 import type { Metadata } from 'next'
-import { Video, Play } from 'lucide-react'
+import { Video } from 'lucide-react'
+import LazyVideoCard from '@/components/videos/LazyVideoCard'
+import { getYouTubeEmbed, getYouTubeThumb } from '@/lib/video-utils'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'Videos | 4W\'S Inua Jamii Foundation',
   description: 'Watch videos of our community impact, events, and outreach activities.',
-}
-
-function getYouTubeEmbed(url: string): string | null {
-  // YouTube: youtube.com/watch?v=ID or youtu.be/ID
-  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`
-  // Vimeo: vimeo.com/ID
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
-  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`
-  // Already an embed URL
-  if (url.includes('/embed/')) return url
-  return null
 }
 
 export default async function VideosPage() {
@@ -32,6 +22,7 @@ export default async function VideosPage() {
     .not('video_url', 'is', null)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
+    .limit(30)
 
   return (
     <>
@@ -65,30 +56,16 @@ export default async function VideosPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {videos.map((v) => {
                   const embedUrl = v.video_url ? getYouTubeEmbed(v.video_url) : null
+                  const thumb = v.image_url || (v.video_url ? getYouTubeThumb(v.video_url) : null)
                   return (
-                    <div key={v.id} className="card overflow-hidden p-0">
-                      {embedUrl ? (
-                        <div className="aspect-video bg-black">
-                          <iframe
-                            src={embedUrl}
-                            title={v.title}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-full"
-                          />
-                        </div>
-                      ) : (
-                        <div className="aspect-video bg-slate-900 relative flex items-center justify-center">
-                          <img src={v.image_url} alt={v.title} className="absolute inset-0 w-full h-full object-cover opacity-60" />
-                          <Play className="w-12 h-12 text-white relative z-10" />
-                        </div>
-                      )}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-slate-900 text-sm">{v.title}</h3>
-                        {v.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{v.description}</p>}
-                        {v.event_name && <p className="text-xs text-slate-400 mt-2">{v.event_name}</p>}
-                      </div>
-                    </div>
+                    <LazyVideoCard
+                      key={v.id}
+                      title={v.title}
+                      description={v.description}
+                      eventName={v.event_name}
+                      embedUrl={embedUrl}
+                      posterUrl={thumb}
+                    />
                   )
                 })}
               </div>

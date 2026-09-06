@@ -19,24 +19,23 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/auth/login')
 
-  // Fetch profile including membership status and payment info
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('membership_status, payment_confirmed, payment_reference, tier, selected_tier, phone')
-    .eq('id', user.id)
-    .single()
+  // Fetch profile, unread notification count, and payment settings concurrently.
+  const [profileResult, unreadResult, paymentsEnabled] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('membership_status, payment_confirmed, payment_reference, tier, selected_tier, phone')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false),
+    isPaymentsEnabled(supabase),
+  ])
 
-  // Fetch unread notification count
-  const { count: unreadCount } = await supabase
-    .from('notifications')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('read', false)
-
-  const unread = unreadCount ?? 0
-
-  // Online payments can be paused site-wide while payment details are finalised.
-  const paymentsEnabled = await isPaymentsEnabled(supabase)
+  const profile = profileResult.data
+  const unread = unreadResult.count ?? 0
 
   const displayName = user.user_metadata?.full_name || user.email || 'Member'
   const initials = displayName
