@@ -286,7 +286,7 @@ export default function Hero({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-5 sm:mt-7 text-base sm:text-lg md:text-xl text-primary-100/90 max-w-2xl mx-auto leading-relaxed"
+            className="mt-5 sm:mt-7 text-base sm:text-lg md:text-xl text-white/95 max-w-2xl mx-auto leading-relaxed"
           >
             {subtitle}
           </motion.p>
@@ -346,7 +346,7 @@ export default function Hero({
       <motion.div
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/70 hover:text-white transition-colors cursor-pointer"
       >
         <span className="text-[11px] uppercase tracking-widest">Scroll to explore</span>
         <ChevronDown className="w-4 h-4" />

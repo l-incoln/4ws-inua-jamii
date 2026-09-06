@@ -136,7 +136,7 @@ export default function RegistrationForm({
       {/* Basic fields */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="label" htmlFor="full_name">Full Name <span className="text-red-500">*</span></label>
+          <label className="label" htmlFor="full_name">Full Name <span className="text-red-700">*</span></label>
           <input
             id="full_name"
             name="full_name"
@@ -148,7 +148,7 @@ export default function RegistrationForm({
           />
         </div>
         <div>
-          <label className="label" htmlFor="email">Email <span className="text-red-500">*</span></label>
+          <label className="label" htmlFor="email">Email <span className="text-red-700">*</span></label>
           <input
             id="email"
             name="email"
@@ -196,7 +196,7 @@ export default function RegistrationForm({
                     <div key={field.id}>
                       <label className="label" htmlFor={field.field_name}>
                         {field.field_label}
-                        {field.is_required && <span className="text-red-500"> *</span>}
+                        {field.is_required && <span className="text-red-700"> *</span>}
                       </label>
                       {field.field_type === 'textarea' ? (
                         <textarea

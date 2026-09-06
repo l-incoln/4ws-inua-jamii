@@ -36,7 +36,7 @@ function SponsorStrip({ sponsors, label }: { sponsors: EventSponsor[]; label: st
   if (sponsors.length === 0) return null
   return (
     <div className="mt-3 pt-3 border-t border-slate-100">
-      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</div>
+      <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{label}</div>
       <div className="flex flex-wrap items-center gap-2">
         {sponsors.map((s) => {
           const inner = s.logo_url ? (

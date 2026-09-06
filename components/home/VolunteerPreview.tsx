@@ -74,7 +74,7 @@ export default function VolunteerPreview({ tasks = [] }: { tasks?: Task[] }) {
                         </span>
                       ))}
                       {task.skills_required.length > 3 && (
-                        <span className="text-[11px] text-slate-400 px-1">
+                        <span className="text-[11px] text-slate-500 px-1">
                           +{task.skills_required.length - 3} more
                         </span>
                       )}
@@ -86,13 +86,13 @@ export default function VolunteerPreview({ tasks = [] }: { tasks?: Task[] }) {
                 <div className="px-5 pb-5 flex items-center justify-between border-t border-gray-50 pt-3">
                   {days !== null ? (
                     <span className={`text-xs font-semibold flex items-center gap-1 ${
-                      days <= 3 ? 'text-red-500' : days <= 7 ? 'text-amber-500' : 'text-slate-400'
+                      days <= 3 ? 'text-red-700' : days <= 7 ? 'text-amber-700' : 'text-slate-500'
                     }`}>
                       <Clock className="w-3 h-3" />
                       {days > 0 ? `${days} day${days > 1 ? 's' : ''} left` : 'Due today'}
                     </span>
                   ) : (
-                    <span className="text-xs text-slate-400">Flexible deadline</span>
+                    <span className="text-xs text-slate-500">Flexible deadline</span>
                   )}
                   <Link
                     href="/dashboard/tasks"

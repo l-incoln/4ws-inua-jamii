@@ -95,7 +95,7 @@ export default function DonationProgress({ campaigns = [] }: { campaigns?: Campa
                       <span className="text-sm font-bold text-slate-900">
                         KES {formatKES(campaign.raised)}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500">
                         of KES {formatKES(campaign.goal)}
                       </span>
                     </div>
@@ -111,7 +111,7 @@ export default function DonationProgress({ campaigns = [] }: { campaigns?: Campa
                         KES {formatKES(remaining)} to go
                       </span>
                       {days !== null && days > 0 && (
-                        <span className="text-xs text-amber-600 font-semibold">
+                        <span className="text-xs text-amber-800 font-semibold">
                           {days} day{days > 1 ? 's' : ''} left
                         </span>
                       )}

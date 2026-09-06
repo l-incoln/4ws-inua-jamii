@@ -48,7 +48,7 @@ function SponsorStrip({ sponsors, label }: { sponsors: EventSponsor[]; label: st
   if (sponsors.length === 0) return null
   return (
     <div className="mt-3 pt-3 border-t border-slate-100">
-      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</div>
+      <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{label}</div>
       <div className="flex flex-wrap items-center gap-2">
         {sponsors.map((s) => {
           const inner = s.logo_url ? (
@@ -126,11 +126,11 @@ function EventCard({
         </div>
         <div className="p-4">
           <h3 className="font-bold text-slate-700">{event.title}</h3>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mt-2">
             <Calendar className="w-3 h-3" />
             {new Date(event.event_date).toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
-          {attendees > 0 && <div className="text-xs text-slate-400 mt-1">{attendees} attended</div>}
+          {attendees > 0 && <div className="text-xs text-slate-500 mt-1">{attendees} attended</div>}
           {sponsors && sponsors.length > 0 && (
             <SponsorStrip sponsors={sponsors} label={sponsorsLabel || 'Sponsored by'} />
           )}
@@ -198,7 +198,7 @@ function EventCard({
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full bg-primary-500 rounded-full" style={{ width: `${pct}%` }} />
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {Math.max(0, capacity - attendees)} spots remaining
             </p>
           </div>

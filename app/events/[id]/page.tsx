@@ -228,7 +228,7 @@ export default async function EventDetailPage({ params }: Props) {
                           style={{ width: `${Math.min(progress, 100)}%` }}
                         />
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">{progress}% capacity reached</div>
+                      <div className="text-xs text-slate-500 mt-1">{progress}% capacity reached</div>
                     </div>
                   </div>
                 )}

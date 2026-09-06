@@ -85,8 +85,8 @@
   }
 
   .btn-sky {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-sky-500 px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-sky-600 hover:scale-[1.03] active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2;
-    box-shadow: 0 4px 18px rgba(79, 163, 209, 0.35);
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-sky-700 px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-sky-800 hover:scale-[1.03] active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2;
+    box-shadow: 0 4px 18px rgba(45, 106, 142, 0.35);
     position: relative;
     overflow: hidden;
   }
@@ -97,8 +97,8 @@
 
   .btn-gold {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.03] active:scale-95 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-offset-2;
-    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.40);
+    background: linear-gradient(135deg, #B45309 0%, #78350F 100%);
+    box-shadow: 0 4px 20px rgba(180, 83, 9, 0.40);
     position: relative;
     overflow: hidden;
   }
@@ -110,11 +110,11 @@
     opacity: 0;
     transition: opacity 0.3s ease;
   }
-  .btn-gold:hover { background: linear-gradient(135deg, #D97706 0%, #B45309 100%); }
+  .btn-gold:hover { background: linear-gradient(135deg, #92400E 0%, #5C2C0B 100%); }
   .btn-gold:hover::after { opacity: 1; }
   .btn-gold:hover {
-    background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
-    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.55);
+    background: linear-gradient(135deg, #92400E 0%, #5C2C0B 100%);
+    box-shadow: 0 8px 32px rgba(180, 83, 9, 0.55);
     transform: translateY(-1px) scale(1.03);
   }
 
@@ -187,12 +187,12 @@
   }
 
   .badge-gold {
-    @apply badge bg-gold-100 text-gold-700;
+    @apply badge bg-gold-100 text-amber-900;
   }
 
   /* ── Form elements ───────────────────────────────────── */
   .input {
-    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder-gray-400 transition-all duration-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20;
+    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder-slate-500 transition-all duration-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20;
   }
   .input:focus {
     box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.10), 0 2px 8px rgba(0,0,0,0.04);

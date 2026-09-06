@@ -229,7 +229,7 @@ export default async function Footer() {
 
       {/* Bottom Bar */}
       <div className="border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-300">
           <p>&copy; {new Date().getFullYear()} {siteName} Foundation. All rights reserved.</p>
           <p>Built with purpose. Powered by community.</p>
         </div>

@@ -42,7 +42,7 @@ export default function CallToAction() {
   }, [])
 
   return (
-    <section className="py-16 md:py-24 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0F2260 0%, #1E3A8A 40%, #2D5CC8 75%, #4FA3D1 100%)' }}>
+    <section className="py-16 md:py-24 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0F2260 0%, #1E3A8A 40%, #162C6E 75%, #0F2260 100%)' }}>
       {/* Animated orbs — hidden on mobile for performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="hidden sm:block absolute inset-0">
@@ -74,7 +74,7 @@ export default function CallToAction() {
             <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight" style={{ fontFamily: 'var(--font-sora)' }}>
               Become a Member
             </h2>
-            <p className="text-blue-100/90 mt-4 leading-relaxed text-sm md:text-base">
+            <p className="text-white/95 mt-4 leading-relaxed text-sm md:text-base">
               Join thousands of changemakers who are transforming communities across Kenya.
               As a member, you get access to exclusive programs, events, and a powerful network.
             </p>
@@ -91,7 +91,7 @@ export default function CallToAction() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.3 + i * 0.08 }}
-                  className="flex items-center gap-2.5 text-sm text-blue-100/90"
+                  className="flex items-center gap-2.5 text-sm text-white/95"
                 >
                   <Star className="w-4 h-4 text-sky-300 flex-shrink-0" />
                   {item}
@@ -115,7 +115,7 @@ export default function CallToAction() {
             <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight" style={{ fontFamily: 'var(--font-sora)' }}>
               Make a Difference Today
             </h2>
-            <p className="text-blue-100/90 mt-4 leading-relaxed text-sm md:text-base">
+            <p className="text-white/95 mt-4 leading-relaxed text-sm md:text-base">
               Your donation, no matter the size, creates ripples of change. Support our campaigns
               and help us reach more communities across Kenya and beyond.
             </p>
@@ -142,11 +142,11 @@ export default function CallToAction() {
             </Link>
 
             {paymentsEnabled ? (
-              <p className="mt-4 text-xs text-blue-200/70">
+              <p className="mt-4 text-xs text-white/80">
                 All donations are tax-deductible. M-Pesa &amp; card payments accepted.
               </p>
             ) : (
-              <p className="mt-4 text-xs text-blue-200/70">
+              <p className="mt-4 text-xs text-white/80">
                 Online donations are coming soon. Thank you for your patience.
               </p>
             )}
