@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { ArrowRight, Play, ChevronDown, Users, Globe, Heart, TrendingUp, Award } from 'lucide-react'
 
 type HeroSettings = {
@@ -23,7 +23,8 @@ export type HeroStat = {
 
 const iconMap = { users: Users, globe: Globe, heart: Heart, trending: TrendingUp, award: Award }
 
-const SLIDESHOW_INTERVAL = 6000 // ms between slides
+const SLIDESHOW_INTERVAL = 5000 // ms between slides
+const FADE_DURATION = 1.2 // seconds for crossfade
 
 export default function Hero({
   settings = {},
@@ -64,18 +65,24 @@ export default function Hero({
       {/* Deep layered background */}
       <div className="absolute inset-0 bg-hero-gradient" />
 
-      {/* Slideshow background images with crossfade */}
+      {/* Slideshow background images with smooth crossfade + Ken Burns zoom */}
       {slideshowImages.length > 0 && (
         <div className="absolute inset-0">
-          <AnimatePresence mode="sync">
-            {slideshowImages.map((img, i) => (
-              <motion.div
-                key={img}
-                className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: i === currentSlide ? 0.25 : 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.5, ease: 'easeInOut' }}
+          {slideshowImages.map((img, i) => (
+            <div
+              key={img}
+              className="absolute inset-0 transition-opacity ease-in-out will-change-[opacity]"
+              style={{
+                opacity: i === currentSlide ? 1 : 0,
+                transitionDuration: '1200ms',
+              }}
+            >
+              <div
+                className="absolute inset-0 transition-transform ease-out"
+                style={{
+                  transform: i === currentSlide ? 'scale(1.08)' : 'scale(1)',
+                  transitionDuration: `${SLIDESHOW_INTERVAL + 1200}ms`,
+                }}
               >
                 <Image
                   src={img}
@@ -85,11 +92,11 @@ export default function Hero({
                   priority={i === 0}
                   unoptimized
                 />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              </div>
+            </div>
+          ))}
           {/* Dark overlay to keep text readable over photos */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/20 to-slate-900/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 via-slate-900/30 to-slate-900/70" />
         </div>
       )}
 
