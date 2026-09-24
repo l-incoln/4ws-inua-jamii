@@ -120,7 +120,7 @@ export default function Navbar({
                 alt={siteName || "Site Logo"}
                 width={logoSize * 6}
                 height={logoSize}
-                className={`object-contain group-hover:scale-105 transition-transform${!scrolled && isHomePage ? ' brightness-0 invert' : ''}`}
+                className="object-contain group-hover:scale-105 transition-transform"
                 style={{ height: logoSize, width: 'auto', maxWidth: logoSize * 6 }}
               />
             ) : (

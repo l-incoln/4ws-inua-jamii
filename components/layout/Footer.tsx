@@ -114,7 +114,7 @@ export default async function Footer() {
                   alt={siteName}
                   width={logoSize}
                   height={logoSize}
-                  className="rounded-xl object-contain brightness-0 invert"
+                  className="rounded-xl object-contain"
                   style={{ width: logoSize, height: logoSize }}
                 />
               ) : (
