@@ -8,7 +8,7 @@ export const contentType = 'image/png'
 /**
  * Dynamic favicon — redirects to the site logo from the CMS preserving
  * its original appearance (including transparency).
- * Falls back to a branded "4W" badge if no logo is configured.
+ * Falls back to local PNG file with transparency, then to branded "4W" badge.
  */
 export default async function Icon() {
   let logoUrl: string | null = null
@@ -43,7 +43,23 @@ export default async function Icon() {
     }
   }
 
-  // Fallback: render a branded "4W" badge with solid background
+  // Fallback 1: Use local PNG file with transparency
+  try {
+    const localLogoUrl = '/logos/inua-jamii-logo.png'
+    const res = await fetch(localLogoUrl, { cache: 'no-store' })
+    if (res.ok) {
+      return new Response(null, {
+        status: 307,
+        headers: {
+          Location: localLogoUrl,
+        },
+      })
+    }
+  } catch {
+    // fall through to final fallback
+  }
+
+  // Fallback 2: render a branded "4W" badge with solid background
   return new ImageResponse(
     (
       <div
