@@ -6,8 +6,8 @@ export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
 /**
- * Dynamic favicon — renders the site logo from the CMS on a solid
- * background so it's always visible in browser tabs (no transparency).
+ * Dynamic favicon — renders the site logo from the CMS preserving
+ * its original appearance (including transparency).
  * Falls back to a branded "4W" badge if no logo is configured.
  */
 export default async function Icon() {
@@ -39,7 +39,6 @@ export default async function Icon() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: '#1E3A8A',
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
