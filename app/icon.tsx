@@ -3,11 +3,12 @@ import { createPublicClient } from '@/lib/supabase/public-client'
 
 export const runtime = 'edge'
 export const size = { width: 32, height: 32 }
+export const contentType = 'image/png'
 
 /**
  * Dynamic favicon — fetches and serves the site logo from the CMS
- * preserving its original appearance (including transparency).
- * Falls back to local PNG file with transparency, then to branded "4W" badge.
+ * with a white background for better visibility in browser tabs.
+ * Falls back to local PNG file with white background, then to branded "4W" badge.
  */
 export default async function Icon() {
   let logoUrl: string | null = null
@@ -26,41 +27,64 @@ export default async function Icon() {
 
   if (logoUrl) {
     try {
-      // Fetch the actual image and serve it directly
+      // Fetch the actual image and render it on white background for favicon
       const res = await fetch(logoUrl, { cache: 'no-store' })
       if (res.ok) {
-        const imageBuffer = await res.arrayBuffer()
-        const contentType = res.headers.get('content-type') || 'image/png'
-        
-        return new Response(imageBuffer, {
-          headers: {
-            'Content-Type': contentType,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-          },
-        })
+        return new ImageResponse(
+          (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#FFFFFF',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt="logo"
+                style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+              />
+            </div>
+          ),
+          { ...size }
+        )
       }
     } catch {
       // fall through to fallback
     }
   }
 
-  // Fallback 1: Use local PNG file with transparency
+  // Fallback 1: Use local PNG file with white background
   try {
     const localLogoUrl = '/logos/inua-jamii-logo.png'
     const res = await fetch(localLogoUrl, { cache: 'no-store' })
     if (res.ok) {
-      const imageBuffer = await res.arrayBuffer()
-      
-      return new Response(imageBuffer, {
-        headers: {
-          'Content-Type': 'image/png',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-      })
+      return new ImageResponse(
+        (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#FFFFFF',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={localLogoUrl}
+              alt="logo"
+              style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+            />
+          </div>
+        ),
+        { ...size }
+      )
     }
   } catch {
     // fall through to final fallback

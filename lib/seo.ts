@@ -141,7 +141,7 @@ export async function buildRootMetadata(): Promise<Metadata> {
       canonical: SITE_URL,
     },
     icons: {
-      icon: [{ url: '/icon?v=2', sizes: '32x32', type: 'image/png' }],
+      icon: [{ url: '/icon?v=3', sizes: '32x32', type: 'image/png' }],
       apple: [{ url: '/apple-icon?v=2', sizes: '180x180', type: 'image/png' }],
     },
     openGraph: {
