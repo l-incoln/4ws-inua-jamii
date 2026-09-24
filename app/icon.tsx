@@ -3,11 +3,10 @@ import { createPublicClient } from '@/lib/supabase/public-client'
 
 export const runtime = 'edge'
 export const size = { width: 32, height: 32 }
-export const contentType = 'image/png'
 
 /**
- * Dynamic favicon — redirects to the site logo from the CMS preserving
- * its original appearance (including transparency).
+ * Dynamic favicon — fetches and serves the site logo from the CMS
+ * preserving its original appearance (including transparency).
  * Falls back to local PNG file with transparency, then to branded "4W" badge.
  */
 export default async function Icon() {
@@ -27,14 +26,16 @@ export default async function Icon() {
 
   if (logoUrl) {
     try {
-      // Verify the logo is reachable before redirecting
+      // Fetch the actual image and serve it directly
       const res = await fetch(logoUrl, { cache: 'no-store' })
       if (res.ok) {
-        // Redirect to the actual favicon image to preserve transparency
-        return new Response(null, {
-          status: 307,
+        const imageBuffer = await res.arrayBuffer()
+        const contentType = res.headers.get('content-type') || 'image/png'
+        
+        return new Response(imageBuffer, {
           headers: {
-            Location: logoUrl,
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=3600',
           },
         })
       }
@@ -48,10 +49,12 @@ export default async function Icon() {
     const localLogoUrl = '/logos/inua-jamii-logo.png'
     const res = await fetch(localLogoUrl, { cache: 'no-store' })
     if (res.ok) {
-      return new Response(null, {
-        status: 307,
+      const imageBuffer = await res.arrayBuffer()
+      
+      return new Response(imageBuffer, {
         headers: {
-          Location: localLogoUrl,
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=3600',
         },
       })
     }
