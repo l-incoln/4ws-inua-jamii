@@ -22,7 +22,7 @@ import { TIER_LABELS, type MembershipTier } from '@/types'
 // Constants – single source of truth for branding across every email
 // ---------------------------------------------------------------------------
 export const ORG_NAME    = "4W'S Inua Jamii Foundation"
-export const ORG_TAGLINE = 'Wisdom · Wellness · Wealth · Worth'
+export const ORG_TAGLINE = 'Together We Can Uplift Lives.'
 const ORG_COUNTRY = 'Kenya'
 export const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.4wsinuajamii.org'
 
@@ -269,10 +269,21 @@ export function emailLayout({
 
     <!-- Footer -->
     <div style="background:#e2e8f0;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
-      <p style="margin:0 0 4px;color:#64748b;font-size:12px;font-weight:600;">${ORG_NAME} &middot; ${ORG_COUNTRY}</p>
-      <p style="margin:0;color:#94a3b8;font-size:11px;">${ORG_TAGLINE}</p>
-      <p style="margin:8px 0 0;color:#94a3b8;font-size:11px;">This email was sent by ${ORG_NAME}. Please do not reply directly to this message.</p>
-      <p style="margin:6px 0 0;color:#94a3b8;font-size:11px;">
+      <p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:600;">${ORG_NAME}</p>
+      <p style="margin:0 0 8px;color:#334155;font-size:11px;font-weight:500;">${ORG_TAGLINE}</p>
+      <p style="margin:0 0 8px;color:#475569;font-size:11px;">
+        🌐 <a href="${SITE_URL}" style="color:#1E3A8A;text-decoration:none;">4wsinuajamii.org</a>
+      </p>
+      <p style="margin:0 0 8px;color:#475569;font-size:11px;">
+        ✉️ <a href="mailto:info@4wsinuajamii.org" style="color:#1E3A8A;text-decoration:none;">info@4wsinuajamii.org</a>
+      </p>
+      <p style="margin:0 0 12px;color:#475569;font-size:11px;">
+        📱 +254 720 367258
+      </p>
+      <p style="margin:0 0 4px;color:#64748b;font-size:10px;letter-spacing:0.05em;">━━━━━━━━━━━━━━━━━━━━</p>
+      <p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:500;">Connect • Participate • Uplift</p>
+      <p style="margin:8px 0 0;color:#94a3b8;font-size:10px;">This email was sent by ${ORG_NAME}. Please do not reply directly to this message.</p>
+      <p style="margin:6px 0 0;color:#94a3b8;font-size:10px;">
         <a href="${SITE_URL}/unsubscribe" style="color:#64748b;text-decoration:underline;">Unsubscribe</a>
         &nbsp;&middot;&nbsp;
         <a href="${SITE_URL}/privacy" style="color:#64748b;text-decoration:underline;">Privacy Policy</a>
