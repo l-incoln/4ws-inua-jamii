@@ -6,7 +6,7 @@ export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
 /**
- * Dynamic favicon — renders the site logo from the CMS preserving
+ * Dynamic favicon — redirects to the site logo from the CMS preserving
  * its original appearance (including transparency).
  * Falls back to a branded "4W" badge if no logo is configured.
  */
@@ -27,30 +27,16 @@ export default async function Icon() {
 
   if (logoUrl) {
     try {
-      // Verify the logo is reachable before embedding it
+      // Verify the logo is reachable before redirecting
       const res = await fetch(logoUrl, { cache: 'no-store' })
       if (res.ok) {
-        return new ImageResponse(
-          (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={logoUrl}
-                alt="logo"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </div>
-          ),
-          { ...size }
-        )
+        // Redirect to the actual favicon image to preserve transparency
+        return new Response(null, {
+          status: 307,
+          headers: {
+            Location: logoUrl,
+          },
+        })
       }
     } catch {
       // fall through to fallback
