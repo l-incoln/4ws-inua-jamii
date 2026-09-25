@@ -158,8 +158,13 @@ export default function MembersTable({ members }: { members: Member[] }) {
     const url = `/api/admin/export/members${ids ? `?ids=${ids.join(',')}` : ''}`
     
     try {
-      // Use window.open for more reliable download triggering
-      window.open(url, '_blank')
+      // Create hidden link and click it for reliable download
+      const link = document.createElement('a')
+      link.href = url
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     } catch (error) {
       console.error('Export error:', error)
       alert('Export failed. Please try again.')
