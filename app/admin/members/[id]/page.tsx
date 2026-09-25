@@ -94,7 +94,7 @@ export default async function AdminMemberProfilePage({ params }: { params: Promi
         <div className="flex items-start gap-6">
           {/* Avatar */}
           <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-2xl font-bold flex-shrink-0">
-            {member.full_name?.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() || '??'}
+            {member.full_name?.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || '??'}
           </div>
 
           {/* Basic Info */}
