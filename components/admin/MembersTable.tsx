@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import {
   Search, Filter, CheckCircle, XCircle, Eye, Loader2,
   UserPlus, Download, Users, ChevronDown, CreditCard, RefreshCw, Plus, X,
@@ -11,6 +11,7 @@ import { TIER_LABELS, TIER_COLORS, type MembershipTier } from '@/types'
 type Member = {
   id: string
   full_name: string | null
+  email: string | null
   phone: string | null
   tier: string
   membership_status: string
@@ -36,9 +37,24 @@ export default function MembersTable({ members }: { members: Member[] }) {
   const [bulkAction, setBulkAction] = useState<'approved' | 'rejected' | 'pending' | ''>('')
   const [showTierDropdown, setShowTierDropdown] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [exportDropdown, setExportDropdown] = useState(false)
+  const exportDropdownRef = useRef<HTMLDivElement>(null)
   const [issueDropdown, setIssueDropdown] = useState<string | null>(null)
   const [issueData, setIssueData] = useState<{ tier: MembershipTier; months: string }>({ tier: 'basic', months: '12' })
   const [issueMsg, setIssueMsg] = useState<{ id: string; msg: string; ok: boolean } | null>(null)
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setExportDropdown(false)
+      }
+    }
+    if (exportDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [exportDropdown])
 
   const filtered = members.filter((m) => {
     const name = m.full_name || ''
@@ -132,9 +148,15 @@ export default function MembersTable({ members }: { members: Member[] }) {
     })
   }
 
-  async function handleExport(exportSelected = false) {
+  async function handleExport(exportSelected = false, exportFiltered = false) {
     setExporting(true)
-    const url = `/api/admin/export/members`
+    let ids: string[] | null = null
+    if (exportSelected && selected.size > 0) {
+      ids = Array.from(selected)
+    } else if (exportFiltered) {
+      ids = filtered.map((m) => m.id)
+    }
+    const url = `/api/admin/export/members${ids ? `?ids=${ids.join(',')}` : ''}`
     try {
       const res = await fetch(url)
       if (!res.ok) throw new Error('Export failed')
@@ -160,10 +182,41 @@ export default function MembersTable({ members }: { members: Member[] }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => handleExport()} disabled={exporting} className="btn-outline text-sm">
-            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Export CSV
-          </button>
+          <div className="relative" ref={exportDropdownRef}>
+            <button
+              onClick={() => setExportDropdown(!exportDropdown)}
+              disabled={exporting}
+              className="btn-outline text-sm"
+            >
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Export CSV
+              <ChevronDown className="w-3 h-3 ml-1" />
+            </button>
+            {exportDropdown && (
+              <div className="absolute right-0 top-full mt-1 z-20 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                <button
+                  onClick={() => { handleExport(false, false); setExportDropdown(false) }}
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 text-slate-700 font-medium transition-colors"
+                >
+                  Export All Members
+                </button>
+                <button
+                  onClick={() => { handleExport(false, true); setExportDropdown(false) }}
+                  className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 text-slate-700 font-medium transition-colors"
+                >
+                  Export Filtered ({filtered.length})
+                </button>
+                {selected.size > 0 && (
+                  <button
+                    onClick={() => { handleExport(true, false); setExportDropdown(false) }}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 text-slate-700 font-medium transition-colors border-t border-gray-100"
+                  >
+                    Export Selected ({selected.size})
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <button className="btn-primary text-sm">
             <UserPlus className="w-4 h-4" />
             Add Member
@@ -204,9 +257,6 @@ export default function MembersTable({ members }: { members: Member[] }) {
           </select>
           <button onClick={handleBulkAction} disabled={!bulkAction || pending} className="btn-primary text-sm py-1.5 disabled:opacity-50">
             {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
-          </button>
-          <button onClick={() => handleExport(true)} disabled={exporting} className="btn-outline text-sm py-1.5">
-            <Download className="w-3.5 h-3.5" /> Export Selected
           </button>
           <button onClick={() => setSelected(new Set())} className="ml-auto text-xs text-slate-500 hover:text-slate-800">Clear</button>
         </div>
