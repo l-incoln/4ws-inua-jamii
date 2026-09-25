@@ -123,6 +123,32 @@ export async function updateMemberRole(profileId: string, role: 'member' | 'volu
   return { success: true }
 }
 
+export async function updatePaymentConfirmation(profileId: string, paymentConfirmed: boolean) {
+  const { supabase, user, error } = await requireAdmin()
+  if (error || !supabase || !user) return { error }
+
+  const { error: dbError } = await supabase
+    .from('profiles')
+    .update({ payment_confirmed: paymentConfirmed })
+    .eq('id', profileId)
+
+  if (dbError) return { error: dbError.message }
+  
+  await logActivity(
+    supabase,
+    user.id,
+    paymentConfirmed ? 'confirm_payment' : 'unconfirm_payment',
+    'profiles',
+    profileId,
+    { payment_confirmed: paymentConfirmed },
+  )
+
+  revalidatePath('/admin/members')
+  revalidatePath('/dashboard')
+  revalidatePath('/admin/members/[id]', 'page')
+  return { success: true }
+}
+
 export async function createMember(formData: FormData) {
   const { error: adminError } = await requireAdmin()
   if (adminError) return { error: adminError }
