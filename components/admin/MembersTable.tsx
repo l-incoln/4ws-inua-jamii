@@ -159,13 +159,23 @@ export default function MembersTable({ members }: { members: Member[] }) {
     const url = `/api/admin/export/members${ids ? `?ids=${ids.join(',')}` : ''}`
     try {
       const res = await fetch(url)
-      if (!res.ok) throw new Error('Export failed')
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('Export failed:', res.status, errorText)
+        throw new Error('Export failed')
+      }
       const blob = await res.blob()
+      const downloadUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
+      a.href = downloadUrl
       a.download = `members-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(a.href)
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 100)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Export failed. Please try again.')
     } finally {
       setExporting(false)
     }
