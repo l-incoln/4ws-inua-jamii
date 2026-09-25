@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   // Build query with optional ID filter
   let query = supabase
     .from('profiles')
-    .select('id, full_name, email, phone, location, tier, membership_status, role, created_at, payment_confirmed')
+    .select('id, full_name, phone, location, tier, membership_status, role, created_at, payment_confirmed')
     .order('created_at', { ascending: false })
 
   if (ids && ids.length > 0) {
@@ -35,6 +35,15 @@ export async function GET(request: Request) {
   const { data: members, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Fetch auth users for email data
+  let emailMap: Record<string, string> = {}
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin-client')
+    const admin = createAdminClient()
+    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+    for (const u of users ?? []) emailMap[u.id] = u.email ?? ''
+  } catch { /* admin client optional */ }
 
   // Fetch RSVP counts for exported members
   let rsvpCounts: Record<string, number> = {}
@@ -73,7 +82,7 @@ export async function GET(request: Request) {
   const headers = ['Name', 'Email', 'Phone', 'Location', 'Tier', 'Status', 'Role', 'Payment Confirmed', 'Events Attended', 'Active Membership', 'Joined']
   const rows = (members ?? []).map((m) => [
     m.full_name ?? '',
-    m.email ?? '',
+    emailMap[m.id] || '',
     m.phone ?? '',
     m.location ?? '',
     TIER_LABELS[m.tier as keyof typeof TIER_LABELS] ?? m.tier,

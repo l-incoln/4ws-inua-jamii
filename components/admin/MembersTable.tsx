@@ -11,7 +11,6 @@ import { TIER_LABELS, TIER_COLORS, type MembershipTier } from '@/types'
 type Member = {
   id: string
   full_name: string | null
-  email: string | null
   phone: string | null
   tier: string
   membership_status: string
