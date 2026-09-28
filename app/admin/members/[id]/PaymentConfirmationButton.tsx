@@ -9,7 +9,9 @@ export default function PaymentConfirmationButton({ memberId, paymentConfirmed }
 
   return (
     <button
-      onClick={() => startTransition(() => updatePaymentConfirmation(memberId, !paymentConfirmed))}
+      onClick={() => startTransition(async () => {
+        await updatePaymentConfirmation(memberId, !paymentConfirmed)
+      })}
       disabled={pending}
       className={`p-1.5 rounded-lg transition-colors ${
         paymentConfirmed
